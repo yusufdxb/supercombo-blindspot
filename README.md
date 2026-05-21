@@ -1,96 +1,167 @@
-# Phantom-Braking Trigger Reproduction Pipeline (MVP)
+# Does openpilot's driving model know when it's blind?
 
-Research benchmark for identifying visual conditions that trigger false-positive braking in vision-based L2 driving stacks. MVP reproduces one scenario (highway overpass shadow) and runs openpilot's supercombo against it in CARLA.
+**A distribution-shift teardown of a production L2 self-driving vision model.**
 
-## Status
+`supercombo` is the end-to-end neural network that drives [openpilot](https://github.com/commaai/openpilot),
+the L2 driver-assistance system running on ~comma hardware on real roads today. This
+project instruments openpilot v0.9.7's `supercombo` and asks one safety question:
 
-- **Step 2 (model load + GPU inference benchmark):** done 2026-05-17. Median 1.96 ms on RTX 5070 (Blackwell sm_120, ORT 1.23.2 + cuDNN 9 pip wheels).
-- **Step 3 (preprocessing + recurrent state):** done 2026-05-17. Byte budget 6504 from .onnx metadata, ModelStateMirror mirrors `openpilot.modeld.ModelState` line-for-line, frame-1-vs-100 divergence demo passed.
-- **Step 3.5 (real-frame parity vs v0.9.7 reference):** PASS 2026-05-17. 100% of 1159 frames within ±0.5 m/s² on Subaru regen segment (median |delta| 0.040, max 0.335). Bit-identical between Py 3.11/ORT 1.26 and Py 3.10/ORT 1.23.2.
-- **Step 4a (overpass survey):** done 2026-05-17. Committed to Town05 op01.
-- **Step 4b (Town05 op01 two-phase harness):** done 2026-05-21. `src/scenario.py`
-  drives the ego kinematically through the op01 viaduct with a dual camera and
-  runs supercombo per frame; warmup settles (std 0.018), trace smooth (jerk
-  0.004 m/s²).
-- **Domain-gap study:** done 2026-05-21. `scripts/domain_gap.py` proved
-  supercombo is OOD-blind to clean CARLA imagery — real comma footage gives a
-  responsive +0.020 ± 0.070 m/s², CARLA gives a dead-flat +0.538 ± 0.001 (its
-  zero-input default), and five sim-to-real corrections (noise, blur,
-  luma+contrast match) move it by < 0.001. **The CARLA approach cannot
-  demonstrate phantom braking.** Project is blocked on a strategic pivot —
-  recommended path is to pivot to real comma footage (the Step 3.5 pipeline
-  already works there). See the vault for details.
+> When the model is shown input it was never trained on, does it fail loudly, or silently?
 
-## Prerequisites
+The answer, measured: **silently, and completely.** On CARLA-rendered driving scenes,
+the model's outputs collapse to a near-constant default across 8 of its 10 output
+heads, its internal recurrent state freezes to a single point, and its own predicted
+uncertainty rises so little it never leaves the model's normal real-driving range.
+Nothing the model emits would tell a downstream monitor it has stopped perceiving.
 
-- **Python 3.10** (NOT 3.11). CARLA 0.9.15's bundled Python client ships cp37 and cp310 wheels only. We use Python 3.10 to keep the carla client install simple; this drove a small ORT downgrade (1.26.0 → 1.23.2) since 1.26 dropped cp310. No behavior regression — parity is bit-identical between the two configurations.
-- Ubuntu 22.04 LTS, NVIDIA driver ≥ 570, CUDA toolkit 12.x system install.
-- CARLA 0.9.15 binary at `~/Sim/CARLA_0.9.15/` (launch with `./CarlaUE4.sh -RenderOffScreen -quality-level=Epic -carla-rpc-port=2000`).
+---
+
+## TL;DR
+
+- Built a **parity-exact** reimplementation of openpilot v0.9.7 `supercombo` inference:
+  verified to **100% of 1159 frames within ±0.5 m/s²** of comma's own reference
+  output on real footage (median abs delta 0.04 m/s²). This makes the negative
+  result below trustworthy: it is the model, not the harness.
+- Ran the model on real comma footage vs CARLA renders and instrumented every output
+  head, the model's predicted uncertainties, and its internal feature vector.
+
+| Experiment | Finding |
+|---|---|
+| **E1** output collapse | 8 / 10 output heads (plan, lane lines, road edges, lead, curvature, ...) collapse to **< 1%** of their real-footage temporal activity on sim input |
+| **E2** internal OOD | the model's 512-D recurrent feature vector collapses to **0.00001×** the real spread: 219 distinct sim frames map to one frozen point |
+| **E3** silent failure | outputs lose **~99.5%** of their activity, but predicted uncertainty rises only 1.2-1.8× and **0%** of sim frames exceed the model's normal real-driving uncertainty |
+
+![E1 output collapse](report/figures/e1_head_collapse.png)
+
+## Why this matters
+
+Every L2 / autonomous-driving program validates in simulation. If a production
+driving model is out-of-distribution-blind to your simulator, sim "passes" are false
+confidence: the car looks like it drives (stable, benign, plausible outputs) because
+the model has **collapsed to a safe-looking default**, not because it perceives
+anything in the scene. And because the model's own uncertainty heads do not flag the
+collapse (E3), you cannot catch this from model outputs alone. You need an external
+distribution-shift detector.
+
+This is consistent with comma's own experience: openpilot's official simulator bridge
+(MetaDrive) is [reported to drive erratically](https://github.com/commaai/openpilot/issues/31711),
+and comma uses sim for integration/CI testing, not for trusting model behavior.
+
+## How I got here (the honest version)
+
+This started as an attempt to reproduce a real, documented openpilot failure,
+[phantom braking at highway overpass shadows](https://github.com/commaai/openpilot/issues/20704),
+inside CARLA. The reproduction harness was built and works: CARLA, comma-3-faithful
+dual cameras, kinematic two-phase recurrent-state initialization, a smooth verified
+accel trace (`src/scenario.py`).
+
+But the model did not respond to the simulated scenes. Chasing *why* produced the
+teardown above. The project pivoted from "reproduce a known bug" to "rigorously
+characterize a silent failure mode." The phantom-braking harness stayed in the repo:
+it became the control that exposed the real result.
+
+## Rigor and controls
+
+- **Parity control.** `src/run_parity.py` reproduces comma's v0.9.7 reference output
+  on a real segment to 100% within ±0.5 m/s². A skeptic's first objection ("your
+  reimplementation is buggy") is ruled out before any claim is made.
+- **The model is alive on real data.** Every output head has substantial frame-to-frame
+  activity on real footage (E1, "real activity" column). The collapse is sim-specific.
+- **Two real segments, two vehicles** (Subaru highway, RAM), each warmed from an
+  independent recurrent state with the warmup transient discarded, so the "real"
+  baseline is not one recording and is not contaminated by initialization.
+- **Honest negative result on the original goal.** `src/scout_phantom.py` scanned
+  v0.9.7's output on real drives for phantom brakes; it found legitimate curve and
+  intersection braking and **no confirmed phantom brake** in the sample. Phantom
+  braking is rare and the easily accessible data is failure-poor: a real finding
+  about the difficulty of the original problem, reported rather than hidden.
+
+## The experiments
+
+### E1 — Output collapse map
+
+Per output head, the temporal activity (mean per-element standard deviation across
+frames) on CARLA vs real footage. A head whose activity collapses is one the model
+has stopped driving from.
+
+8 of 10 heads collapse below 1% of real activity, including every perception head
+(`lane_lines`, `road_edges`, `lead`) and every planning head (`plan`, `accel`,
+`desired_curv`, `desire_state`). `pose` (ego-motion) partially survives at 18%,
+plausibly because it is driven by frame-to-frame optical flow, which retains some
+signal even in sim. `meta` (disengage / blinker probabilities) is low-activity on
+real footage too. Full table: [`report/teardown_results.md`](report/teardown_results.md).
+
+### E2 — Out-of-distribution inside the model
+
+![E2 feature space](report/figures/e2_feature_ood.png)
+
+`supercombo` is recurrent: it carries a 512-D `hidden_state` feature vector. Projected
+to 2-D (PCA fit on real features), real driving spreads across the feature space while
+**219 distinct CARLA frames collapse to a single point** (feature spread 0.00001× of
+real). The model is not just producing odd outputs; its internal representation of the
+sim world is frozen and degenerate.
+
+### E3 — The silent failure
+
+![E3 silent failure](report/figures/e3_confidence.png)
+
+`supercombo`'s plan / lead / curvature heads emit predicted uncertainties (MDN
+standard deviations). If the model "knew" it was out of distribution, those would
+spike. They do not: outputs lose ~99.5% of their activity, predicted uncertainty
+rises only 1.2-1.8×, and **not one CARLA frame's uncertainty exceeds the model's
+95th-percentile uncertainty on normal real driving.** Any monitor thresholded to not
+false-alarm on real driving would never fire. The model is confidently blind.
+
+## Limitations
+
+- One model version (openpilot v0.9.7, `supercombo`).
+- "Real" is two segments; a larger real corpus would further harden the E1/E2 baseline.
+- CARLA only. comma's MetaDrive sim shows consistent erratic behavior (#31711) but is
+  not instrumented here.
+- The collapse is demonstrated, not yet localized to a layer or mechanism (next step).
+
+## Next
+
+- **E4:** real-to-sim image interpolation, to test whether the collapse is a sharp
+  cliff or a gradient.
+- Localize the collapse to a layer / feature group.
+- Real-data phantom-brake mining at scale, using `src/scout_phantom.py`.
+
+## Reproduce
+
+```bash
+# Python 3.10 (CARLA 0.9.15 client constraint); see Pinned versions below.
+uv venv --python 3.10 --seed .venv
+uv pip install --python .venv/bin/python -r requirements.txt
+
+# parity control: faithful supercombo reimplementation vs comma's reference
+env -u PYTHONPATH .venv/bin/python -m src.run_parity
+
+# the teardown (needs data/domain_gap/carla_rgb.npy, captured from a CARLA run)
+env -u PYTHONPATH .venv/bin/python -m src.teardown
+
+# unit tests
+env -u PYTHONPATH .venv/bin/python -m pytest -q
+```
+
+`env -u PYTHONPATH` is used because a sourced ROS 2 environment otherwise shadows
+packages; the project venv is self-contained.
+
+## Repo map
+
+| Path | What |
+|---|---|
+| `src/state.py`, `src/parser.py`, `src/constants.py` | parity-exact `supercombo` inference + recurrent state |
+| `src/run_parity.py`, `src/warped_preprocessor.py`, `src/transformations.py` | real-footage parity pipeline (calibrated warp) |
+| `src/probe_model.py`, `src/teardown.py` | the E1 / E2 / E3 distribution-shift teardown |
+| `src/scenario.py`, `src/sim_preprocessor.py`, `src/path_sampling.py` | CARLA reproduction harness (the control) |
+| `src/scout_phantom.py` | phantom-brake scout for real comma drives |
+| `report/figures/`, `report/teardown_results.md` | results |
+| `references/openpilot-v0.9.7/` | vendored openpilot v0.9.7 source (parity reference) |
 
 ## Pinned versions
 
-- **openpilot:** v0.9.7 (tag)
-- **supercombo.onnx:** v0.9.7, fetched from `github.com/commaai/openpilot/raw/v0.9.7/selfdrive/modeld/models/supercombo.onnx`, 51.45 MB, exported from PyTorch 2.2.2
-- **parser + state source:** `references/openpilot-v0.9.7/` (parse_model_outputs.py, constants.py, fill_model_msg.py, modeld.py, get_model_metadata.py, common/transformations/*.py, tools_lib/*)
-- **onnxruntime-gpu:** 1.23.2 with `ORT_DISABLE_ALL` graph optimization (Level2 SimplifiedLayerNormFusion is incompatible with this export at this ORT version family)
-- **NVIDIA runtime:** cuDNN 9.22 + CUDA 12.9 via pip wheels, preloaded with `ort.preload_dlls()`
-- **CARLA Python client:** 0.9.15 (PyPI wheel, cp310)
-
-## CARLA town overpass methodology
-
-Canonical "does this town have real overpasses" check (built 2026-05-17 after Town06 turned out to be flat):
-1. `cm.generate_waypoints(distance=2.0)` filtered to `LaneType.Driving`.
-2. Spatial-bucket by `(int(x/R), int(y/R))` with `R=20m`.
-3. For each waypoint, scan own cell + 8 neighbors. If any neighbor's Z exceeds `self.Z + 4m`, it's an under-passage point.
-4. Cluster-merge by 60m proximity.
-5. Walk `wp.next(2)` / `wp.previous(2)` from each candidate until junction, fork, dead-end, or accumulated bend >3°/m. Runway = max(fwd, bwd).
-6. Cross-check `world.get_environment_objects(CityObjectLabel.Bridge)` — count ≠ 0 with Z-spread ≈ 0 means visual bridges with flat OpenDRIVE topology (Town01, Town10HD).
-
-**Do not use absolute Z thresholds** — Town13's whole map sits at Z=144–192m, an absolute-Z detector returns 100% of waypoints as "elevated" and finds nothing. Always relative.
-
-Census results for CARLA 0.9.15:
-
-| town | best under-road runway | overpass count | notes |
-|---|---|---|---|
-| Town01–02, Town06, Town10HD, Town12 | 0 (flat) | 0 | no real road-over-road |
-| Town04 | 84 m | 2 | figure-8 loop, 11m overhead |
-| Town05 | 108 m | 5 | ring around grid town |
-| Town13 (HD) | 784 m | 11 | requires AdditionalMaps; UE4 segfaults on sensors on Blackwell |
-
-See `scripts/survey_town13.py` for the canonical implementation.
-
-## Camera config (Step 4b, as built)
-
-- Narrow road cam: rectilinear, 1928×1208, **40.05° horizontal FOV** — the fov
-  that reproduces comma 3 fcam intrinsics (focal 2648 px). The earlier "~73°"
-  note was wrong; fcam is ~40° HFOV. Rendering at fcam intrinsics lets the
-  verified Step 3.5 warp map the frame into the 512×256 medmodel frame with a
-  zero calibration euler (sim camera is mounted perfectly).
-- Wide road cam: rectilinear, 1928×1208, ~119° HFOV (comma 3 ecam focal). The
-  real ecam is a fisheye a CARLA pinhole cannot reproduce — recorded for
-  overlays; the model's `big_input_imgs` is fed the narrow frame (Step 3.5
-  showed accel@t0 is narrow-dominated).
-- Rate: 20 Hz, synchronous mode, fixed_delta 0.05.
-- Ego playback is kinematic (physics off, `apply_batch_sync(ApplyTransform)`
-  one arc-length per tick) — fully deterministic.
-
-## Plan tensor — longitudinal accel @ t≈0
-
-Verified against `references/openpilot-v0.9.7/`:
-- `parsed_outs['plan']` shape `(1, 33, 15)`
-- `Plan.ACCELERATION = slice(6, 9)` (ax, ay, az)
-- **`long_accel_t0 = parsed_outs['plan'][0, 0, 6]`**
-
-## Quickstart
-
-```bash
-cd ~/Projects/phantom-braking
-uv venv --python 3.10 --seed .venv
-uv pip install --python .venv/bin/python -r requirements.txt
-.venv/bin/python src/model_runner.py    # Step 2 — load + GPU benchmark
-.venv/bin/python -m src.run_parity      # Step 3.5 — parity vs comma reference
-
-# requires CARLA server on localhost:2000:
-#   cd ~/Sim/CARLA_0.9.15 && ./CarlaUE4.sh -RenderOffScreen -quality-level=Epic -carla-rpc-port=2000
-.venv/bin/python -m pytest tests/test_carla_connection.py -v
-```
+openpilot **v0.9.7** (`supercombo.onnx`, 51 MB, fetched from the v0.9.7 tag);
+onnxruntime-gpu **1.23.2** with `ORT_DISABLE_ALL` graph optimization; Python **3.10**;
+CARLA **0.9.15**. Runs on an RTX 5070 (Blackwell sm_120); first inference pays a ~28 s
+PTX JIT, then ~2 ms/frame.

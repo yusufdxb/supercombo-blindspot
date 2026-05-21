@@ -4,6 +4,7 @@ study can re-warp and perturb them without a CARLA server."""
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -15,12 +16,20 @@ from src.scenario import (
     CAM_X, CAM_Z, EGO_Z_LIFT, SETTLE_EPS_M, TICK_DT, CameraSensor, build_drive_path)
 from src.sim_preprocessor import fcam_fov_deg
 
-N_CAPTURE = 170
-SPEED = 8.0
-OUT = Path(__file__).resolve().parents[1] / "data" / "domain_gap" / "carla_rgb.npy"
+DEFAULT_OUT = Path(__file__).resolve().parents[1] / "data" / "domain_gap" / "carla_rgb.npy"
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(description="Capture consecutive CARLA narrow frames")
+    ap.add_argument("--n", type=int, default=170, help="frames to capture")
+    ap.add_argument("--speed", type=float, default=8.0,
+                    help="ego speed m/s (lower = more frames stay on clean road)")
+    ap.add_argument("--out", type=str, default=str(DEFAULT_OUT))
+    args = ap.parse_args()
+    N_CAPTURE = args.n
+    SPEED = args.speed
+    OUT = Path(args.out)
+
     client = carla.Client("localhost", 2000)
     client.set_timeout(30.0)
     world = client.load_world("Town05")
