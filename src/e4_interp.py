@@ -84,13 +84,16 @@ def activity_per_head(d: dict) -> dict[str, float]:
 
 
 def normalized_activity(per_head_by_alpha: dict[float, dict]) -> dict[float, float]:
-    """Mean over heads of (head activity / head activity at alpha 0).
-    Equals 1.0 at alpha 0 by construction."""
+    """Median over heads of (head activity / head activity at alpha 0).
+    Equals 1.0 at alpha 0 by construction.  Median is used instead of mean
+    to be robust to the 2 heads (pose, meta) that E1 found do NOT collapse on
+    CARLA frames; their ratios >> 1 would inflate the arithmetic mean at
+    alpha -> 1 and mask the true collapse of the other 8 heads."""
     base = per_head_by_alpha[0.0]
     out: dict[float, float] = {}
     for a, ph in per_head_by_alpha.items():
         ratios = [ph[h] / base[h] for h in base if base[h] > 1e-12]
-        out[a] = float(np.mean(ratios))
+        out[a] = float(np.median(ratios))
     return out
 
 
@@ -213,3 +216,51 @@ def write_results(alphas, norm, fproj, spread, unc,
         L.append(f"| {a:.4f} | {norm[a]:.4f} | {fproj[a]:.4f} "
                  f"| {spread[a]:.2f} | {unc[a]:.4f} |")
     RESULTS.write_text("\n".join(L) + "\n")
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(
+        description="E4 real-to-sim interpolation sweep")
+    ap.add_argument("--collect", action="store_true",
+                    help=f"re-run the model instead of using {CACHE.name}")
+    args = ap.parse_args(argv)
+
+    if args.collect or not CACHE.exists():
+        collected = _collect_live()
+        save_cache(CACHE, collected)
+        print(f"  cached collected outputs -> {CACHE.relative_to(ROOT)}")
+    else:
+        print(f"Loading {CACHE.relative_to(ROOT)} "
+              f"(no model / CARLA needed; pass --collect to re-run) ...")
+        collected = load_cache(CACHE)
+
+    post = {a: _post(collected[a], WARMUP) for a in collected}
+    alphas = sorted(post)
+    per_head = {a: activity_per_head(post[a]) for a in alphas}
+    norm = normalized_activity(per_head)
+    centroids = {a: feature_centroid(post[a]) for a in alphas}
+    fproj = feature_projection(centroids)
+    spread = {a: feature_spread(post[a]) for a in alphas}
+    unc = {a: mean_uncertainty(post[a]) for a in alphas}
+    a90, a10 = transition_width(alphas, norm)
+    width = a10 - a90
+    verdict = "cliff" if width < CLIFF_WIDTH else "gradient"
+
+    print(f"\n=== E4  REAL-TO-SIM INTERPOLATION ({len(alphas)} alphas) ===")
+    print(f"  {'alpha':>7} {'activity':>10} {'feat collapse':>14} "
+          f"{'uncertainty':>12}")
+    for a in alphas:
+        print(f"  {a:>7.4f} {norm[a]:>10.4f} {fproj[a]:>14.4f} "
+              f"{unc[a]:>12.4f}")
+    print(f"\n  transition width: alpha {a90:.3f} -> {a10:.3f} "
+          f"= {width:.3f}  ->  {verdict.upper()}")
+
+    fig_interp(alphas, norm, fproj, unc, a90, a10)
+    write_results(alphas, norm, fproj, spread, unc, a90, a10, width, verdict)
+    print(f"  figure -> {FIG.relative_to(ROOT)}   "
+          f"results -> {RESULTS.relative_to(ROOT)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
