@@ -32,7 +32,7 @@ Nothing the model emits would tell a downstream monitor it has stopped perceivin
 | **E1** output collapse | 8 / 10 output heads (plan, lane lines, road edges, lead, curvature, ...) collapse to **< 1%** of their real-footage temporal activity on sim input |
 | **E2** internal OOD | the model's 512-D recurrent feature vector collapses to **0.00001×** the real spread: 219 distinct sim frames map to one frozen point |
 | **E3** silent failure | outputs lose **~99.5%** of their activity, but predicted uncertainty rises only 1.2-1.8× and **0%** of sim frames exceed the model's normal real-driving uncertainty |
-| **E4** cliff, not gradient | blending CARLA into a real frame, output activity first balloons to **6×** the real baseline (ghosted-input thrash), then collapses in a **hard cliff** at ~78% CARLA (transition width **0.015**); predicted uncertainty never spikes through it |
+| **E4** cliff, not gradient | blending CARLA into a real frame, output activity first balloons to **6.3×** the real baseline (ghosted-input thrash), then collapses in a **hard cliff** at ~78% CARLA (transition width **0.015**); predicted uncertainty never spikes through it |
 
 ![E1 output collapse](report/figures/e1_head_collapse.png)
 
