@@ -1,0 +1,7 @@
+# Minimal deps for the CI unit-test job. The unit-test closure
+# (test_path_sampling, test_sim_preprocessor + their src/ imports) needs only
+# numpy and OpenCV. The CARLA integration suite skips itself when no simulator
+# is reachable, so onnxruntime-gpu / carla / pycapnp are deliberately omitted.
+numpy==2.2.6
+opencv-python-headless==4.13.0.92
+pytest==8.3.4

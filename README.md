@@ -2,6 +2,8 @@
 
 **A distribution-shift teardown of a production L2 self-driving vision model.**
 
+[![CI](https://github.com/yusufdxb/supercombo-blindspot/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufdxb/supercombo-blindspot/actions/workflows/ci.yml)
+
 `supercombo` is the end-to-end neural network that drives [openpilot](https://github.com/commaai/openpilot),
 the L2 driver-assistance system running on ~comma hardware on real roads today. This
 project instruments openpilot v0.9.7's `supercombo` and asks one safety question:

@@ -19,30 +19,42 @@ CLIENT_TIMEOUT_S = 10.0
 EXPECTED_VERSION = "0.9.15"
 
 
+def _carla_reachable(host: str = CARLA_HOST, port: int = CARLA_PORT) -> bool:
+    """True if a CARLA RPC server is listening. Used to skip this integration
+    suite cleanly when no simulator is running (fresh clone, CI)."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(2.0)
+    try:
+        sock.connect((host, port))
+        return True
+    except OSError:
+        return False
+    finally:
+        sock.close()
+
+
+# Whole module is an integration suite: skip it unless a CARLA server answers,
+# rather than hard-failing on every machine that isn't running the simulator.
+pytestmark = pytest.mark.skipif(
+    not _carla_reachable(),
+    reason=f"no CARLA server on {CARLA_HOST}:{CARLA_PORT} — integration tests skipped",
+)
+
+
 @pytest.fixture(scope="module")
 def carla_client():
     try:
         import carla
     except ImportError as e:
-        pytest.fail(f"carla python package not installed: {e}")
+        pytest.skip(f"carla python package not installed: {e}")
     client = carla.Client(CARLA_HOST, CARLA_PORT)
     client.set_timeout(CLIENT_TIMEOUT_S)
     return client
 
 
 def test_port_open():
-    """Cheap fast-fail: refuse to wait 10s on carla.Client if nothing's listening."""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(2.0)
-    try:
-        sock.connect((CARLA_HOST, CARLA_PORT))
-    except (ConnectionRefusedError, socket.timeout) as e:
-        pytest.fail(
-            f"nothing listening on {CARLA_HOST}:{CARLA_PORT} — "
-            f"start CARLA: ./CarlaUE4.sh -RenderOffScreen -carla-rpc-port=2000 ({type(e).__name__}: {e})"
-        )
-    finally:
-        sock.close()
+    """Confirm the CARLA RPC port accepts a TCP connection."""
+    assert _carla_reachable(), f"nothing listening on {CARLA_HOST}:{CARLA_PORT}"
 
 
 def test_versions_match(carla_client):
