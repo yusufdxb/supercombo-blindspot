@@ -22,3 +22,22 @@ def test_blend_is_float32_and_in_range():
     out = blend(r, c, 0.25)
     assert out.dtype == np.float32
     assert out.min() >= 0.0 and out.max() <= 255.0
+
+
+from src.e4_interp import transition_width
+
+
+def test_transition_width_sharp_cliff():
+    # activity holds near 1.0 then drops inside one step: a cliff
+    alphas = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    norm = {a: (1.0 if a <= 0.5 else 0.02) for a in alphas}
+    a90, a10 = transition_width(alphas, norm)
+    assert a10 - a90 < 0.2, (a90, a10)
+
+
+def test_transition_width_smooth_gradient():
+    # activity falls linearly across the whole sweep: a gradient
+    alphas = [round(0.1 * i, 4) for i in range(11)]
+    norm = {a: 1.0 - a for a in alphas}
+    a90, a10 = transition_width(alphas, norm)
+    assert a10 - a90 > 0.6, (a90, a10)
