@@ -39,3 +39,21 @@ def blend(real_six: np.ndarray, carla_six: np.ndarray, alpha: float) -> np.ndarr
     r = np.asarray(real_six, dtype=np.float32)
     c = np.asarray(carla_six, dtype=np.float32)
     return (1.0 - alpha) * r + alpha * c
+
+
+def _crossing(xs: list[float], ys: list[float], level: float) -> float:
+    """First x where the piecewise-linear curve (xs, ys) crosses `level`."""
+    for i in range(1, len(xs)):
+        y0, y1 = ys[i - 1], ys[i]
+        if (y0 - level) * (y1 - level) <= 0 and y0 != y1:
+            x0, x1 = xs[i - 1], xs[i]
+            return x0 + (level - y0) * (x1 - x0) / (y1 - y0)
+    return float("nan")
+
+
+def transition_width(alphas, norm_activity: dict) -> tuple[float, float]:
+    """Return (alpha@0.9, alpha@0.1): the alphas where normalized activity
+    crosses 0.9 and 0.1. The transition width is the difference."""
+    xs = sorted(alphas)
+    ys = [norm_activity[a] for a in xs]
+    return _crossing(xs, ys, 0.9), _crossing(xs, ys, 0.1)
