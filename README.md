@@ -11,10 +11,15 @@ Research benchmark for identifying visual conditions that trigger false-positive
 - **Step 4b (Town05 op01 two-phase harness):** done 2026-05-21. `src/scenario.py`
   drives the ego kinematically through the op01 viaduct with a dual camera and
   runs supercombo per frame; warmup settles (std 0.018), trace smooth (jerk
-  0.004 m/s²). Two open findings: supercombo emits its zero-input default on
-  clean CARLA road (sim domain gap), and the hard-brake excursion (to -1.9 m/s²)
-  onsets in the urban-clutter zone, not at the shadow peak. See the vault for
-  the direction call before Step 4c.
+  0.004 m/s²).
+- **Domain-gap study:** done 2026-05-21. `scripts/domain_gap.py` proved
+  supercombo is OOD-blind to clean CARLA imagery — real comma footage gives a
+  responsive +0.020 ± 0.070 m/s², CARLA gives a dead-flat +0.538 ± 0.001 (its
+  zero-input default), and five sim-to-real corrections (noise, blur,
+  luma+contrast match) move it by < 0.001. **The CARLA approach cannot
+  demonstrate phantom braking.** Project is blocked on a strategic pivot —
+  recommended path is to pivot to real comma footage (the Step 3.5 pipeline
+  already works there). See the vault for details.
 
 ## Prerequisites
 
