@@ -57,3 +57,21 @@ def transition_width(alphas, norm_activity: dict) -> tuple[float, float]:
     xs = sorted(alphas)
     ys = [norm_activity[a] for a in xs]
     return _crossing(xs, ys, 0.9), _crossing(xs, ys, 0.1)
+
+
+def save_cache(path: Path, collected: dict[float, dict]) -> None:
+    """Persist {alpha: {head: array}} as one compressed .npz."""
+    flat = {f"{a:.4f}__{k}": v
+            for a, d in collected.items() for k, v in d.items()}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(path, **flat)
+
+
+def load_cache(path: Path) -> dict[float, dict]:
+    """Inverse of `save_cache`."""
+    z = np.load(path)
+    out: dict[float, dict] = {}
+    for key in z.files:
+        a_str, _, name = key.partition("__")
+        out.setdefault(float(a_str), {})[name] = z[key]
+    return out
