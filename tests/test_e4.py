@@ -109,7 +109,7 @@ def test_feature_spread_and_uncertainty():
     assert abs(mean_uncertainty(seg) - 1.0) < 1e-9
 
 
-from src.e4_interp import CACHE
+from src.e4_interp import CACHE, CLIFF_WIDTH
 from src.teardown import WARMUP as _WARMUP
 from src.e4_interp import _post as _e4_post  # re-exported from teardown
 
@@ -141,8 +141,11 @@ class TestE4Regression:
         assert norm[1.0] < 0.2, norm[1.0]
         assert abs(fproj[1.0] - 1.0) < 1e-6
 
-    def test_transition_width_is_finite(self, swept):
+    def test_transition_is_a_cliff(self, swept):
         alphas, norm, _ = swept
         a90, a10 = transition_width(alphas, norm)
         assert np.isfinite(a90) and np.isfinite(a10)
-        assert 0.0 <= a10 - a90 <= 1.0
+        width = a10 - a90
+        assert 0.0 <= width <= 1.0
+        # the measured E4 verdict: the collapse is a cliff, not a gradient
+        assert width < CLIFF_WIDTH, width
