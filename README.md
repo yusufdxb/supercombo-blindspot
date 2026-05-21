@@ -131,19 +131,27 @@ false-alarm on real driving would never fire. The model is confidently blind.
 
 ## Reproduce
 
+**The teardown runs from a fresh clone** — no model, no CARLA, no multi-GB raw
+frames. It re-derives every E1 / E2 / E3 table and figure from the committed
+collected-output cache (`report/teardown_collected.npz`, 4 MB — the per-frame
+model outputs the result is computed from):
+
 ```bash
-# Python 3.10 (CARLA 0.9.15 client constraint); see Pinned versions below.
+pip install -r requirements-ci.txt matplotlib
+python -m src.teardown      # E1/E2/E3 tables + figures, from the cache
+python -m pytest -q         # unit tests + the teardown regression test
+```
+
+To re-run the model end-to-end instead — the parity control and a fresh
+collection pass — you need the full stack (Python 3.10 for the CARLA 0.9.15
+client), `supercombo.onnx`, the real comma segments, and a CARLA frame capture:
+
+```bash
 uv venv --python 3.10 --seed .venv
 uv pip install --python .venv/bin/python -r requirements.txt
 
-# parity control: faithful supercombo reimplementation vs comma's reference
-env -u PYTHONPATH .venv/bin/python -m src.run_parity
-
-# the teardown (needs data/domain_gap/carla_rgb.npy, captured from a CARLA run)
-env -u PYTHONPATH .venv/bin/python -m src.teardown
-
-# unit tests
-env -u PYTHONPATH .venv/bin/python -m pytest -q
+env -u PYTHONPATH .venv/bin/python -m src.run_parity         # parity control vs comma's reference
+env -u PYTHONPATH .venv/bin/python -m src.teardown --collect # re-collect, then re-derive
 ```
 
 `env -u PYTHONPATH` is used because a sourced ROS 2 environment otherwise shadows
@@ -158,6 +166,7 @@ packages; the project venv is self-contained.
 | `src/probe_model.py`, `src/teardown.py` | the E1 / E2 / E3 distribution-shift teardown |
 | `src/scenario.py`, `src/sim_preprocessor.py`, `src/path_sampling.py` | CARLA reproduction harness (the control) |
 | `src/scout_phantom.py` | phantom-brake scout for real comma drives |
+| `report/teardown_collected.npz` | cached per-frame model outputs — the teardown re-derives E1/E2/E3 from this |
 | `report/figures/`, `report/teardown_results.md` | results |
 | `references/openpilot-v0.9.7/` | vendored openpilot v0.9.7 source (parity reference) |
 

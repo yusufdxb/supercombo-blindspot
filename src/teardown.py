@@ -26,22 +26,27 @@ Methodology notes (these matter):
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
 import numpy as np
 
-from src.probe_model import HEAD_NAMES, collect, load_carla_six, load_real_six
-from src.state import build_session, load_output_slices
-
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 FIG_DIR = ROOT / "report" / "figures"
 RESULTS_MD = ROOT / "report" / "teardown_results.md"
+# Cached collected model outputs — lets the teardown run from a fresh clone
+# with no model, no CARLA, and no multi-GB raw frames. See README "Reproduce".
+CACHE = ROOT / "report" / "teardown_collected.npz"
 
 N = 320          # frames collected per segment
 WARMUP = 100     # discarded per segment (recurrent state fill, not scene response)
 SCALARS = ["accel_t0", "desired_curv", "lead_prob"]
+# Heads mapped by E1 — mirrors src.probe_model._HEADS (both are stable
+# supercombo output groups; kept in sync by hand).
+HEAD_NAMES = ["plan", "lane_lines", "road_edges", "lead", "pose",
+              "desire_state", "meta"]
 COLLAPSE = 0.10  # head activity ratio below this = collapsed
 
 
@@ -224,23 +229,72 @@ def fig_confidence(e3: list[dict]) -> None:
 
 
 # --------------------------------------------------------------------------
+# collected-output cache
+# --------------------------------------------------------------------------
+
+def _save_cache(path: Path, segments: dict[str, dict]) -> None:
+    """Persist the per-segment collected outputs as one compressed .npz."""
+    flat = {f"{seg}__{k}": v for seg, d in segments.items() for k, v in d.items()}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(path, **flat)
+
+
+def _load_cache(path: Path) -> dict[str, dict]:
+    """Inverse of `_save_cache` — return {segment: {head: array}}."""
+    z = np.load(path)
+    segs: dict[str, dict] = {}
+    for key in z.files:
+        seg, _, name = key.partition("__")
+        segs.setdefault(seg, {})[name] = z[key]
+    return segs
+
+
+def _collect_live() -> dict[str, dict]:
+    """Run supercombo over the real + CARLA segments. Needs the model, the real
+    HEVC/rlog segments, and data/domain_gap/carla_rgb.npy. Imports are local so
+    the cached path stays free of the onnxruntime / OpenCV dependency."""
+    from src.probe_model import collect, load_carla_six, load_real_six
+    from src.state import build_session, load_output_slices
+
+    sess, slices = build_session(), load_output_slices()
+    print(f"Collecting (N={N}/segment) — first warm triggers ~28 s PTX JIT ...")
+    return {
+        "subaru": collect(load_real_six(DATA / "subaru_source" / "fcamera.hevc",
+                                        DATA / "subaru_source" / "rlog.bz2", N),
+                          sess, slices),
+        "ram": collect(load_real_six(DATA / "ram_source" / "fcamera.hevc",
+                                     DATA / "ram_source" / "rlog.bz2", N),
+                       sess, slices),
+        "carla": collect(load_carla_six(DATA / "domain_gap" / "carla_rgb.npy", N),
+                         sess, slices),
+    }
+
+
+# --------------------------------------------------------------------------
 # main
 # --------------------------------------------------------------------------
 
-def main() -> int:
-    FIG_DIR.mkdir(parents=True, exist_ok=True)
-    sess, slices = build_session(), load_output_slices()
-    print(f"Collecting (N={N}/segment, discard {WARMUP} warmup) — "
-          f"first warm triggers ~28 s PTX JIT ...")
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description="supercombo distribution-shift teardown")
+    ap.add_argument("--collect", action="store_true",
+                    help="re-run the model over the raw segments instead of "
+                         f"using the cached collected outputs ({CACHE.name})")
+    args = ap.parse_args(argv)
 
-    subaru = _post(collect(load_real_six(DATA / "subaru_source" / "fcamera.hevc",
-                                         DATA / "subaru_source" / "rlog.bz2", N),
-                           sess, slices), WARMUP)
-    ram = _post(collect(load_real_six(DATA / "ram_source" / "fcamera.hevc",
-                                      DATA / "ram_source" / "rlog.bz2", N),
-                        sess, slices), WARMUP)
-    carla = _post(collect(load_carla_six(DATA / "domain_gap" / "carla_rgb.npy", N),
-                          sess, slices), WARMUP)
+    FIG_DIR.mkdir(parents=True, exist_ok=True)
+
+    if args.collect or not CACHE.exists():
+        segments = _collect_live()
+        _save_cache(CACHE, segments)
+        print(f"  cached collected outputs -> {CACHE.relative_to(ROOT)}")
+    else:
+        print(f"Loading collected outputs from {CACHE.relative_to(ROOT)} — no "
+              f"model / CARLA / raw frames needed (pass --collect to re-run).")
+        segments = _load_cache(CACHE)
+
+    subaru = _post(segments["subaru"], WARMUP)
+    ram = _post(segments["ram"], WARMUP)
+    carla = _post(segments["carla"], WARMUP)
     real = {k: np.concatenate([subaru[k], ram[k]]) for k in subaru}
     print(f"  post-warmup: real {len(real['accel_t0'])} (Subaru+RAM), "
           f"CARLA {len(carla['accel_t0'])}")
