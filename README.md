@@ -153,6 +153,7 @@ Full table: [`report/e4_results.md`](report/e4_results.md).
   not instrumented here.
 - The collapse is demonstrated, not yet localized to a layer or mechanism (next step).
 - E4's interpolation overlays two scenes (a double-exposure), so it is an overlay-interference probe, not a photometric sim-to-real morph.
+- E4's 0.015 transition width is a linear-interpolation estimate within a single 0.025-wide alpha step; the sweep resolves the cliff to roughly one step, not to finer precision.
 
 ## Next
 
