@@ -32,6 +32,7 @@ Nothing the model emits would tell a downstream monitor it has stopped perceivin
 | **E1** output collapse | 8 / 10 output heads (plan, lane lines, road edges, lead, curvature, ...) collapse to **< 1%** of their real-footage temporal activity on sim input |
 | **E2** internal OOD | the model's 512-D recurrent feature vector collapses to **0.00001×** the real spread: 219 distinct sim frames map to one frozen point |
 | **E3** silent failure | outputs lose **~99.5%** of their activity, but predicted uncertainty rises only 1.2-1.8× and **0%** of sim frames exceed the model's normal real-driving uncertainty |
+| **E4** cliff, not gradient | blending CARLA into a real frame, output activity first balloons to **6×** the real baseline (ghosted-input thrash), then collapses in a **hard cliff** at ~78% CARLA (transition width **0.015**); predicted uncertainty never spikes through it |
 
 ![E1 output collapse](report/figures/e1_head_collapse.png)
 
@@ -114,6 +115,36 @@ rises only 1.2-1.8×, and **not one CARLA frame's uncertainty exceeds the model'
 95th-percentile uncertainty on normal real driving.** Any monitor thresholded to not
 false-alarm on real driving would never fire. The model is confidently blind.
 
+### E4: Cliff, not gradient
+
+E1-E3 show the model collapses on CARLA. E4 asks *how the collapse arrives*.
+Each real Subaru model-frame is blended with a CARLA frame,
+`X(alpha) = (1-alpha)*real + alpha*CARLA`, and the model is run across a sweep
+of alpha (auto-refined to 29 points). alpha=0 reproduces the alive E1 baseline;
+alpha=1 reproduces the collapse.
+
+The collapse is a **cliff, not a gradient.** Across the first ~78% of the blend
+the model never degrades gracefully. Its output activity instead *balloons*,
+peaking at **6.3x the real baseline** near alpha=0.42, as the ghosted
+double-exposure makes it thrash. Then, inside a **0.015-wide window of alpha
+near 0.79**, activity falls off a cliff, from 1.4x to 0.03x of real. There is no
+smooth ramp down: the model works erratically, then does not work at all.
+
+Two more things the sweep shows. The 512-D recurrent feature vector slides to
+the CARLA centroid *smoothly* and is saturated (over 0.98 of the way) by
+alpha=0.47, so the internal representation gives up well before the outputs do.
+And predicted uncertainty (bottom panel) rises only modestly, then stays **flat
+through the cliff and all the way to alpha=1**: it does not spike when the
+outputs die. E3's silent failure holds across the whole interpolation.
+
+The blend overlays two scenes, so intermediate frames are a double-exposure,
+not a content-preserving morph: E4 is an overlay-interference probe along a
+monotone real-to-sim axis.
+
+![E4 interpolation](report/figures/e4_interpolation.png)
+
+Full table: [`report/e4_results.md`](report/e4_results.md).
+
 ## Limitations
 
 - One model version (openpilot v0.9.7, `supercombo`).
@@ -121,25 +152,26 @@ false-alarm on real driving would never fire. The model is confidently blind.
 - CARLA only. comma's MetaDrive sim shows consistent erratic behavior (#31711) but is
   not instrumented here.
 - The collapse is demonstrated, not yet localized to a layer or mechanism (next step).
+- E4's interpolation overlays two scenes (a double-exposure), so it is an overlay-interference probe, not a photometric sim-to-real morph.
 
 ## Next
 
-- **E4:** real-to-sim image interpolation, to test whether the collapse is a sharp
-  cliff or a gradient.
 - Localize the collapse to a layer / feature group.
 - Real-data phantom-brake mining at scale, using `src/scout_phantom.py`.
 
 ## Reproduce
 
 **The teardown runs from a fresh clone** — no model, no CARLA, no multi-GB raw
-frames. It re-derives every E1 / E2 / E3 table and figure from the committed
-collected-output cache (`report/teardown_collected.npz`, 4 MB — the per-frame
-model outputs the result is computed from):
+frames. It re-derives every E1 / E2 / E3 / E4 table and figure from the
+committed collected-output caches (`report/teardown_collected.npz` and
+`report/e4_collected.npz`, the per-frame model outputs the results are computed
+from):
 
 ```bash
 pip install -r requirements-ci.txt matplotlib
 python -m src.teardown      # E1/E2/E3 tables + figures, from the cache
-python -m pytest -q         # unit tests + the teardown regression test
+python -m src.e4_interp     # E4 interpolation sweep, from its cache
+python -m pytest -q         # unit tests + the teardown and E4 regression tests
 ```
 
 To re-run the model end-to-end instead — the parity control and a fresh
@@ -164,6 +196,7 @@ packages; the project venv is self-contained.
 | `src/state.py`, `src/parser.py`, `src/constants.py` | parity-exact `supercombo` inference + recurrent state |
 | `src/run_parity.py`, `src/warped_preprocessor.py`, `src/transformations.py` | real-footage parity pipeline (calibrated warp) |
 | `src/probe_model.py`, `src/teardown.py` | the E1 / E2 / E3 distribution-shift teardown |
+| `src/e4_interp.py`, `report/e4_collected.npz` | the E4 real-to-sim interpolation sweep and its cached outputs |
 | `src/scenario.py`, `src/sim_preprocessor.py`, `src/path_sampling.py` | CARLA reproduction harness (the control) |
 | `src/scout_phantom.py` | phantom-brake scout for real comma drives |
 | `report/teardown_collected.npz` | cached per-frame model outputs — the teardown re-derives E1/E2/E3 from this |
