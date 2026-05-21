@@ -59,3 +59,51 @@ def test_cache_round_trip(tmp_path):
     for a in collected:
         for k in collected[a]:
             assert np.array_equal(back[a][k], collected[a][k])
+
+
+from src.e4_interp import (activity_per_head, feature_centroid,
+                           feature_projection, feature_spread,
+                           mean_uncertainty, normalized_activity)
+
+
+def _synthetic_segment(scale: float, n: int = 40):
+    """A collected-style dict whose per-frame variation scales with `scale`."""
+    rng = np.random.default_rng(0)
+    d = {}
+    for name in ["accel_t0", "desired_curv", "lead_prob"]:
+        d[name] = rng.normal(0, scale, n)
+    for name in ["plan", "lane_lines", "road_edges", "lead", "pose",
+                 "desire_state", "meta"]:
+        d[name] = rng.normal(0, scale, (n, 8))
+    d["hidden_state"] = rng.normal(0, scale, (n, 512)) + scale * 100.0
+    d["plan_std"] = np.full((n, 8), scale)
+    return d
+
+
+def test_activity_per_head_tracks_scale():
+    lo = activity_per_head(_synthetic_segment(0.1))
+    hi = activity_per_head(_synthetic_segment(1.0))
+    assert all(hi[h] > lo[h] for h in lo)
+
+
+def test_normalized_activity_is_one_at_alpha_zero():
+    per_head = {0.0: activity_per_head(_synthetic_segment(1.0)),
+                1.0: activity_per_head(_synthetic_segment(0.01))}
+    norm = normalized_activity(per_head)
+    assert abs(norm[0.0] - 1.0) < 1e-9
+    assert norm[1.0] < 0.5
+
+
+def test_feature_projection_endpoints():
+    cents = {0.0: np.zeros(512), 0.5: np.full(512, 0.5), 1.0: np.ones(512)}
+    proj = feature_projection(cents)
+    assert abs(proj[0.0] - 0.0) < 1e-9
+    assert abs(proj[1.0] - 1.0) < 1e-9
+    assert abs(proj[0.5] - 0.5) < 1e-9
+
+
+def test_feature_spread_and_uncertainty():
+    seg = _synthetic_segment(1.0)
+    assert feature_spread(seg) > 0.0
+    assert feature_centroid(seg).shape == (512,)
+    assert abs(mean_uncertainty(seg) - 1.0) < 1e-9
