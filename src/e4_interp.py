@@ -118,3 +118,47 @@ def feature_spread(d: dict) -> float:
 def mean_uncertainty(d: dict) -> float:
     """Mean predicted plan uncertainty over the frames."""
     return float(_flat(d["plan_std"]).mean())
+
+
+def _collect_live() -> dict[float, dict]:
+    """Run supercombo over the blended sequences. Needs supercombo.onnx, the
+    Subaru HEVC/rlog, and data/domain_gap/carla_rgb.npy. Imports are local so
+    the cached path stays free of the onnxruntime / OpenCV dependency."""
+    from src.probe_model import collect, load_carla_six, load_real_six
+    from src.state import build_session, load_output_slices
+
+    sess, slices = build_session(), load_output_slices()
+    print(f"Loading Subaru + CARLA frame sequences (N={N}) ...")
+    real_six = load_real_six(SUBARU_HEVC, SUBARU_RLOG, N)
+    carla_six = load_carla_six(CARLA_NPY, N)
+
+    collected: dict[float, dict] = {}
+
+    def run(alpha: float) -> None:
+        blended = [blend(r, c, alpha) for r, c in zip(real_six, carla_six)]
+        collected[alpha] = collect(blended, sess, slices)
+        print(f"  alpha={alpha:.4f} collected")
+
+    print(f"First pass: {len(BASE_ALPHAS)} alphas "
+          f"(first warm triggers ~28 s PTX JIT) ...")
+    for a in BASE_ALPHAS:
+        run(a)
+
+    for rnd in range(REFINE_ROUNDS):
+        post = {a: _post(collected[a], WARMUP) for a in collected}
+        norm = normalized_activity(
+            {a: activity_per_head(post[a]) for a in post})
+        xs = sorted(collected)
+        added = []
+        for a1, a2 in zip(xs, xs[1:]):
+            if abs(norm[a1] - norm[a2]) > REFINE_GAP:
+                mid = round((a1 + a2) / 2, 4)
+                if mid not in collected:
+                    added.append(mid)
+        if not added:
+            break
+        print(f"Refinement round {rnd + 1}: inserting {added}")
+        for a in added:
+            run(a)
+
+    return collected
