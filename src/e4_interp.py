@@ -162,3 +162,54 @@ def _collect_live() -> dict[float, dict]:
             run(a)
 
     return collected
+
+
+def fig_interp(alphas, norm, fproj, unc, a90, a10) -> None:
+    """Two-panel figure: (top) output activity + feature collapse vs alpha,
+    (bottom) predicted uncertainty vs alpha."""
+    plt = _plt()
+    xs = sorted(alphas)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 7), sharex=True,
+                                   gridspec_kw={"height_ratios": [2, 1]})
+
+    ax1.plot(xs, [norm[a] for a in xs], "-o", color=REAL_C, lw=2,
+             label="output activity (1.0 = real)")
+    ax1.plot(xs, [fproj[a] for a in xs], "-s", color=CARLA_C, lw=2,
+             label="feature collapse (1.0 = CARLA centroid)")
+    if np.isfinite(a90) and np.isfinite(a10):
+        ax1.axvspan(a90, a10, color=WARN_C, alpha=0.15,
+                    label=f"transition (width {a10 - a90:.2f})")
+    ax1.set_ylabel("normalized")
+    ax1.set_title("E4  supercombo across the real-to-sim interpolation")
+    ax1.legend(facecolor="#161a22", edgecolor="#3a3f4b")
+
+    ax2.plot(xs, [unc[a] for a in xs], "-o", color="#9aa0aa", lw=2,
+             label="predicted plan uncertainty")
+    ax2.set_xlabel("alpha   (0 = real Subaru frame,  1 = CARLA frame)")
+    ax2.set_ylabel("mean plan_std")
+    ax2.legend(facecolor="#161a22", edgecolor="#3a3f4b")
+
+    fig.tight_layout()
+    FIG.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(FIG, dpi=150)
+    plt.close(fig)
+
+
+def write_results(alphas, norm, fproj, spread, unc,
+                  a90, a10, width, verdict) -> None:
+    """Write report/e4_results.md: the per-alpha table and the verdict."""
+    xs = sorted(alphas)
+    L = ["# E4 results: real-to-sim interpolation", "",
+         f"Pixel alpha-blend of the Subaru real sequence and the CARLA "
+         f"sequence (N={N} frames, {WARMUP} warmup discarded). alpha=0 is the "
+         f"real frame, alpha=1 is the CARLA frame.", "",
+         f"**Verdict: {verdict}.** Output activity falls from 0.9 to 0.1 of "
+         f"the real baseline over alpha {a90:.3f} to {a10:.3f} "
+         f"(transition width {width:.3f}; < {CLIFF_WIDTH} reads as a cliff).",
+         "",
+         "| alpha | output activity | feature collapse | feature spread | plan uncertainty |",
+         "|---|---|---|---|---|"]
+    for a in xs:
+        L.append(f"| {a:.4f} | {norm[a]:.4f} | {fproj[a]:.4f} "
+                 f"| {spread[a]:.2f} | {unc[a]:.4f} |")
+    RESULTS.write_text("\n".join(L) + "\n")
