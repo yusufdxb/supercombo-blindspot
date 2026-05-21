@@ -107,3 +107,42 @@ def test_feature_spread_and_uncertainty():
     assert feature_spread(seg) > 0.0
     assert feature_centroid(seg).shape == (512,)
     assert abs(mean_uncertainty(seg) - 1.0) < 1e-9
+
+
+from src.e4_interp import CACHE
+from src.teardown import WARMUP as _WARMUP
+from src.e4_interp import _post as _e4_post  # re-exported from teardown
+
+
+@pytest.mark.skipif(not CACHE.exists(),
+                    reason=f"E4 cache {CACHE.name} not present")
+class TestE4Regression:
+    """Pins the E4 result from the committed cache. numpy only."""
+
+    @pytest.fixture(scope="class")
+    def swept(self):
+        cached = load_cache(CACHE)
+        post = {a: _e4_post(cached[a], _WARMUP) for a in cached}
+        alphas = sorted(post)
+        per_head = {a: activity_per_head(post[a]) for a in alphas}
+        norm = normalized_activity(per_head)
+        cents = {a: feature_centroid(post[a]) for a in alphas}
+        return alphas, norm, feature_projection(cents)
+
+    def test_alpha_zero_is_real_alive(self, swept):
+        alphas, norm, fproj = swept
+        assert alphas[0] == 0.0 and alphas[-1] == 1.0
+        assert abs(norm[0.0] - 1.0) < 1e-6
+        assert abs(fproj[0.0]) < 1e-6
+
+    def test_alpha_one_is_carla_collapsed(self, swept):
+        _, norm, fproj = swept
+        # alpha=1 must reproduce E1's CARLA collapse
+        assert norm[1.0] < 0.2, norm[1.0]
+        assert abs(fproj[1.0] - 1.0) < 1e-6
+
+    def test_transition_width_is_finite(self, swept):
+        alphas, norm, _ = swept
+        a90, a10 = transition_width(alphas, norm)
+        assert np.isfinite(a90) and np.isfinite(a10)
+        assert 0.0 <= a10 - a90 <= 1.0
