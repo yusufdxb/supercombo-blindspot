@@ -25,28 +25,47 @@ along it.
 3. Run the existing `collect()` (`src/probe_model.py`) on each blended
    sequence: a fresh `ModelStateMirror`, warmed over the sequence, with the
    first `WARMUP = 100` frames discarded. Identical methodology to E1/E2/E3.
-4. Sweep alpha at 11 uniform steps `0.0, 0.1, ..., 1.0`. If the output-activity
-   curve shows a sharp transition, run one refinement pass with finer steps
-   bracketing it.
+4. Sweep alpha at 11 uniform steps `0.0, 0.1, ..., 1.0`. After the first pass,
+   automatically insert a midpoint between any adjacent pair whose normalized
+   output activity differs by more than 0.2, and re-collect those midpoints;
+   repeat once. This brackets a cliff without a manual second run.
 
-The blend is a linear combination in the model-frame tensor space. Inputs are
-unnormalized YUV (0..255); a convex blend of two such tensors stays in range.
+The blend is a linear combination in the model-frame tensor space, computed in
+`float32`. Inputs are unnormalized YUV (0..255); a convex blend of two such
+tensors stays in range, so no clipping is needed.
+
+Note: the blend overlays two different scenes (a Subaru road and a CARLA road),
+so intermediate frames are a double-exposure, not a content-preserving "more
+sim-like" version of one scene. E4 is therefore an overlay-interference OOD
+probe along a monotone real-to-CARLA axis. An early collapse (small alpha)
+would indicate the model is highly sensitive to that interference. The report
+states this explicitly.
 
 ## Endpoints as a consistency check
 
-alpha = 0 is the real Subaru condition and must reproduce E1's real activity.
+alpha = 0 is the real Subaru condition and must reproduce E1's Subaru-only
+activity. E1 reports a Subaru+RAM combined baseline; E4 uses Subaru alone, so
+the check is against the Subaru segment specifically, not the combined number.
 alpha = 1 is the CARLA condition and must reproduce E1's CARLA activity (8/10
-heads collapsed). If either endpoint disagrees with E1, the sweep is wrong.
+heads collapsed). If either endpoint disagrees, the sweep is wrong.
 
 ## Measured per alpha
 
 - **Output activity**: the E1-style aggregate temporal activity (sum of
   per-element std across the tracked heads), normalized so alpha = 0 equals
   1.0. This is the headline curve.
-- **Feature collapse**: the `hidden_state` centroid at each alpha, projected
-  onto the real-to-CARLA centroid axis from E2, expressed as the fraction of
-  the way from the real centroid to the CARLA centroid. Plus feature spread
-  (trace of covariance) at each alpha.
+- **Feature collapse**: with the E2 centroid axis `w = mu_c - mu_r` (mu_r the
+  real Subaru `hidden_state` centroid, mu_c the CARLA centroid), the blended
+  centroid mu_alpha is projected onto w as
+
+      f(alpha) = ((mu_alpha - mu_r) . (mu_c - mu_r)) / ||mu_c - mu_r||^2
+
+  so f(0) = 0 and f(1) = 1 even if mu_alpha drifts off-axis under the model's
+  non-linearity. Also report feature spread (trace of covariance) per alpha.
+- **Predicted uncertainty**: the mean `plan_std` per alpha. E3 showed the model
+  fails silently; plotting predicted uncertainty across the sweep tests whether
+  it ever spikes (for example at alpha = 0.5, the most distorted frame). If it
+  does not, that strengthens the "confidently blind" verdict.
 
 ## Verdict metric
 
@@ -69,8 +88,9 @@ report states the measured width and classifies it.
 - `report/e4_collected.npz` (new, committed): the per-alpha collected model
   outputs. Same reproducible-from-a-clone pattern as
   `report/teardown_collected.npz`. Expected size a few MB.
-- `report/figures/e4_interpolation.png` (new): output activity and feature
-  collapse versus alpha, dark theme matching the existing figures.
+- `report/figures/e4_interpolation.png` (new): output activity, feature
+  collapse, and predicted uncertainty versus alpha, dark theme matching the
+  existing figures.
 - `report/teardown_results.md`: gains an E4 section with the per-alpha table
   and the measured transition width.
 - `tests/test_e4.py` (new): numpy-only regression test. Loads
