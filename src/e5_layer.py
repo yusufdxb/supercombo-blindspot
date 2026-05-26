@@ -82,3 +82,52 @@ def cliff_alpha(alphas: np.ndarray, ratios: np.ndarray, threshold: float = 0.5) 
     if not below.any():
         return float("nan")
     return float(alphas[np.argmax(below)])
+
+
+import onnxruntime as ort  # noqa: E402
+
+
+def _build_probed_session() -> tuple[ort.InferenceSession, Path]:
+    """Materialise the probed ONNX (if needed) and open an ORT session over it."""
+    src_path = Path("models/supercombo.onnx")
+    dst_path = Path("models/supercombo_probed.onnx")
+    if not dst_path.exists():
+        intermediates_to_outputs(src_path, dst_path, [p.tensor for p in LAYER_PROBES])
+    so = ort.SessionOptions()
+    so.log_severity_level = 3
+    so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_DISABLE_ALL
+    return (ort.InferenceSession(str(dst_path), so,
+                                 providers=[("CUDAExecutionProvider", {"device_id": 0}),
+                                            "CPUExecutionProvider"]),
+            dst_path)
+
+
+def collect_per_layer(alphas: np.ndarray, n_frames: int,
+                      real_six: list[np.ndarray],
+                      carla_six: list[np.ndarray]) -> dict[str, np.ndarray]:
+    """For each alpha, blend frame-by-frame and run the probed model.
+    Returns {layer_name: array of shape (n_alphas, n_frames - 1, *layer_shape)}."""
+    from src.e4_interp import blend
+    from src.state import ModelStateMirror, load_output_slices
+    from src.warped_preprocessor import stack_pair
+
+    sess, _ = _build_probed_session()
+    slices = load_output_slices()
+    per_layer: dict[str, list[np.ndarray]] = {p.name: [] for p in LAYER_PROBES}
+
+    for a in alphas:
+        state = ModelStateMirror(session=sess, output_slices=slices)
+        prev = None
+        rows: dict[str, list[np.ndarray]] = {p.name: [] for p in LAYER_PROBES}
+        for k in range(n_frames):
+            six = blend(real_six[k], carla_six[k], float(a))
+            if prev is not None:
+                inp = stack_pair(prev, six)
+                _ = state.run(inp, inp)
+                raw = state.last_raw_outputs
+                for probe in LAYER_PROBES:
+                    rows[probe.name].append(np.asarray(raw[probe.tensor]).ravel())
+            prev = six
+        for name in rows:
+            per_layer[name].append(np.array(rows[name]))
+    return {k: np.array(v) for k, v in per_layer.items()}
