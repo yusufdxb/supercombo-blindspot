@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import onnx
 
 
@@ -48,3 +49,13 @@ def intermediates_to_outputs(src: Path, dst: Path, tensor_names: list[str]) -> N
         m.graph.output.append(vi_by_name[name])
     dst.parent.mkdir(parents=True, exist_ok=True)
     onnx.save(m, str(dst))
+
+
+def per_layer_activity_ratio(real: np.ndarray, carla: np.ndarray) -> float:
+    """Sum of per-element temporal std, CARLA / real. Matches the
+    src.teardown.e1_collapse_map convention so the two numbers are comparable."""
+    r = real.reshape(len(real), -1)
+    c = carla.reshape(len(carla), -1)
+    rstd = r.std(axis=0).sum()
+    cstd = c.std(axis=0).sum()
+    return float(cstd / rstd) if rstd > 1e-12 else float("nan")
