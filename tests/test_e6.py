@@ -45,3 +45,15 @@ def test_e6_runs_on_caches_and_fires_below_alpha_1():
     thr = calibrate_threshold(rolling_spread(real_h, 30), 1.0)
     res = evaluate_on_e4(e4, thr, 30)
     assert res["fires_at"] < 1.0
+
+
+def test_loco_fpr_two_corpora():
+    rng = np.random.RandomState(0)
+    sub = rng.normal(1.0, 0.1, size=(200, 16)).astype(np.float32)
+    ram = rng.normal(1.1, 0.1, size=(200, 16)).astype(np.float32)
+    from src.e6_detector import loco_fpr
+    res = loco_fpr({"subaru": sub, "ram": ram}, window=20, percentile=1.0)
+    assert set(res["folds"].keys()) == {"subaru", "ram"}
+    assert 0.0 <= res["fpr_mean"] <= 1.0
+    assert 0.0 <= res["fpr_max"] <= 1.0
+    assert res["fpr_max"] >= res["fpr_mean"]
