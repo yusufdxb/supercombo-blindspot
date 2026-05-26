@@ -34,6 +34,7 @@ Nothing the model emits would tell a downstream monitor it has stopped perceivin
 | **E3** silent failure | outputs lose **~99.5%** of their activity, but predicted uncertainty rises only 1.2-1.8× and **0%** of sim frames exceed the model's normal real-driving uncertainty |
 | **E4** cliff, not gradient | blending CARLA into a real frame, output activity first balloons to **6.3×** the real baseline (ghosted-input thrash), then collapses in a **hard cliff** at ~78% CARLA (transition width **0.015**); predicted uncertainty never spikes through it |
 | **E5** the encoder is fine | activity ratio in every vision-encoder stage (stem, stages.0-3, head) stays at or above the real-driving baseline through the full alpha sweep (minimum 0.96, several layers amplify 1.4-2.1x on sim input). The collapse in E1/E2 is not the encoder failing; it is downstream of the encoder, in the recurrent / policy stack that aggregates these stable features into a degenerate hidden state |
+| **E6** a monitor could have caught it | a 1st-percentile threshold on the rolling spread of the model's own 512-D recurrent feature vector, calibrated on real driving (1.15% false-positive rate), fires on >50% of CARLA-blended frames at alpha = 0.55, well before the E4 output-collapse cliff at alpha ~ 0.78. The signature E3 said outputs hide is recoverable from internals, no model retraining or extra heads required |
 
 ![E1 output collapse](report/figures/e1_head_collapse.png)
 
@@ -165,6 +166,21 @@ plan / lead / curvature outputs. The OOD failure mode is temporal-aggregation,
 not perception.
 
 ![E5 layer localization](report/figures/e5_layer_localization.png)
+
+### E6: could a downstream monitor have caught this?
+
+E3 measured the model's exported uncertainties and found they do not move
+through the collapse. E6 asks the same question one layer deeper: instead of
+trusting any output head, watch the rolling spread of supercombo's own 512-D
+recurrent feature vector. We calibrate a fire threshold at the 1st
+percentile of the rolling spread on real driving (a 1.15% false-positive
+budget on the subaru + ram corpora) and run the detector along the E4
+alpha sweep. It fires on >50% of frames at alpha = 0.55, while E4's
+output-collapse cliff does not arrive until alpha ~ 0.78. A tiny external
+monitor watching internals could have flagged the OOD condition before the
+model's own outputs gave it away.
+
+![E6 detector](report/figures/e6_detector.png)
 
 ## Limitations
 
