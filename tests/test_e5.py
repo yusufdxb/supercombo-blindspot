@@ -37,3 +37,18 @@ def test_per_layer_activity_ratio_endpoints():
     carla = np.zeros((50, 4, 4), dtype=np.float32)
     assert per_layer_activity_ratio(real, carla) < 0.05
     assert abs(per_layer_activity_ratio(real, real.copy()) - 1.0) < 1e-6
+
+
+from src.e5_layer import save_cache, load_cache
+
+
+def test_cache_roundtrip(tmp_path):
+    alphas = np.linspace(0.0, 1.0, 6)
+    per_layer = {p.name: np.random.randn(len(alphas), 50, 4).astype(np.float32)
+                 for p in LAYER_PROBES}
+    p = tmp_path / "e5.npz"
+    save_cache(p, alphas, per_layer)
+    a2, pl2 = load_cache(p)
+    assert np.allclose(a2, alphas)
+    for k, v in per_layer.items():
+        assert np.allclose(pl2[k], v)
