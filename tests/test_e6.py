@@ -32,3 +32,16 @@ def test_calibrate_threshold_is_low_percentile():
     spreads = rng.uniform(1.0, 2.0, size=500)
     thr = calibrate_threshold(spreads, percentile=1.0)
     assert 1.0 <= thr <= 1.05
+
+
+def test_e6_runs_on_caches_and_fires_below_alpha_1():
+    teardown = Path("report/teardown_collected.npz")
+    e4 = Path("report/e4_collected.npz")
+    if not teardown.exists() or not e4.exists():
+        pytest.skip("caches missing")
+    from src.e6_detector import (calibrate_threshold, evaluate_on_e4,
+                                  rolling_spread, _real_calibration_hidden)
+    real_h = _real_calibration_hidden()
+    thr = calibrate_threshold(rolling_spread(real_h, 30), 1.0)
+    res = evaluate_on_e4(e4, thr, 30)
+    assert res["fires_at"] < 1.0
