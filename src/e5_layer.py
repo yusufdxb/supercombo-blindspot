@@ -65,6 +65,18 @@ def per_layer_activity_ratio(real: np.ndarray, carla: np.ndarray) -> float:
     return float(cstd / rstd) if rstd > 1e-12 else float("nan")
 
 
+def per_layer_mean_shift(real: np.ndarray, carla: np.ndarray) -> float:
+    """Ratio of absolute-mean activations, CARLA / real.
+    Companion to per_layer_activity_ratio: activity_ratio captures temporal
+    variation only; this captures DC shift. A layer can have activity_ratio
+    ~ 1.0 while its features distribute around a very different mean."""
+    r = real.reshape(len(real), -1)
+    c = carla.reshape(len(carla), -1)
+    rm = float(np.abs(r.mean(axis=0)).sum())
+    cm = float(np.abs(c.mean(axis=0)).sum())
+    return float(cm / rm) if rm > 1e-12 else float("nan")
+
+
 def save_cache(path: Path, alphas: np.ndarray, per_layer: dict[str, np.ndarray]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(path, alphas=alphas,
@@ -146,17 +158,21 @@ def collect_per_layer(alphas: np.ndarray, n_frames: int,
 # ---------------------------------------------------------------------------
 
 def _analyse(alphas: np.ndarray, per_layer: dict[str, np.ndarray]) -> dict:
-    """Per-layer activity ratio at each alpha (vs the alpha=0 / real baseline),
-    plus cliff alpha per layer."""
+    """Per-layer activity ratio + mean shift at alpha=1, plus cliff alpha
+    per layer. Activity ratio = temporal std(carla)/std(real); mean shift =
+    |mean|(carla) / |mean|(real). The first captures variation, the second
+    captures DC offset."""
     real_idx = 0
     ratios = {}
     cliffs = {}
+    mean_shifts = {}
     for name, arr in per_layer.items():
         r0 = arr[real_idx]
         per_alpha = [per_layer_activity_ratio(r0, arr[i]) for i in range(len(alphas))]
         ratios[name] = np.array(per_alpha)
         cliffs[name] = cliff_alpha(alphas, ratios[name])
-    return {"ratios": ratios, "cliffs": cliffs}
+        mean_shifts[name] = per_layer_mean_shift(r0, arr[-1])
+    return {"ratios": ratios, "cliffs": cliffs, "mean_shifts": mean_shifts}
 
 
 def _figure(alphas: np.ndarray, ratios: dict[str, np.ndarray], out: Path) -> None:
@@ -167,8 +183,8 @@ def _figure(alphas: np.ndarray, ratios: dict[str, np.ndarray], out: Path) -> Non
         ax.plot(alphas, r, marker="o", lw=1.6, color=c, label=name)
     ax.set_xlabel("alpha (0 = real, 1 = CARLA)")
     ax.set_ylabel("activity ratio (CARLA / real)")
-    ax.set_title("E5: where the collapse cliff lives in supercombo")
-    ax.axhline(0.5, color="grey", lw=0.8, ls="--", label="cliff threshold")
+    ax.set_title("E5: per-stage activity ratio CARLA / real (the cliff is NOT in the encoder)")
+    ax.axhline(0.5, color="grey", lw=0.8, ls="--", label="0.5 collapse threshold (never crossed)")
     ax.legend(fontsize=8, loc="upper right")
     fig.tight_layout()
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -176,12 +192,19 @@ def _figure(alphas: np.ndarray, ratios: dict[str, np.ndarray], out: Path) -> Non
 
 
 def _write_results(alphas: np.ndarray, ratios: dict[str, np.ndarray],
-                   cliffs: dict[str, float], out: Path) -> None:
+                   cliffs: dict[str, float], mean_shifts: dict[str, float],
+                   out: Path) -> None:
     lines = ["# E5 Results: Layer-Localized Collapse", ""]
-    lines.append("| layer | cliff alpha | ratio @ alpha=1 |")
-    lines.append("|---|---|---|")
+    lines.append("Activity ratio = sum of per-element temporal std, CARLA / real "
+                 "(captures temporal variation).")
+    lines.append("Mean shift = sum |mean|(CARLA) / sum |mean|(real) at alpha=1 "
+                 "(captures DC offset).")
+    lines.append("")
+    lines.append("| layer | cliff alpha | activity ratio @ alpha=1 | mean shift @ alpha=1 |")
+    lines.append("|---|---|---|---|")
     for name in ratios:
-        lines.append(f"| {name} | {cliffs[name]:.3f} | {ratios[name][-1]:.4f} |")
+        lines.append(f"| {name} | {cliffs[name]:.3f} | "
+                     f"{ratios[name][-1]:.4f} | {mean_shifts[name]:.4f} |")
     out.write_text("\n".join(lines) + "\n")
 
 
@@ -208,7 +231,8 @@ def main(argv: list[str] | None = None) -> int:
 
     a = _analyse(alphas, per_layer)
     _figure(alphas, a["ratios"], Path("report/figures/e5_layer_localization.png"))
-    _write_results(alphas, a["ratios"], a["cliffs"], Path("report/e5_results.md"))
+    _write_results(alphas, a["ratios"], a["cliffs"], a["mean_shifts"],
+                   Path("report/e5_results.md"))
     print("E5 done:", a["cliffs"])
     return 0
 
