@@ -36,7 +36,7 @@ Nothing the model emits would tell a downstream monitor it has stopped perceivin
 | **E5** the encoder is fine | activity ratio in every vision-encoder stage (stem, stages.0-3, head) stays at or above the real-driving baseline through the full alpha sweep (minimum 0.96, several layers amplify 1.4-2.1x on sim input). The collapse in E1/E2 is not the encoder failing; it is downstream of the encoder, in the recurrent / policy stack that aggregates these stable features into a degenerate hidden state |
 | **E6** a monitor could have caught it | a 1st-percentile threshold on the rolling spread of the model's own 512-D recurrent feature vector, calibrated on real driving (1.15% false-positive rate), fires on >50% of CARLA-blended frames at alpha = 0.55, well before the E4 output-collapse cliff at alpha ~ 0.78. The signature E3 said outputs hide is recoverable from internals, no model retraining or extra heads required |
 
-![E1 output collapse](report/figures/e1_head_collapse.png)
+![Hero: the four findings at a glance](report/figures/hero.png)
 
 ## Why this matters
 
