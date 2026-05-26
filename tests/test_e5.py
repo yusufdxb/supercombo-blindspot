@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-import onnx
 import pytest
 
 from src.e5_layer import LAYER_PROBES, intermediates_to_outputs
@@ -20,7 +19,10 @@ def test_layer_probes_are_unique_and_ordered():
 
 
 def test_intermediates_to_outputs_adds_tensors(tmp_path: Path):
+    onnx = pytest.importorskip("onnx")
     src = Path("models/supercombo.onnx")
+    if not src.exists():
+        pytest.skip("supercombo.onnx not present")
     dst = tmp_path / "supercombo_probed.onnx"
     intermediates_to_outputs(src, dst, [p.tensor for p in LAYER_PROBES])
     m = onnx.load(str(dst))
