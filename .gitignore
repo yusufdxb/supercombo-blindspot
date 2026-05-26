@@ -14,3 +14,5 @@ requirements.txt.py311.bak
 # report/figures/*.png ARE tracked (deliverable) — only data/ images are ignored.
 # E5 layer cache is ~2.8 GB (6 backbone probes x 11 alphas x 319 frames); regenerate via --collect.
 report/e5_collected.npz
+# E5 submodule cache is ~100 MB (8 downstream probes, 11 alphas, 319 frames); regenerate via `python -m src.e5_submodule --collect`.
+report/e5_submodule_collected.npz

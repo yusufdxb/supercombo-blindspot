@@ -21,12 +21,20 @@ class LayerProbe:
 
 
 LAYER_PROBES: list[LayerProbe] = [
-    LayerProbe("head",   "/supercombo/vision/_en/head/global_pool/flatten/Flatten_output_0"),
-    LayerProbe("stage0", "/supercombo/vision/_en/stages.0/blocks/blocks.1/Add_output_0"),
-    LayerProbe("stage1", "/supercombo/vision/_en/stages.1/blocks/blocks.1/Add_output_0"),
-    LayerProbe("stage2", "/supercombo/vision/_en/stages.2/blocks/blocks.5/Add_output_0"),
-    LayerProbe("stage3", "/supercombo/vision/_en/stages.3/blocks/blocks.1/Add_output_0"),
-    LayerProbe("stem",   "/supercombo/vision/_en/stem/stem.2/act/Mul_5_output_0"),
+    LayerProbe("stem",        "/supercombo/vision/_en/stem/stem.2/act/Mul_5_output_0"),
+    LayerProbe("stage0_blk0", "/supercombo/vision/_en/stages.0/blocks/blocks.0/Add_output_0"),
+    LayerProbe("stage0_blk1", "/supercombo/vision/_en/stages.0/blocks/blocks.1/Add_output_0"),
+    LayerProbe("stage1_blk0", "/supercombo/vision/_en/stages.1/blocks/blocks.0/Add_output_0"),
+    LayerProbe("stage1_blk1", "/supercombo/vision/_en/stages.1/blocks/blocks.1/Add_output_0"),
+    LayerProbe("stage2_blk0", "/supercombo/vision/_en/stages.2/blocks/blocks.0/Add_output_0"),
+    LayerProbe("stage2_blk1", "/supercombo/vision/_en/stages.2/blocks/blocks.1/Add_output_0"),
+    LayerProbe("stage2_blk2", "/supercombo/vision/_en/stages.2/blocks/blocks.2/Add_output_0"),
+    LayerProbe("stage2_blk3", "/supercombo/vision/_en/stages.2/blocks/blocks.3/Add_output_0"),
+    LayerProbe("stage2_blk4", "/supercombo/vision/_en/stages.2/blocks/blocks.4/Add_output_0"),
+    LayerProbe("stage2_blk5", "/supercombo/vision/_en/stages.2/blocks/blocks.5/Add_output_0"),
+    LayerProbe("stage3_blk0", "/supercombo/vision/_en/stages.3/blocks/blocks.0/Add_output_0"),
+    LayerProbe("stage3_blk1", "/supercombo/vision/_en/stages.3/blocks/blocks.1/Add_output_0"),
+    LayerProbe("head",        "/supercombo/vision/_en/head/global_pool/flatten/Flatten_output_0"),
 ]
 
 
