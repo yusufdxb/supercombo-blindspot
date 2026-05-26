@@ -10,12 +10,18 @@ import pytest
 from src.e5_layer import LAYER_PROBES, intermediates_to_outputs
 
 
-def test_layer_probes_are_unique_and_ordered():
-    names = [p.name for p in LAYER_PROBES]
-    assert names == sorted(names, key=lambda n: [int(c) if c.isdigit() else c
-                                                  for c in n.split("_")]) \
-        or len(set(names)) == len(names)
-    assert {"stem", "stage0", "stage1", "stage2", "stage3", "head"}.issubset(set(names))
+def test_layer_probes_cover_all_vision_stages():
+    names = {p.name for p in LAYER_PROBES}
+    assert len(names) == len(LAYER_PROBES), "probe names must be unique"
+    assert "stem" in names
+    assert "head" in names
+    # Every encoder stage gets at least one probe, and stage 2 is densely covered.
+    for s in (0, 1, 2, 3):
+        stage_probes = {n for n in names if n.startswith(f"stage{s}")}
+        assert stage_probes, f"no probe in stage{s}"
+    # Stage 2 has 6 blocks; we probe all 6 to rule out mid-block collapse.
+    stage2 = {n for n in names if n.startswith("stage2")}
+    assert len(stage2) == 6, f"stage2 needs 6 probes, got {len(stage2)}"
 
 
 def test_intermediates_to_outputs_adds_tensors(tmp_path: Path):
