@@ -136,7 +136,9 @@ class ModelStateMirror:
 
         # ---- inference ----
         feed = self._build_feed(input_imgs, big_input_imgs)
-        (flat,) = self.session.run(self._output_names, feed)  # shape (1, 6504), fp16
+        raw_list = self.session.run(self._output_names, feed)
+        self.last_raw_outputs = dict(zip(self._output_names, raw_list))
+        flat = self.last_raw_outputs["outputs"]  # shape (1, 6504), fp16
         flat = flat[0].astype(np.float32)  # match modeld.py's fp32 buffer
 
         # slice -> parse
