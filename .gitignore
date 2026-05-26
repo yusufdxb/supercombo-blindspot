@@ -12,3 +12,5 @@ models/*.onnx
 data/
 requirements.txt.py311.bak
 # report/figures/*.png ARE tracked (deliverable) — only data/ images are ignored.
+# E5 layer cache is ~2.8 GB (6 backbone probes x 11 alphas x 319 frames); regenerate via --collect.
+report/e5_collected.npz
