@@ -59,3 +59,17 @@ def per_layer_activity_ratio(real: np.ndarray, carla: np.ndarray) -> float:
     rstd = r.std(axis=0).sum()
     cstd = c.std(axis=0).sum()
     return float(cstd / rstd) if rstd > 1e-12 else float("nan")
+
+
+def save_cache(path: Path, alphas: np.ndarray, per_layer: dict[str, np.ndarray]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(path, alphas=alphas,
+                        **{f"layer__{k}": v for k, v in per_layer.items()})
+
+
+def load_cache(path: Path) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+    d = np.load(path)
+    alphas = d["alphas"]
+    per_layer = {k.removeprefix("layer__"): d[k] for k in d.files
+                 if k.startswith("layer__")}
+    return alphas, per_layer
