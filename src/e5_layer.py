@@ -73,3 +73,12 @@ def load_cache(path: Path) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     per_layer = {k.removeprefix("layer__"): d[k] for k in d.files
                  if k.startswith("layer__")}
     return alphas, per_layer
+
+
+def cliff_alpha(alphas: np.ndarray, ratios: np.ndarray, threshold: float = 0.5) -> float:
+    """Smallest alpha at which the activity ratio first drops below `threshold`.
+    Returns NaN if no crossing in range."""
+    below = ratios < threshold
+    if not below.any():
+        return float("nan")
+    return float(alphas[np.argmax(below)])
