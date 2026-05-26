@@ -22,3 +22,13 @@ def test_rolling_spread_is_window_var_trace():
     s = rolling_spread(h, window=20)
     direct = float(np.var(h[-20:], axis=0).sum())
     assert s[-1] == pytest.approx(direct, rel=1e-5)
+
+
+from src.e6_detector import calibrate_threshold
+
+
+def test_calibrate_threshold_is_low_percentile():
+    rng = np.random.RandomState(0)
+    spreads = rng.uniform(1.0, 2.0, size=500)
+    thr = calibrate_threshold(spreads, percentile=1.0)
+    assert 1.0 <= thr <= 1.05
