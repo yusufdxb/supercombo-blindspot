@@ -188,13 +188,25 @@ model's own outputs gave it away.
 - "Real" is two segments; a larger real corpus would further harden the E1/E2 baseline.
 - CARLA only. comma's MetaDrive sim shows consistent erratic behavior (#31711) but is
   not instrumented here.
-- The collapse is demonstrated, not yet localized to a layer or mechanism (next step).
+- E5 localizes the collapse downstream of the vision encoder (no encoder
+  stage drops below 0.96 activity), but does not pin it to a specific
+  recurrent / policy submodule. The exact submodule remains to be
+  identified.
+- E6 calibrates a fire threshold on two real-driving segments; production
+  use would need a much larger real corpus before the 1.15% false-positive
+  rate could be trusted across driving conditions (night, rain, dense
+  urban).
 - E4's interpolation overlays two scenes (a double-exposure), so it is an overlay-interference probe, not a photometric sim-to-real morph.
 - E4's 0.015 transition width is a linear-interpolation estimate within a single 0.025-wide alpha step; the sweep resolves the cliff to roughly one step, not to finer precision.
 
 ## Next
 
-- Localize the collapse to a layer / feature group.
+- Pin the collapse to a specific recurrent / policy submodule (the E5
+  result narrowed it to "downstream of the encoder"; finer probes inside
+  the GRU / policy heads would localize further).
+- Generalize the E6 detector across simulator engines (MetaDrive in
+  particular, since comma's own bridge sees the same erratic behavior in
+  #31711) and across real-world OOD stimuli (rain, glare, blown highlights).
 - Real-data phantom-brake mining at scale, using `src/scout_phantom.py`.
 
 ## Reproduce
