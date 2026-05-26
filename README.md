@@ -33,6 +33,7 @@ Nothing the model emits would tell a downstream monitor it has stopped perceivin
 | **E2** internal OOD | the model's 512-D recurrent feature vector collapses to **0.00001×** the real spread: 219 distinct sim frames map to one frozen point |
 | **E3** silent failure | outputs lose **~99.5%** of their activity, but predicted uncertainty rises only 1.2-1.8× and **0%** of sim frames exceed the model's normal real-driving uncertainty |
 | **E4** cliff, not gradient | blending CARLA into a real frame, output activity first balloons to **6.3×** the real baseline (ghosted-input thrash), then collapses in a **hard cliff** at ~78% CARLA (transition width **0.015**); predicted uncertainty never spikes through it |
+| **E5** the encoder is fine | activity ratio in every vision-encoder stage (stem, stages.0-3, head) stays at or above the real-driving baseline through the full alpha sweep (minimum 0.96, several layers amplify 1.4-2.1x on sim input). The collapse in E1/E2 is not the encoder failing; it is downstream of the encoder, in the recurrent / policy stack that aggregates these stable features into a degenerate hidden state |
 
 ![E1 output collapse](report/figures/e1_head_collapse.png)
 
@@ -144,6 +145,26 @@ monotone real-to-sim axis.
 ![E4 interpolation](report/figures/e4_interpolation.png)
 
 Full table: [`report/e4_results.md`](report/e4_results.md).
+
+### E5: is the collapse in the encoder, or downstream of it?
+
+We added one intermediate tensor per vision-encoder stage (stem, stages.0
+through stages.3, and the post-pool flatten that feeds the policy stack)
+to the ONNX graph's outputs and re-ran the E4 alpha sweep with per-layer
+activity tracked alongside the output heads. The result inverts the
+naive expectation: across all six encoder layers, activity on CARLA input
+stays at or above the real-driving baseline. Several stages amplify
+(stage3 2.06x, head 2.14x). Nothing in the encoder collapses.
+
+That means the failure measured in E1 (output heads collapse) and E2 (512-D
+recurrent feature vector collapses) is **not** the vision encoder breaking.
+The encoder produces different but fully active features on sim input. The
+collapse happens downstream of the encoder, in the recurrent feature buffer
+and policy decoder that aggregate those features over time and emit the
+plan / lead / curvature outputs. The OOD failure mode is temporal-aggregation,
+not perception.
+
+![E5 layer localization](report/figures/e5_layer_localization.png)
 
 ## Limitations
 
