@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-import onnx
 
 
 @dataclass(frozen=True)
@@ -35,6 +34,7 @@ def intermediates_to_outputs(src: Path, dst: Path, tensor_names: list[str]) -> N
     """Copy `src` to `dst` with the given intermediate tensors added as graph outputs.
     Names that do not exist in the graph raise.
     Uses ONNX shape inference to obtain the correct element dtype for each tensor."""
+    import onnx
     m = onnx.load(str(src))
     # Run shape inference so value_info gets populated with element types.
     m = onnx.shape_inference.infer_shapes(m)
@@ -91,11 +91,10 @@ def cliff_alpha(alphas: np.ndarray, ratios: np.ndarray, threshold: float = 0.5) 
 import argparse
 import sys
 
-import onnxruntime as ort  # noqa: E402
 
-
-def _build_probed_session() -> tuple[ort.InferenceSession, Path]:
+def _build_probed_session():
     """Materialise the probed ONNX (if needed) and open an ORT session over it."""
+    import onnxruntime as ort
     src_path = Path("models/supercombo.onnx")
     dst_path = Path("models/supercombo_probed.onnx")
     if not dst_path.exists():
