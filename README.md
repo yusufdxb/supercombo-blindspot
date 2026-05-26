@@ -33,7 +33,7 @@ Nothing the model emits would tell a downstream monitor it has stopped perceivin
 | **E2** internal OOD | the model's 512-D recurrent feature vector collapses to **0.00001×** the real spread: 219 distinct sim frames map to one frozen point |
 | **E3** silent failure | outputs lose **~99.5%** of their activity, but predicted uncertainty rises only 1.2-1.8× and **0%** of sim frames exceed the model's normal real-driving uncertainty |
 | **E4** cliff, not gradient | blending CARLA into a real frame, output activity first balloons to **6.3×** the real baseline (ghosted-input thrash), then collapses in a **hard cliff** at ~78% CARLA (transition width **0.015**); predicted uncertainty never spikes through it |
-| **E5** the encoder is fine | activity ratio in every vision-encoder stage (stem, stages.0-3, head) stays at or above the real-driving baseline through the full alpha sweep (minimum 0.96, several layers amplify 1.4-2.1x on sim input). The collapse in E1/E2 is not the encoder failing; it is downstream of the encoder, in the recurrent / policy stack that aggregates these stable features into a degenerate hidden state |
+| **E5** the encoder is fine (variation-wise) | per-stage temporal activity ratio (CARLA / real) stays at or above the real baseline through the full alpha sweep (minimum 0.96, several layers amplify 1.4-2.1x). Feature DC offsets do shift on CARLA input (stem \|mean\| 1.24x, head \|mean\| 1.33x), so the encoder produces differently-distributed but temporally-active features. The collapse in E1/E2 is downstream of the encoder, in the recurrent / policy stack that aggregates those features into a degenerate hidden state |
 | **E6** a monitor would catch the OOD stimulus | a 1st-percentile threshold on the rolling spread of the model's own 512-D recurrent feature vector fires on >50% of CARLA-blended frames at alpha = 0.550, well before the E4 output-collapse cliff at alpha ~ 0.78. The signature E3 said outputs hide is recoverable from internals. Leave-one-corpus-out across the two real-driving segments gives 1.03% mean false-positive rate (2.07% max); a larger real corpus is needed before this number can be trusted as a deployment claim |
 
 ![Hero: the four findings at a glance](report/figures/hero.png)
@@ -156,6 +156,16 @@ activity tracked alongside the output heads. The result inverts the
 naive expectation: across all six encoder layers, activity on CARLA input
 stays at or above the real-driving baseline. Several stages amplify
 (stage3 2.06x, head 2.14x). Nothing in the encoder collapses.
+
+The "encoder is fine" claim is specifically about temporal variation. The
+absolute mean magnitudes do shift on CARLA: the stem layer's mean magnitude
+is 1.24x the real-driving baseline, and the post-pool head feature vector's
+mean is 1.33x. So the encoder is producing features that are differently
+distributed (DC shifts) but fully temporally active (std preserved). The
+collapse mechanism in E1/E2 is therefore not "the encoder went quiet" but
+"the encoder hands a distributionally different but variation-rich feature
+to the recurrent state, which then collapses anyway." Reported as both
+columns in `report/e5_results.md`.
 
 That means the failure measured in E1 (output heads collapse) and E2 (512-D
 recurrent feature vector collapses) is **not** the vision encoder breaking.

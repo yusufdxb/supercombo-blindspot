@@ -87,3 +87,21 @@ def test_e5_cache_reproduces():
         assert arr.shape[0] == len(alphas)
         # ratio of real to itself must be 1.0 (sanity check on the metric)
         assert abs(per_layer_activity_ratio(arr[0], arr[0]) - 1.0) < 1e-5
+
+
+from src.e5_layer import per_layer_mean_shift
+
+
+def test_per_layer_mean_shift_endpoints():
+    real = np.zeros((50, 4, 4), dtype=np.float32)
+    real[:, 0, 0] = 1.0  # nonzero mean
+    carla = real * 2.0
+    assert abs(per_layer_mean_shift(real, carla) - 2.0) < 1e-6
+    assert abs(per_layer_mean_shift(real, real.copy()) - 1.0) < 1e-6
+
+
+def test_per_layer_mean_shift_zero_real_returns_nan():
+    real = np.zeros((50, 4, 4), dtype=np.float32)
+    carla = np.ones((50, 4, 4), dtype=np.float32)
+    import math
+    assert math.isnan(per_layer_mean_shift(real, carla))
