@@ -68,3 +68,20 @@ def test_cliff_alpha_none_if_never_crosses():
     alphas = np.linspace(0.0, 1.0, 11)
     ratios = np.full_like(alphas, 0.9)
     assert np.isnan(cliff_alpha(alphas, ratios, threshold=0.5))
+
+
+def test_e5_cache_reproduces():
+    cache = Path("report/e5_collected.npz")
+    if not cache.exists():
+        pytest.skip("e5 cache not present")
+    alphas, per_layer = load_cache(cache)
+    assert len(alphas) >= 5
+    assert set(per_layer.keys()) == {p.name for p in LAYER_PROBES}
+    # Verify each layer has non-trivial float32 data across alpha sweep.
+    from src.e5_layer import per_layer_activity_ratio
+    for p in LAYER_PROBES:
+        arr = per_layer[p.name]
+        assert arr.dtype == np.float32
+        assert arr.shape[0] == len(alphas)
+        # ratio of real to itself must be 1.0 (sanity check on the metric)
+        assert abs(per_layer_activity_ratio(arr[0], arr[0]) - 1.0) < 1e-5
