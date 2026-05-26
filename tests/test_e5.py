@@ -52,3 +52,19 @@ def test_cache_roundtrip(tmp_path):
     assert np.allclose(a2, alphas)
     for k, v in per_layer.items():
         assert np.allclose(pl2[k], v)
+
+
+from src.e5_layer import cliff_alpha
+
+
+def test_cliff_alpha_finds_step():
+    alphas = np.linspace(0.0, 1.0, 21)
+    ratios = np.where(alphas < 0.7, 1.0, 0.05)
+    a = cliff_alpha(alphas, ratios, threshold=0.5)
+    assert 0.65 <= a <= 0.75
+
+
+def test_cliff_alpha_none_if_never_crosses():
+    alphas = np.linspace(0.0, 1.0, 11)
+    ratios = np.full_like(alphas, 0.9)
+    assert np.isnan(cliff_alpha(alphas, ratios, threshold=0.5))
