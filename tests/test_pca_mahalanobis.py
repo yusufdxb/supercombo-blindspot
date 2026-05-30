@@ -5,6 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+pytest.importorskip("sklearn")
+
 from src.pca_mahalanobis import fit_pca, loco_fpr, pca_mahalanobis
 
 

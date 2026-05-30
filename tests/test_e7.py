@@ -13,6 +13,9 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
+pytest.importorskip("PIL")
+pytest.importorskip("sklearn")
+
 from src.e7_corruption import (
     CORRUPTION_NAMES,
     CORRUPTIONS,
