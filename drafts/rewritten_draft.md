@@ -43,10 +43,10 @@ that the present evidence does not claim generalizes.
 
 ## 1. Introduction
 
-Every Level-2 and autonomous-driving program validates its driving policy largely in simulation,
-because simulation is the only setting in which rare and dangerous scenarios can be exercised at
-scale and at low cost. The validity of that practice rests on an assumption that is rarely stated
-and almost never tested directly: that the shipped model under test behaves on rendered input the
+Most Level-2 and autonomous-driving programs validate their driving policy largely in simulation,
+because simulation is a primary setting in which rare and dangerous scenarios can be exercised at
+scale and at low cost. The validity of that practice rests on an assumption that is rarely tested
+directly in the literature we surveyed: that the shipped model under test behaves on rendered input the
 way it behaves on real input, or, failing that, that it fails loudly enough for the test harness
 or a downstream safety monitor to notice. If a model can be shown a simulated scene and quietly
 stop doing its job while every output it emits still looks plausible, then a passing simulation is
@@ -54,7 +54,7 @@ not evidence that the model works. It is evidence that the model produced a safe
 and the two are indistinguishable from the outside.
 
 We test that assumption on a single deployed model, openpilot v0.9.7 supercombo, the end-to-end
-network that drives comma hardware on public roads, and we find the dangerous answer. On
+network in comma's shipped openpilot driver-assistance system (Chen et al. 2022), and we find the dangerous answer. On
 CARLA-rendered clean roads, 8 of 10 of the model's output heads collapse to under 1% of their
 real-driving temporal activity, and the 512-D recurrent state that threads the model's memory
 across frames freezes to roughly 1e-5 of its real spread. Yet the model's own predictive-uncertainty
@@ -151,7 +151,7 @@ cross-corpus transfer.
 **Internal-activation and second-order monitors (the proposed monitor's family).** Runtime neuron
 activation pattern monitoring (Cheng et al. 2018) is the ancestor of internal-state monitoring: it
 stores binarized neuron patterns and compares them by Hamming distance, on feed-forward classifiers,
-a first-order discrete per-frame check. The first move to a higher-order feature statistic for OOD
+a first-order discrete per-frame check. An early move to a higher-order feature statistic for OOD
 is the Gram-matrix method (Sastry and Oore 2020), the closest lineage point to a second-order rather
 than distance-from-mean choice. The proposed monitor inherits the higher-order-statistic idea from
 the latter and the internal-monitor idea from the former, but applies them to a recurrent state
@@ -169,8 +169,8 @@ recurrent driver state). We therefore do not claim to be first to use a second-o
 statistic for OOD detection: EigenTrack pre-dates this work on that framing. The available and
 defensible claim is narrower: this is the first second-order recurrent-state monitor on a shipped
 end-to-end driving model evaluated under cross-corpus leave-one-corpus-out transfer. NECO (Ben Ammar
-et al. 2024) exploits a classification-head neural-collapse property that supercombo's regression
-heads do not have; we name and excuse it rather than run it.
+et al. 2024) builds on a neural-collapse property of classification heads, which supercombo's
+regression heads lack; we name and excuse it rather than run it.
 
 **openpilot and supercombo prior work.** The reference academic teardown of supercombo is
 Openpilot-Deepdive (Chen et al. 2022), a static input, output, and architecture analysis plus a
@@ -181,10 +181,14 @@ silent-collapse or recurrent-state-monitor study. A recent adversarial study (ar
 targets supercombo with deliberate perturbations and input-level defenses, a different failure mode
 (adversarial attack, not sim-rendered silent collapse) with no recurrent-state monitor.
 
-**Simulation testing of driving DNNs and corruption robustness.** The DeepRoad line (DeepTest,
-DeepRoad, MarMot) generates tests for driving networks on the premise that the simulator renders
-in-distribution scenes; this paper inverts that premise by showing the simulated input can itself be
-out of distribution to the model, which undercuts coverage claims built on sim-based testing.
+**Simulation testing of driving DNNs and corruption robustness.** The DeepRoad line uses
+metamorphic and generative test synthesis: DeepTest (Tian et al. 2018) produces transformed driving
+images to surface erroneous behaviors, DeepRoad (Zhang et al. 2018) uses GANs to render the same
+scene under new weather and checks for consistent behavior, and MarMot (Ayerdi et al. 2024) applies
+metamorphic relations at runtime. These methods generate or transform driving scenes and test the
+model for consistent behavior, implicitly treating the generated input as a valid scene the model
+should handle; this paper inverts that premise by showing the simulated input can itself be out of
+distribution to the model, which undercuts coverage claims built on sim-based testing.
 ImageNet-C (Hendrycks and Dietterich 2019) is the corruption-robustness yardstick we use as the
 bounding OOD axis in Section 5.7, with Cityscapes-C (Michaelis et al. 2019) as its AV extension, and
 CARLA (Dosovitskiy et al. 2017) is the simulator that supplies the primary OOD axis.
@@ -228,10 +232,10 @@ measured activity ratios, not separate experiments.)
 
 **Why same-architecture ensembles and input-quality checks miss it.** A fourth defense runs an
 ensemble and flags disagreement. Section 5.5 localizes the collapse downstream of the vision encoder,
-in a path every instance of the same architecture shares, so an ensemble of the same model collapses
-together and agrees on the wrong answer. A fifth defense screens the input itself for quality. The
-CARLA-clean renders are sharper and less noisy than real road footage, so an image-quality screen
-rates the simulated input as good, not anomalous. (Structural arguments, not new experiments.)
+in a path every instance of the same architecture shares, so an ensemble of the same model would
+collapse together rather than disagree. A fifth defense screens the input itself for quality. The
+CARLA-clean renders are typically sharper and less noisy than real road footage, so an image-quality
+screen would rate the simulated input as good, not anomalous. (Structural arguments, not new experiments.)
 
 **The complementary signal.** The defenses above all read the output side or the input side. The
 finding that makes a complement possible is that the model's own recurrent features carry the OOD
@@ -282,12 +286,13 @@ analysis frames remain per corpus. The out-of-distribution data are CARLA-render
 from the openpilot v0.9.7 simulation pipeline. The sim camera is configured as a matched-intrinsics
 pinhole: it renders at the comma 3 fcam native resolution (1928x1208) at the field of view that
 reproduces fcam's focal length (2648 px), so the rendered frames carry exactly the production camera
-(`_ar_ox_config.fcam`) intrinsics, and with the camera mounted on the device axes the warp to the model
-frame reduces to the same intrinsic remap applied to real footage (`src/sim_preprocessor.py`). The
-distribution shift is therefore confined to rendered image content (photometry, texture, and the
-absence of sensor noise), while camera geometry, calibration, and model-input preprocessing are held
-identical to the parity-verified real path; the collapse is a response to rendered scene content, not
-an artifact of a mismatched camera model. The interpolation axis for the cliff analysis
+(`_ar_ox_config.fcam`) intrinsics, and because the sim camera is mounted on the device axes (zero
+extrinsic calibration), its warp to the model frame reduces to the same intrinsic remap
+(`K_fcam @ inv(K_medmodel)`) that the real path applies after its `liveCalibration` extrinsics
+(`src/sim_preprocessor.py`). The intrinsics and the model-input preprocessing are therefore identical
+to the parity-verified real path, and the distribution shift is confined to rendered image content
+(photometry, texture, and the absence of sensor noise); the collapse is a response to rendered scene
+content, not an artifact of a mismatched camera model. The interpolation axis for the cliff analysis
 (Section 5.4) is a pixel-space alpha-blend of a real sequence (Subaru or RAM) with the CARLA sequence,
 with alpha=0 the real frame and alpha=1 the CARLA frame, swept over 29 alpha values. We state the
 underlying counts wherever a percentage appears: for example, the "0%" of Section 5.3 is 0 of 219

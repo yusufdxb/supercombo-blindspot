@@ -1,0 +1,33 @@
+CLAIM D1 : PASS -- supercombo is now tied to comma's shipped openpilot driver-assistance system; within c47 / contract scope.
+
+CLAIM D2 : PASS -- "Most Level-2..." is hedged domain context, not an invented universal.
+
+CLAIM D3 : PASS -- "a primary setting" is hedged domain context, not an invented universal.
+
+CLAIM D4 : PASS -- "rarely tested directly in the literature we surveyed" is scoped to surveyed literature.
+
+CLAIM D5 : PASS -- ensemble claim is disclosed as a structural argument, not a new experiment.
+
+CLAIM D6 : PASS -- input-quality claim is disclosed as a structural argument, not a new experiment.
+
+CLAIM D7 : PASS -- c51 now has fetched quotes for DeepTest, DeepRoad, and MarMot. Draft stays within metamorphic / GAN synthesis plus consistency testing; the valid-scene premise is framed as the paper's interpretation.
+
+CLAIM D8 : PASS -- "The first move" was narrowed to "An early move."
+
+CLAIM D9 : PASS -- NECO is now a structural exclusion based on classification-head neural collapse; no unsupported quoted-property claim remains.
+
+CLAIM c11 : PASS -- draft consistently uses 0 of 219, matching ledger c11.
+
+CLAIM c22 : PASS -- "track the summarizer to within 2 to 11%" matches ledger c22.
+
+CLAIM c31 : PASS -- alpha=0.550 and ~0.23 gap match ledger c31; no surviving same-alpha AUROC clause found.
+
+CLAIM c32 : PASS -- n=638/319 stored and 609/290 valid match ledger c32.
+
+CLAIM novelty boundary : PASS -- EigenTrack pre-dating is conceded; KNN-50 tie is conceded; the only "first" claim is the allowed c42 narrow claim.
+
+CLAIM baselines : PASS -- Mahalanobis, RMD, KNN-50, and PCA-Mahalanobis are recorded as run; MSP/Energy/ViM are structurally excluded, not invented baselines.
+
+CLAIM c50 / "The distribution shift is therefore confined to rendered image content (photometry, texture, and the absence of sensor noise), while camera geometry, calibration, and model-input preprocessing are held identical to the parity-verified real path; the collapse is a response to rendered scene content, not an artifact of a mismatched camera model." : FLAG -- pattern 1. The ledger/source supports matched fcam intrinsics and the sim zero-calibration warp: "rendered frame has exactly the intrinsics of `_ar_ox_config.fcam`" and "calibration euler is exactly zero." It does not support "calibration ... held identical to the parity-verified real path," because real footage uses liveCalibration. Required fix: narrow to matched intrinsics and same preprocessing, with sim using zero calibration because the camera is mounted on device axes.
+
+OVERALL: FLAG -- one remaining fabrication/overclaim: c50 calibration-identical wording.
