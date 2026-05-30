@@ -19,7 +19,7 @@ Output-side runtime monitors are the standard defense in shipped driving stacks.
 - **Predictive-uncertainty heads.** Direct E3 evidence: ratios 1.20-1.84x of real, 0% of CARLA frames above real p95. A threshold tuned on real driving will not fire. This is the defense closest to a learned OOD detector inside supercombo, and it is silent.
 - **Plan-feasibility and plausibility limits (steering rate, accel bounds, lateral acceleration caps).** Per E1, the plan and accel_t0 outputs collapse toward zero (plan activity 0.0057x real, accel_t0 activity 0.0040x real). A zero-magnitude plan does not violate plausibility limits; it looks like a stationary scene with no required action. Plausibility passes.
 - **Output-disagreement / temporal-consistency checks (frame-to-frame jitter, output variance).** Once outputs freeze (E1 activity ratios under 1%), temporal variance drops, not rises. A jitter monitor would interpret the freeze as the system being more stable, not less.
-- **Ensembles on the same architecture.** E5 localizes the collapse downstream of the vision encoder (per-stage activity ratios at alpha=1: head 2.14, stem 1.43, stage3 2.06; the visible drop is downstream of the recurrent / policy stack, not at the encoder). [UNVERIFIED interpretation of E5; the report explicitly says collapse is downstream of the encoder but layer-by-layer cliff-alpha values are nan, so we infer rather than measure the exact downstream layer.] An ensemble of the same architecture trained on the same data would share the same downstream collapse path.
+- **Ensembles on the same architecture.** E5 localizes the collapse downstream of the vision encoder (per-stage activity ratios at alpha=1: head 2.14, stem 1.43, stage3 2.06). E5 submodule probing (`report/e5_submodule_results.md`) further pins the cliff entry to `summarizer_div` (the VAE-mu bottleneck, cliff alpha 0.900), with amplification at `action_block_body` (cliff alpha 0.500) due to the `prev_desired_curv` feedback loop. The transformer + reduce-sum stage is a passive relay. An ensemble of the same architecture trained on the same data would share the same downstream collapse path.
 - **Input-side image quality checks (blur, exposure, sensor noise).** CARLA-clean is sharper, more uniform, and less noisy than real driving footage. Input-quality monitors will rate it as good.
 
 Every output-side defense we are aware of either does not fire (uncertainty, jitter) or treats the collapse as a benign quiet scene (plausibility, image quality).
@@ -29,7 +29,7 @@ Every output-side defense we are aware of either does not fire (uncertainty, jit
 An internal-feature monitor over the recurrent state catches the OOD condition before outputs collapse.
 
 - Monitored quantity: rolling temporal spread of the 512-D recurrent feature vector emitted by supercombo (`src/e6_detector.py`).
-- Threshold calibration: leave-one-corpus-out across {subaru, ram}. LOCO mean FPR 1.03%, LOCO max FPR 2.07%.
+- Threshold calibration: leave-one-corpus-out across {subaru, ram}. LOCO mean FPR 1.03%, LOCO max FPR 2.07% (N=2 real corpora; variance is not meaningfully reportable at two folds).
 - Detector response on the E4 sweep: fires (>50% of frames flagged) at alpha = 0.550.
 - Output cliff on the same sweep (E4): output activity falls from 0.9x to 0.1x of real over alpha 0.784 to 0.799.
 - Gap: detector at alpha=0.55, cliff at alpha=0.78. The detector fires roughly 0.23 in alpha-units before the cliff.

@@ -66,8 +66,11 @@ def msp(*_args, **_kwargs):
     softmax over classes) and a hand-engineered meta vector that mixes
     several heads. Taking max(sigmoid) is not the quantity Hendrycks &
     Gimpel define and behaves badly: a fully-confident scene saturates
-    every lane to ~1.0 regardless of in-distribution status. Marking
-    not-applicable is the honest call.
+    every lane to ~1.0 regardless of in-distribution status. Moreover,
+    under CARLA the sigmoid outputs collapse: E1 shows lane_lines_prob
+    and lead_prob activity ratios of 0.0054 and 0.0058 respectively, so
+    max(sigmoid) approaches zero for both ID and OOD, giving near-zero
+    discrimination. Marking not-applicable is the honest call.
     """
     raise NotImplementedError(
         "MSP not applicable: supercombo has no softmax classification head."
