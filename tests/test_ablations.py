@@ -11,6 +11,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+pytest.importorskip("sklearn")
+
 from src.ablations import (
     fmt_ci,
     sweep_knn_k,
