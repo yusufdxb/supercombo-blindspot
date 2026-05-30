@@ -45,7 +45,9 @@ fires.
 
 Headline numbers.
 
-- Detector fires at **alpha = 0.55**.
+- Detector fires at **alpha = 0.55** (the point where >50% of blended
+  frames are flagged, not the point of perfect separation; full
+  separation is at alpha=1.0, AUROC 0.996).
 - E4's output-collapse cliff sits at **alpha ~= 0.78**.
 - Threshold calibrated to **1.15% FPR** on real-driving traces (see the
   Limitations note below on how this number is validated).
@@ -74,19 +76,34 @@ black-box driving model:
 
 ## Open questions
 
-- **OPEN QUESTION:** Which specific submodule of the recurrent / policy
-  stack is responsible for the collapse? E5 localises the problem to
-  "downstream of the encoder," but does not yet pin it to a named layer.
-- **OPEN QUESTION:** Does the E6 detector generalise to other simulation
-  engines (CARLA is one rendering pipeline, with its own artefacts) and to
-  real-world OOD stimuli (weather, sensor degradation, construction
-  zones)? The 1.15% FPR is calibrated on real driving, but the
-  alpha = 0.55 trigger has so far been demonstrated on the CARLA sweep
-  used in E4.
-- **OPEN QUESTION:** Is the 512-D spread statistic the *best* signal on
-  the recurrent feature, or simply the first one we tried that worked? A
-  proper baseline comparison against (e.g.) Mahalanobis distance, energy
-  scores, or learned OOD heads is owed.
+- **PARTIALLY RESOLVED:** E5 submodule probing (`report/e5_submodule_results.md`)
+  localized the cliff entry to `summarizer_div` (the VAE-mu / normalized
+  hidden_state bottleneck, cliff alpha 0.900) with amplification at
+  `action_block_body` (cliff alpha 0.500), which folds in the model's
+  own collapsed `prev_desired_curv` output in a feedback loop. The
+  transformer + reduce-sum stage is a passive relay. Caveat: the
+  summarizer ends with `mu / sigma` (VAE-style reparameterization), so
+  part of the apparent collapse in `summarizer_div` could be variance
+  normalization rather than information loss; probing the pre-Div mu
+  tensor alone would split that further.
+- **PARTIALLY RESOLVED (E7):** E7 tested E6 across 15 ImageNet-C corruptions
+  x 5 severities on real frames. E6 mostly fails on photometric corruptions
+  (mean AUROC 0.52-0.74) but catches extreme noise/frost that freeze the
+  recurrent state (frost sev 5: AUROC 1.000). E6 is a collapse detector,
+  not a universal OOD detector. Feature-space baselines (Mahalanobis)
+  complement E6 on corruption-type OOD. Other sim engines (MetaDrive) and
+  real adverse weather remain OPEN.
+- **RESOLVED:** The baseline comparison is complete
+  (`report/baselines_results.md`, `report/metrics_results.md`). Three
+  applicable feature-space baselines (Mahalanobis, Relative Mahalanobis,
+  KNN-50) were evaluated on the same 512-D recurrent feature under
+  the same LOCO protocol. All three hit 100% LOCO held-out FPR because
+  the subaru and ram corpora occupy disjoint regions of the feature
+  space. E6's rolling-spread monitor is location-invariant (second-order
+  trace, not absolute position) and is the only detector that both
+  separates ID/OOD (AUROC 0.996 at alpha=1.0) and calibrates across
+  corpora (LOCO mean FPR 1.03%). MSP, Energy, and ViM are structurally
+  not applicable to supercombo's regression-head design.
 
 ## Reproducing
 

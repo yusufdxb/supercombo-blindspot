@@ -21,7 +21,7 @@ Flags and exclusions:
 - ODIN (temperature + input perturbation). Treated as dated in 2024-2026 OOD-for-AV work; superseded by energy and Mahalanobis variants. Cite once for lineage, skip as a baseline.
 - Deep ensemble disagreement. Not applicable: supercombo is a single shipped ONNX, no ensemble exists, and retraining for an ensemble is out of scope. Mention in limitations.
 - GradNorm, ASH. Strong on ImageNet-style image classifiers operating on logits; supercombo has multi-head regression and YUV uint8 input, so logit-gradient and activation-shaping semantics do not transfer cleanly. Cite, do not include.
-- NECO (ICLR 2024, arXiv:2403.18051 [UNVERIFIED arXiv ID, paper confirmed at ICLR 2024). Built on Neural Collapse, which is a classification-head property. Skip; mention as recent SOTA on classification OOD.
+- NECO (ICLR 2024, arXiv:2310.06823). Built on Neural Collapse, which is a classification-head property. Skip; mention as recent SOTA on classification OOD.
 
 Recommended minimum set if space is tight: MSP, Energy, Mahalanobis (same layer), KNN. Add ViM and Relative Mahalanobis if reviewer pushes on "modern" baselines.
 
@@ -80,7 +80,7 @@ Recommended minimum set if space is tight: MSP, Energy, Mahalanobis (same layer)
 | Michaelis et al., Object Detection when Winter is Coming (Pascal-C/Coco-C/Cityscapes-C) | arXiv:1907.07484, 2019 | Direct AV extension of ImageNet-C; cite if we go the synthetic-corruption route |
 | Mahalanobis++: Improving OOD Detection via Feature Normalization | arXiv:2505.18032, May 2025 | 2025 evidence that Mahalanobis is still an active, respected baseline (not a strawman), with feature-normalization fixing the variance-across-backbones problem |
 | A Geometry-Based View of Mahalanobis OOD Detection | arXiv:2510.15202, Oct 2025 | 2025 theoretical re-grounding of Mahalanobis; reinforces "include Mahalanobis, do not skip it" |
-| NECO: Neural Collapse-based OOD Detection | ICLR 2024 (proceedings.iclr.cc 2024 paper 04b84142b99dae8560b517401e6e5275) | Recent SOTA on classification OOD; cite, do not run (head incompatible with supercombo) |
+| NECO: Neural Collapse-based OOD Detection | ICLR 2024, arXiv:2310.06823 | Recent SOTA on classification OOD; cite, do not run (head incompatible with supercombo) |
 
 ---
 
@@ -127,6 +127,30 @@ If time allows after C, add B as a smaller adverse-weather case study. Skip A un
 
 ## 4. Open uncertainties
 
-- NECO exact arXiv ID not pinned by search (paper confirmed at ICLR 2024 via proceedings PDF link). Marked [UNVERIFIED] inline. Verify before bibliography freeze.
+- NECO arXiv ID verified: arXiv:2310.06823 (ICLR 2024). All inline references updated.
 - commadataci.blob.core.windows.net rain/night availability not verified by search; only inferred from our prior Step 3.5 usage. Verify by sampling before committing to Option B.
 - Henriksson et al. surfaces under multiple titles (RefSQ 2023; "Performance Analysis of OOD Detection on Various Trained Neural Networks"). Pin the specific paper and bibkey before submission.
+
+---
+
+## 5. Completed experiments (2026-05-29)
+
+### E7 ImageNet-C corruption sweep (Option C, DONE)
+- 15 Hendrycks corruptions x 5 severities on real comma driving frames (75 conditions + 1 clean baseline)
+- E6 rolling-spread is a collapse detector, not a universal OOD detector:
+  - Mostly fails on photometric corruptions (mean AUROC 0.52-0.74)
+  - Catches only extreme corruptions that freeze the recurrent state (frost sev 5: AUROC 1.000, impulse noise sev 5: 0.906)
+- Mahalanobis and Relative Mahalanobis detect corruptions at moderate severities (fired >95% on noise, weather, compression)
+- KNN50 is surprisingly weak on corruptions (near-zero fired rate except extreme noise/frost)
+- Paper framing: E6 and feature-space baselines are complementary, not substitutes
+
+### E4-RAM vehicle invariance (DONE)
+- RAM alpha-blend sweep: collapse endpoint is identical to Subaru (activity < 1% at alpha=1.0)
+- But the path differs: RAM = gradient (width 0.274), Subaru = cliff (width 0.015)
+- E6 fires at alpha 0.850 on RAM vs 0.550 on Subaru (no early warning on RAM)
+- Paper framing: cliff vs gradient is segment-dependent; E6 headroom cannot be assumed to generalize
+
+### Hyperparameter ablations (DONE)
+- KNN k: AUROC = 1.000 for all k in {5, 10, 20, 50, 100} (completely insensitive)
+- E6 window: AUROC 0.957 (w=10) to 1.000 (w=50); default w=30 (AUROC 0.996) is the sweet spot
+- Paper framing: both detectors are robust to their primary hyperparameter
