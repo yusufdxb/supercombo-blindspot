@@ -12,7 +12,7 @@ Target venue: SafeAI @ UAI 2026 (confirmed open) or a NeurIPS 2026 workshop trac
 
 `[DRAFT]` Production L2 driver-assistance systems are validated, in large part, in simulation. We ask whether a shipped end-to-end driving model can tell when its input has left the distribution it was trained on, or whether it fails silently. We instrument openpilot v0.9.7's `supercombo` network, the model that drives comma hardware on public roads, and build a parity-exact reimplementation of its inference path, verified to within +/-0.5 m/s^2 of comma's own reference output on 100% of 1159 real-footage frames (median absolute delta 0.04 m/s^2). Running the verified model on CARLA-rendered driving scenes, we find that 8 of 10 output heads collapse to under 1% of their real-driving temporal activity and the 512-D recurrent feature vector freezes to 1e-5 of its real spread, while the model's own predictive-uncertainty heads rise only 1.2x to 1.8x and never exceed their real-driving 95th percentile on a single out-of-distribution (OOD) frame. The failure is therefore silent: nothing the model emits flags the collapse. An alpha-blend sweep shows the collapse is a hard cliff (transition width 0.015 in blend fraction), and a layer-by-layer probe localizes it downstream of the vision encoder, in the recurrent summarizer and action block, not in perception. Finally, we show a 0-retraining monitor on the model's own 512-D recurrent feature, the rolling temporal spread of the state, calibrated leave-one-corpus-out to a ~1% real-driving false-positive rate, detects the OOD condition (AUROC 0.996) roughly 0.23 blend-units before outputs cliff, where standard location-sensitive feature-space OOD scores (Mahalanobis, Relative Mahalanobis, KNN) fail to transfer across real corpora. The safety implication: a sim "pass" can be the model collapsed to a safe-looking default, not the model perceiving, and output-side monitors alone cannot catch it.
 
-`[AUTHOR TODO]` Add one sentence reporting the E7 corruption-sweep generalization result once E7 is run.
+A corruption sweep (15 ImageNet-C corruptions x 5 severities on real frames) further shows the monitor is **collapse-specific**: it fires near-perfectly on the corruptions severe enough to induce the same recurrent freeze (frost AUROC 1.00, impulse-noise 0.91, gaussian-noise 0.86) and stays near chance on photometric shifts the model tolerates, so the contribution is a targeted monitor for the silent-collapse mode rather than a universal OOD detector.
 
 ---
 
@@ -28,9 +28,7 @@ Target venue: SafeAI @ UAI 2026 (confirmed open) or a NeurIPS 2026 workshop trac
   1. A **parity-exact** reimplementation of openpilot v0.9.7 `supercombo` inference, verified to 100% of 1159 frames within +/-0.5 m/s^2 of comma's reference output (median abs delta 0.04 m/s^2), including correct recurrent state threading and unnormalized YUV input handling. Released.
   2. An empirical demonstration of **silent failure** under visual distribution shift: output collapse (E1), feature-space freeze (E2), and a non-responsive uncertainty channel (E3) occurring simultaneously, with 0% of OOD frames exceeding the model's real-driving uncertainty p95.
   3. A characterization of the collapse as a **hard cliff** (E4, transition width 0.015) **localized downstream of the vision encoder** (E5: encoder stages stay at or above real activity; the cliff enters at the recurrent summarizer VAE-mu bottleneck and the action-block feedback path).
-  4. A **0-retraining recurrent-feature monitor** (E6): rolling temporal spread of the 512-D state, LOCO-calibrated to ~1% real-driving FPR, AUROC 0.996, firing ~0.23 blend-units before the output cliff, where standard location-sensitive OOD scores fail to transfer across corpora. `[PENDING E7]` generalization to ImageNet-C-style corruptions of real frames.
-
-`[AUTHOR TODO]` Tighten contribution 4 once E7 lands; state corruption-sweep AUROC.
+  4. A **0-retraining recurrent-feature monitor** (E6): rolling temporal spread of the 512-D state, LOCO-calibrated to ~1% real-driving FPR, AUROC 0.996 on CARLA, firing ~0.23 blend-units before the output cliff, where standard location-sensitive OOD scores fail to transfer across corpora (100% LOCO FPR). An ImageNet-C corruption sweep bounds the claim: E6 is **collapse-specific**, detecting the corruptions that induce the same recurrent freeze (frost AUROC 1.00, impulse 0.91, gaussian 0.86) and remaining near chance on photometric shifts the model tolerates.
 
 ---
 
@@ -162,9 +160,27 @@ The rolling-spread monitor on the 512-D recurrent feature, calibrated LOCO to me
 
 **The headline finding.** Location-sensitive feature-space scores fail on `supercombo` in two distinct ways. (1) Vanilla and PCA-Mahalanobis score *below chance* at alpha=1.0 (AUROC ~0.15): the recurrent state collapses *to the mean* of the ID Gaussian, and distance-from-mean cannot detect collapse-to-the-mean. (2) All three applicable baselines hit 100% LOCO FPR: the subaru and ram corpora occupy disjoint regions of the 512-D feature space (the feature encodes per-platform state at magnitudes that dwarf within-platform variance), so any absolute-position score that calibrates on one corpus flags the entire other corpus. E6 watches the *second-order trace* (location-invariant), so it both separates (AUROC 0.996) and calibrates across corpora (~1% FPR). The paper-worthy claim: on this production recurrent feature, standard OpenOOD post-hoc scores do not transfer; a second-order monitor does.
 
-### E7: Generalization beyond CARLA (corruption sweep) `[PENDING E7 — P0 BLOCKER]`
+### E7: Corruption sweep, E6 is collapse-specific (a bounded result) `[verified — report/e7_results.md, 2026-05-29]`
 
-`[AUTHOR TODO — run this]` Run `python -m src.e7_corruption` against the committed `report/e7_collected.npz` (110 MB, 76 conditions: 15 ImageNet-C corruptions x 5 severities + clean, on real Subaru frames, ~319 frames/condition). No GPU, no CARLA. Produces `report/e7_results.md` and two figures (`e7_auroc_heatmap.png`, `e7_severity_sweep.png`). Then write this subsection: per-corruption AUROC/AUPR/FPR@95TPR with bootstrap CIs, and a severity dose-response curve for E6 vs the baselines. Target claim: "E6 fires on standard ImageNet-C corruptions of real comma frames, not only on CARLA, so the monitor is not sim-fitted." Verify with a dry run before committing (read-from-cache vs re-collect path).
+We applied the 15 ImageNet-C corruptions (Hendrycks & Dietterich, ICLR 2019) at 5 severities to the real Subaru frames (raw RGB, pre-YUV), re-ran `supercombo` with correct recurrent state handling on each corrupted sequence (76 conditions, 319 frames each), and evaluated E6 and the baselines against clean real driving. Figures: `report/figures/e7_auroc_heatmap.png`, `report/figures/e7_severity_sweep.png`.
+
+**The honest finding: E6 does not generalize as a generic corruption detector; it is specific to the recurrent-state collapse.** On most corruptions E6's AUROC sits near chance (mean per-corruption AUROC: jpeg 0.52, fog 0.55, snow 0.55, brightness 0.60, zoom_blur 0.58, defocus/motion/glass blur 0.68-0.71, pixelate 0.69, elastic 0.67), and at the CARLA-calibrated 1% threshold E6's fire rate is ~0.000 across nearly all corruption/severity cells. E6 detects strongly only on the corruption-and-severity combinations that drive the recurrent state into the **same freeze** observed under CARLA:
+
+| condition | E6 AUROC [95% CI] | E6 fire rate @1% thr |
+|---|---|---|
+| frost, sev 5 | 1.000 [0.999, 1.000] | 1.000 |
+| frost, sev 3 | 0.958 [0.944, 0.971] | 0.063 |
+| impulse_noise, sev 5 | 0.906 [0.877, 0.932] | 0.547 |
+| gaussian_noise, sev 4 | 0.861 [0.833, 0.887] | 0.200 |
+| contrast, sev 3 | 0.823 [0.787, 0.855] | 0.089 |
+| shot_noise, sev 4 | 0.803 [0.770, 0.835] | 0.111 |
+| (typical photometric/blur, all sev) | 0.50 - 0.72 | 0.000 |
+
+**Interpretation, and the open question this raises.** E6 watches the second-order temporal spread of the recurrent state, so by construction it fires when that state collapses and is quiet otherwise. E7 confirms E6 fires near-perfectly when a corruption is severe enough to induce the collapse (extreme noise, heavy frost) and stays quiet under corruptions the model apparently tolerates. Whether E6's quiet response on, e.g., fog and brightness is **correct** (the model did not collapse, so there is nothing to flag) or a **miss** (the model collapsed but E6 did not catch it) cannot be resolved from this table: the E7 analysis reports E6 separability and fire rate, not per-corruption output-head collapse. `[AUTHOR TODO — highest-value follow-up]` Re-run the E1 output-activity collapse metric per corruption/severity, and overlay it on the E6 AUROC heatmap. If output collapse and E6 detection co-occur cell-for-cell, the bounded claim becomes a clean one: "E6 detects the silent-collapse failure mode wherever it occurs, across both CARLA and corruption-induced shift." If the model collapses under low-E6-AUROC corruptions, that is a real false-negative and must be reported.
+
+**On the baselines.** Mahalanobis and Relative Mahalanobis "fire" on a large fraction of corruptions (fog, frost, gaussian/impulse/shot noise, snow, zoom, contrast all at ~1.0 fire rate), but recall from E6/baselines that both carry 100% LOCO held-out FPR: they flag held-out real driving too, so their high corruption fire rates are not calibrated detection. KNN-50 fires only on the heaviest noise/frost. None of the baselines is calibrated to the 1% operating point E6 holds.
+
+**What E7 changes about the paper's claim.** The earlier framing ("an internal monitor catches the OOD condition") must be stated as: an internal monitor catches the *silent-collapse* condition, on CARLA and on the corruptions severe enough to induce it, at ~1% real-driving FPR, where output-side and location-based feature detectors do not. E6 is a targeted monitor for a specific, dangerous failure mode, not a universal OOD detector. This is a narrower and more defensible contribution than "generalizes beyond CARLA," and it should be written as such.
 
 ---
 
@@ -172,7 +188,7 @@ The rolling-spread monitor on the 512-D recurrent feature, calibrated LOCO to me
 
 - **N=1 model:** supercombo v0.9.7 only; no other openpilot version, Tesla, Mobileye, Waymo, or research IL stack.
 - **N=2 real corpora:** LOCO is a two-fold estimate; variance is not meaningfully reportable at N=2. A third corpus is needed before quoting a single production FPR.
-- **OOD axis breadth:** CARLA-clean is an extreme, easy shift. `[PENDING E7]` adds an ImageNet-C corruption axis on real frames, but that axis is currently Subaru-only (RAM not in the corruption sweep, `src/e7_corruption.py` lines 32-33). Name this explicitly. Real adverse-weather footage (rain/night/glare) remains pending.
+- **OOD axis breadth and E6 selectivity:** CARLA-clean is an extreme, easy shift. The E7 ImageNet-C corruption axis (Subaru-only; RAM not in the sweep, `src/e7_corruption.py` lines 32-33) shows E6 is collapse-specific: near-chance on most corruptions, strong only where the recurrent state actually freezes. We have not yet verified, per corruption, whether E6's quiet response coincides with the absence of output collapse (the needed cross-check is the E1 metric per corruption). Until that is run, E6's behavior on the low-AUROC corruptions is ambiguous (correct silence vs false negative). Real adverse-weather footage (rain/night/glare) remains pending.
 - **E5 localization is partial:** collapse pinned to summarizer VAE-mu + action-block feedback by ruling out the encoder and probing 8 submodules; a VAE-mu/sigma ambiguity remains (note it, source: report/e5_submodule_results.md).
 - **No real-robot / on-road deployment of E6:** the monitor is demonstrated offline on logged + rendered + corrupted frames, not in the running stack.
 
@@ -195,14 +211,14 @@ The rolling-spread monitor on the 512-D recurrent feature, calibrated LOCO to me
 ## Figures (all exist in report/figures/ unless marked)
 
 - `hero.png` (four findings at a glance), `e1_head_collapse.png`, `e2_feature_ood.png`, `e3_confidence.png`, `e4_interpolation.png`, `e5_layer_localization.png`, `e5_submodule_localization.png`, `e6_detector.png`, `roc_curves.png`, `pr_curves.png`, `auroc_vs_alpha.png`.
-- `[PENDING E7]` `e7_auroc_heatmap.png`, `e7_severity_sweep.png`.
+- `e7_auroc_heatmap.png`, `e7_severity_sweep.png` `[verified — generated 2026-05-29]`.
 
-## Pre-submission checklist (from the 2026-05-29 publication-readiness audit)
+## Pre-submission checklist (from the 2026-05-29 publication-readiness audit; updated post-E7)
 
-- [ ] **P0:** run E7 analysis from cache, write E7 subsection + figures.
-- [ ] **P1:** verify/repair Git LFS for the 3.9 GB and 110 MB caches.
+- [x] **P0:** E7 corruption sweep run (re-collected + analyzed 2026-05-29), subsection + 2 figures written. Result is a bounded negative (E6 collapse-specific), reflected in abstract/contrib-4/limitations.
+- [ ] **P0 (NEW, from E7):** run the E1 output-collapse metric per corruption/severity and overlay on the E6 AUROC heatmap, to disambiguate E6's quiet cells (correct silence vs false negative). This now gates the headline claim.
+- [ ] **P1:** the E5 (3.9 GB) and E7 (110 MB) caches are `.gitignore`d, so they are NOT in the public repo at all (not merely un-LFS'd). The reproduce-from-cache path is broken for E5/E7. Decide: Git LFS the E7 cache (E5 at 3.9 GB exceeds even LFS norms, consider a regeneration script + smaller committed summary instead).
 - [ ] **P1:** resolve six [UNVERIFIED] citations + Henriksson bibkey.
-- [ ] **P1:** note E7 is Subaru-only in Limitations (or extend to RAM).
 - [ ] **P2:** RMD-background one-sentence justification in §4.5.
 - [ ] **P2:** clean "Agent A" artifact in docs/threat_model.md line 43.
 - [ ] **P2:** state N for every percentage; pin matplotlib.
