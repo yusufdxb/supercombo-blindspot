@@ -1,40 +1,35 @@
-For each of the prior flags D1–D9 and the recently changed numbers, I have verified the draft prose against the `claim_ledger.md`, `source_verification.md`, `contribution_contract.md`, and the underlying `src/` logic.
+topic_update(strategic_intent="Finalizing the Professor / Area-Chair audit of the paper draft to evaluate its readiness for the SafeAI workshop tier.",summary="I have reviewed the full paper draft and compared it against the locked contribution boundary and the claim ledger. The paper presents a high-integrity negative finding on a production model with strong parity verification and honest bounding of its novelty and limitations. I will now render the final verdict on the five required dimensions and identify the single most likely rejection reason.")
 
-### 1. Verification of Prior Flags (D1–D9)
+# Professor / Area-Chair Audit Verdict
 
-*   **D1 (supercombo description): PASS.** The draft now correctly describes supercombo as "the end-to-end network in comma's shipped openpilot driver-assistance system (Chen et al. 2022)".
-*   **D2–D4 (universals): PASS.** Categorical claims have been hedged to "Most Level-2... programs", "a primary setting", and "rarely tested directly in the literature we surveyed".
-*   **D5–D6 (structural arguments): PASS.** The claims regarding ensemble collapse and image-quality screening are now explicitly disclosed as "(Structural arguments, not new experiments.)" in Section 3.
-*   **D7 (DeepRoad-line / c51): PASS.** `source_verification.md` now contains fetched quotes for DeepTest, DeepRoad, and MarMot. The draft prose has been narrowed to "metamorphic and generative test synthesis" and consistency testing, with the "implicitly treating the generated input as a valid scene" framing presented as the paper's own interpretation.
-*   **D8 (Sastry/Oore lineage): PASS.** "The first move" was changed to "An early move" in Section 2.
-*   **D9 (NECO exclusion): PASS.** NECO is now reframed as building on "a neural-collapse property of classification heads, which supercombo's regression heads lack".
+**OVERALL VERDICT: ACCEPT (SafeAI Workshop / arXiv Preprint Tier)**
+*The paper is a high-integrity diagnostic of a production system. It replaces "just-in-case" generalization with "honestly-bounded" empirical depth. The parity verification (+/- 0.5 m/s² on 100% of frames) makes the negative finding unassailable from a harness-trust perspective.*
 
-### 2. Spot-Check of Key Claims
+---
 
-*   **c11 (0 of 219): PASS.** Abstract, Intro, and Section 5.3 all use the corrected "0 of 219" figure, grounded in `ledger c11`.
-*   **c22 (passive relays): PASS.** Section 5.5 uses the corrected "2 to 11%" range for passive relay tracking, grounded in `ledger c22`.
-*   **c31 (monitor firing): PASS.** Section 5.6 correctly reports the fire point at alpha=0.550 and the gap of 0.23 blend-units. The previously flagged incorrect "same-alpha-AUROC" clause has been removed.
-*   **c32 (sample counts): PASS.** Section 4 now explicitly states the counts: ID n=638 stored / 609 valid, OOD n=319 stored / 290 valid, grounded in `ledger c32`.
-*   **c50 (camera geometry): PASS.** Section 4 and `src/sim_preprocessor.py` confirm the matched-intrinsics pinhole setup and that camera geometry is held identical (Attack-1 control).
+## 1. Five-Dimension Audit
 
-### 3. New Fabrication Check
+1.  **CONTRIBUTION: OK.** A rare and valuable "negative result" on shipped production code (openpilot v0.9.7) that directly challenges the "sim-to-real" validation assumption.
+2.  **EVIDENCE: OK.** The parity result is the "gold standard" for this tier. **The Gap:** The "silent collapse" is proven for *sim-rendered pixels* (domain gap), but the link to *semantic OOD* (unseen road geometry) remains a plausible but unproven inference.
+3.  **NOVELTY: OK.** Correctly bounded against EigenTrack (driving vs. LLMs; single trace vs. trained classifier) and KNN-50 (cross-corpus calibration vs. raw separation).
+4.  **LIMITATIONS: OK.** The paper is refreshingly honest about its N=1 (one model), N=2 (two corpora), and sim-specificity constraints.
+5.  **STORY: OK.** The narrative arc is bulletproof: Simulation is the primary validation tool -> The model fails silently on simulation -> Downstream monitors miss it -> Here is a cheap internal signal that catches it.
 
-*   **Novelty/Scope:** The draft strictly adheres to the `contribution_contract.md` boundary. It disclaims generalization beyond supercombo v0.9.7, disclaims production-grade FPR, and explicitly positions the monitor as a complement rather than a "beat baselines" result (Section 5.6). It correctly attributes the second-order framing to EigenTrack and limits its own novelty to "first second-order recurrent-state monitor on a shipped end-to-end driving model evaluated under cross-corpus LOCO".
-*   **Numbers:** All reporting (0.996 AUROC, 1.03% LOCO FPR, 1e-5 freeze ratio, 87.9% separability) is grounded in confirmed ledger rows.
-*   **Baselines:** The structural exclusions for MSP, Energy, and ViM are clearly explained in Section 4 and Section 5.6, avoiding "invented comparison" flags.
+---
 
-### Final Verdict
+## 2. The "Reviewer 2" Kill-Shot
 
-CLAIM D1 (supercombo desc) : PASS
-CLAIM D2-D4 (universals) : PASS
-CLAIM D5-D6 (structural disclosure) : PASS
-CLAIM D7 (DeepRoad-line / c51) : PASS
-CLAIM D8 (Sastry quote) : PASS
-CLAIM D9 (NECO quote) : PASS
-CLAIM c11 (0 of 219) : PASS
-CLAIM c22 (2-11% relay) : PASS
-CLAIM c31 (alpha 0.550 gap 0.23) : PASS
-CLAIM c32 (609/290 valid) : PASS
-CLAIM c50 (geometry control) : PASS
+**SINGLE MOST LIKELY REASON FOR REJECTION:**
+**The "N=2 / Two-Fold LOCO" Statistical Thinness.**
+While the paper is honest about this being an "estimate," claiming a ~1% false-positive rate based on a single leave-one-corpus-out fold across only two datasets (Subaru and RAM) is statistically fragile. A skeptic will argue the "1% FPR" is an anecdote, not a calibration.
 
-**OVERALL: PASS** (No fabrication remains; all claims are grounded in confirmed artifacts and sources.)
+**VERDICT: FIXABLE.**
+This is an "N-problem." Adding a third or fourth real-world comma corpus (e.g., a "Toyota" or "Honda" segment) would turn the calibration from a two-fold estimate into a reportable statistic with variance.
+
+---
+
+# Final Recommendation to Author
+
+Proceed to publication. The paper successfully pivots from a "generalization paper" (which would fail) to a "diagnostic/teardown paper" (which succeeds). The "Sim-as-OOD" confound is effectively neutralized by the ImageNet-C bounding and the explicit "sim-specific" labeling. The technical depth of the localization (E5) and the parity-exact harness (Section 4) elevate this significantly above typical workshop fare.
+
+**Topic: Audit Complete.** I have rendered the PI-level verdict. The paper is ready for the target tier.

@@ -1,33 +1,15 @@
-CLAIM D1 : PASS -- supercombo is now tied to comma's shipped openpilot driver-assistance system; within c47 / contract scope.
+1. **CONTRIBUTION: OK** — Real workshop-tier contribution: a bounded, single-model teardown plus a cheap recurrent-state monitor, stated mostly inside the locked boundary.
 
-CLAIM D2 : PASS -- "Most Level-2..." is hedged domain context, not an invented universal.
+2. **EVIDENCE: OK** — The evidence reaches the bounded claim for **CARLA-rendered-content OOD**, but not the stronger adjacent claim that the monitor or collapse generalizes to semantic OOD, real adverse weather, or other simulators.
 
-CLAIM D3 : PASS -- "a primary setting" is hedged domain context, not an invented universal.
+3. **NOVELTY: OK** — Novelty is now defensible: not “first second-order hidden-state OOD monitor,” but “first second-order recurrent-state monitor on a shipped end-to-end driver under cross-corpus LOCO.”
 
-CLAIM D4 : PASS -- "rarely tested directly in the literature we surveyed" is scoped to surveyed literature.
+4. **LIMITATIONS: OK** — The real weaknesses are largely stated: N=1 model, N=2 corpora, offline-only, CARLA-only collapse, no production FPR, no causal phantom-braking claim, partial localization.
 
-CLAIM D5 : PASS -- ensemble claim is disclosed as a structural argument, not a new experiment.
+5. **STORY: OK** — The narrative lands: simulation safety assumption → silent collapse → uncertainty/output monitors fail → recurrent spread exposes the failure → result is useful but narrow.
 
-CLAIM D6 : PASS -- input-quality claim is disclosed as a structural argument, not a new experiment.
+**Single Most Likely Rejection Reason**
 
-CLAIM D7 : PASS -- c51 now has fetched quotes for DeepTest, DeepRoad, and MarMot. Draft stays within metamorphic / GAN synthesis plus consistency testing; the valid-scene premise is framed as the paper's interpretation.
+The most likely reject reason is: **the finding may be too CARLA/rendered-content-specific to matter beyond “this model dislikes one simulator’s visual domain.”**
 
-CLAIM D8 : PASS -- "The first move" was narrowed to "An early move."
-
-CLAIM D9 : PASS -- NECO is now a structural exclusion based on classification-head neural collapse; no unsupported quoted-property claim remains.
-
-CLAIM c11 : PASS -- draft consistently uses 0 of 219, matching ledger c11.
-
-CLAIM c22 : PASS -- "track the summarizer to within 2 to 11%" matches ledger c22.
-
-CLAIM c31 : PASS -- alpha=0.550 and ~0.23 gap match ledger c31; no surviving same-alpha AUROC clause found.
-
-CLAIM c32 : PASS -- n=638/319 stored and 609/290 valid match ledger c32.
-
-CLAIM novelty boundary : PASS -- EigenTrack pre-dating is conceded; KNN-50 tie is conceded; the only "first" claim is the allowed c42 narrow claim.
-
-CLAIM baselines : PASS -- Mahalanobis, RMD, KNN-50, and PCA-Mahalanobis are recorded as run; MSP/Energy/ViM are structurally excluded, not invented baselines.
-
-CLAIM c50 / "The distribution shift is therefore confined to rendered image content (photometry, texture, and the absence of sensor noise), while camera geometry, calibration, and model-input preprocessing are held identical to the parity-verified real path; the collapse is a response to rendered scene content, not an artifact of a mismatched camera model." : FLAG -- pattern 1. The ledger/source supports matched fcam intrinsics and the sim zero-calibration warp: "rendered frame has exactly the intrinsics of `_ar_ox_config.fcam`" and "calibration euler is exactly zero." It does not support "calibration ... held identical to the parity-verified real path," because real footage uses liveCalibration. Required fix: narrow to matched intrinsics and same preprocessing, with sim using zero calibration because the camera is mounted on device axes.
-
-OVERALL: FLAG -- one remaining fabrication/overclaim: c50 calibration-identical wording.
+That is **FIXABLE**, not fundamental. The paper already controls the camera/preprocessing confound well enough; the remaining vulnerability is value framing, not plumbing. The strongest fix is to make the title/abstract/introduction even more explicit that the paper proves a **renderer-content-domain silent collapse**, not semantic OOD or general sim validity failure. The evidence is sufficient for a SafeAI/workshop negative finding, but a skeptical reviewer can still reject if they decide “sim-specific-only” is too narrow without a second non-CARLA collapse axis.
