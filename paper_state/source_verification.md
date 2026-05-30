@@ -649,3 +649,15 @@ No proceedings venue confirmed. Bib entry uses arXiv. FLAG.
 | henriksson2024 | -- | NOT IN DRAFT | See gap note above |
 | commaai20704 | c39 | CONFIRMED | GitHub issue |
 | adversarial2025 | -- | CONFIRMED | arXiv 2505.11532 |
+| deeptest2018 | c51 | CONFIRMED | DeepTest, fetched arXiv:1708.08559 |
+| deeproad2018 | c51 | CONFIRMED | DeepRoad, fetched arXiv:1802.02295 |
+| marmot2024 | c51 | CONFIRMED | MarMot, fetched arXiv:2310.07414 |
+
+## [deeproad-line / c51] DeepTest, DeepRoad, MarMot (added 2026-05-30 to close hallucination-gate D7)
+
+- CLAIM (draft, Related Work): the DeepRoad line uses metamorphic / generative test synthesis and implicitly treats the generated scene as a valid input the model should handle.
+- SOURCES + fetched quotes (WebFetch 2026-05-30):
+  - DeepTest (Tian, Pei, Jana, Ray, ICSE 2018, arXiv:1708.08559): "automatically detect erroneous behaviors of DNN-driven vehicles"; "found thousands of erroneous behaviors under different realistic driving conditions."
+  - DeepRoad (Zhang, Zhang, Zhang, Liu, Khurshid, ASE 2018, arXiv:1802.02295): "an unsupervised framework to automatically generate large amounts of accurate driving scenes" using GANs to test consistency across weather; "detected thousands of behavioral inconsistencies."
+  - MarMot (Ayerdi, Iriarte, Valle, Roman, Illarramendi, Arrieta, ACM TOSEM 2024, arXiv:2310.07414): uses "Metamorphic Relations (MRs) ... to estimate uncertainty in autonomous driving systems at runtime."
+- VERDICT: CONFIRMED. The draft prose was narrowed to what the sources say (metamorphic / GAN test generation plus consistency testing); the "implicitly treats the generated input as a valid scene" framing is stated as the paper's interpretation, not as a quoted property of the cited works.
