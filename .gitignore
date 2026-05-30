@@ -16,3 +16,9 @@ requirements.txt.py311.bak
 report/e5_collected.npz
 # E5 submodule cache is ~100 MB (8 downstream probes, 11 alphas, 319 frames); regenerate via `python -m src.e5_submodule --collect`.
 report/e5_submodule_collected.npz
+# E7 corruption cache (76 conditions x 319 frames x 512-D, ~2+ GB); regenerate via `python -m src.e7_corruption --collect`.
+report/e7_collected.npz
+# E4-RAM cache (~40 MB, same structure as e4_collected.npz); regenerate via `python -m src.e4_ram --collect`.
+report/e4_ram_collected.npz
+# Ablations cache (small, regenerate via `python -m scripts.ablations`).
+report/ablations_collected.npz

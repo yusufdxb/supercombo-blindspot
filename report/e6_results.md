@@ -15,6 +15,8 @@
 **LOCO mean FPR: 0.0103 (1.03%)**
 **LOCO max FPR: 0.0207 (2.07%)**
 
+(N=2 real corpora; variance is not meaningfully reportable at two folds.)
+
 This is the honest generalisation estimate: on a held-out corpus the detector did not see during threshold calibration.
 
 ## Detector response on the E4 sweep
