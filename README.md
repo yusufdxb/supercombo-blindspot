@@ -33,8 +33,10 @@ Nothing the model emits would tell a downstream monitor it has stopped perceivin
 | **E2** internal OOD | the model's 512-D recurrent feature vector collapses to **0.00001×** the real spread: 219 distinct sim frames map to one frozen point |
 | **E3** silent failure | outputs lose **~99.5%** of their activity, but predicted uncertainty rises only 1.2-1.8× and **0%** of sim frames exceed the model's normal real-driving uncertainty |
 | **E4** cliff, not gradient | blending CARLA into a real frame, output activity first balloons to **6.3×** the real baseline (ghosted-input thrash), then collapses in a **hard cliff** at ~78% CARLA (transition width **0.015**); predicted uncertainty never spikes through it |
-| **E5** the encoder is fine | activity ratio in every vision-encoder stage (stem, stages.0-3, head) stays at or above the real-driving baseline through the full alpha sweep (minimum 0.96, several layers amplify 1.4-2.1x on sim input). The collapse in E1/E2 is not the encoder failing; it is downstream of the encoder, in the recurrent / policy stack that aggregates these stable features into a degenerate hidden state |
-| **E6** a monitor could have caught it | a 1st-percentile threshold on the rolling spread of the model's own 512-D recurrent feature vector, calibrated on real driving (1.15% false-positive rate), fires on >50% of CARLA-blended frames at alpha = 0.55, well before the E4 output-collapse cliff at alpha ~ 0.78. The signature E3 said outputs hide is recoverable from internals, no model retraining or extra heads required |
+| **E5** the encoder is fine (variation-wise) | per-stage temporal activity ratio (CARLA / real) stays at or above the real baseline through the full alpha sweep (minimum 0.96, several layers amplify 1.4-2.1x). Feature DC offsets do shift on CARLA input (stem \|mean\| 1.24x, head \|mean\| 1.33x), so the encoder produces differently-distributed but temporally-active features. The collapse in E1/E2 is downstream of the encoder, in the recurrent / policy stack that aggregates those features into a degenerate hidden state |
+| **E6** a monitor would catch the OOD stimulus | a 1st-percentile threshold on the rolling spread of the model's own 512-D recurrent feature vector fires on >50% of CARLA-blended frames at alpha = 0.550 (not perfect separation; full separation AUROC 0.996 is at alpha=1.0), well before the E4 output-collapse cliff at alpha ~ 0.78. The signature E3 said outputs hide is recoverable from internals. Leave-one-corpus-out across the two real-driving segments gives 1.03% mean false-positive rate (2.07% max; N=2 real corpora, so variance is not meaningfully reportable at two folds); a larger real corpus is needed before this number can be trusted as a deployment claim |
+| **E4-RAM** vehicle invariance | re-running E4 with a RAM real-driving source instead of Subaru: the collapse endpoint is the same (activity < 1% at alpha=1.0), but the transition is a **gradient** (width 0.274) not a cliff (Subaru: 0.015). E6 fires at alpha 0.850 on RAM vs 0.550 on Subaru, providing **no early warning** on this source. The cliff/gradient distinction is vehicle- or segment-dependent |
+| **E7** ImageNet-C corruption sweep | 15 Hendrycks corruptions x 5 severities on real driving frames. E6 rolling-spread (a collapse detector) mostly fails to detect photometric corruptions (mean AUROC 0.52-0.74), correctly catching only extreme noise/frost that actually freezes the recurrent state. Feature-space baselines (Mahalanobis, Relative Mahalanobis) detect corruptions that E6 misses. E6 is a temporal-collapse detector, not a universal OOD detector |
 
 ![Hero: the four findings at a glance](report/figures/hero.png)
 
@@ -157,6 +159,16 @@ naive expectation: across all six encoder layers, activity on CARLA input
 stays at or above the real-driving baseline. Several stages amplify
 (stage3 2.06x, head 2.14x). Nothing in the encoder collapses.
 
+The "encoder is fine" claim is specifically about temporal variation. The
+absolute mean magnitudes do shift on CARLA: the stem layer's mean magnitude
+is 1.24x the real-driving baseline, and the post-pool head feature vector's
+mean is 1.33x. So the encoder is producing features that are differently
+distributed (DC shifts) but fully temporally active (std preserved). The
+collapse mechanism in E1/E2 is therefore not "the encoder went quiet" but
+"the encoder hands a distributionally different but variation-rich feature
+to the recurrent state, which then collapses anyway." Reported as both
+columns in `report/e5_results.md`.
+
 That means the failure measured in E1 (output heads collapse) and E2 (512-D
 recurrent feature vector collapses) is **not** the vision encoder breaking.
 The encoder produces different but fully active features on sim input. The
@@ -172,15 +184,85 @@ not perception.
 E3 measured the model's exported uncertainties and found they do not move
 through the collapse. E6 asks the same question one layer deeper: instead of
 trusting any output head, watch the rolling spread of supercombo's own 512-D
-recurrent feature vector. We calibrate a fire threshold at the 1st
-percentile of the rolling spread on real driving (a 1.15% false-positive
-budget on the subaru + ram corpora) and run the detector along the E4
-alpha sweep. It fires on >50% of frames at alpha = 0.55, while E4's
-output-collapse cliff does not arrive until alpha ~ 0.78. A tiny external
-monitor watching internals could have flagged the OOD condition before the
-model's own outputs gave it away.
+recurrent feature vector. We calibrate the fire threshold at the 1st
+percentile of the rolling spread on real driving and evaluate generalisation
+by leave-one-corpus-out across the two real segments: **1.03% mean
+held-out false-positive rate (2.07% max across folds)** (N=2 real
+corpora; variance is not meaningfully reportable at two folds). The two
+real segments have meaningfully different rolling-spread distributions
+(subaru median 0.12 vs ram median 0.19), which is exactly why the
+generalisation gap matters and why production deployment would need a much
+larger real corpus.
+
+On the E4 alpha sweep, the detector fires on >50% of frames at alpha =
+0.550 (this is the >50% flagging threshold, not perfect separation;
+full separation with AUROC 0.996 is at alpha=1.0, pure CARLA), while
+E4's output-collapse cliff does not arrive until alpha ~ 0.78. A tiny external monitor watching internals could flag the OOD
+condition before the model's own outputs gave it away, at least for this
+synthetic real-to-CARLA stimulus.
 
 ![E6 detector](report/figures/e6_detector.png)
+
+### E4-RAM: vehicle invariance
+
+E4 used the Subaru segment as the real source. To test whether the cliff is
+vehicle-invariant, E4-RAM re-runs the same alpha-blend sweep with a RAM
+real-driving source. The collapse endpoint is the same: output activity drops to
+< 1% at alpha=1.0, and the 512-D feature vector freezes identically. But the
+*path* to collapse differs:
+
+| Source | Transition width | E6 fires-at-alpha | E6 headroom | Verdict |
+|---|---|---|---|---|
+| Subaru | 0.015 | 0.550 | 0.234 | cliff |
+| RAM | 0.274 | 0.850 | -0.184 | gradient |
+
+The Subaru collapse is a hard cliff; the RAM collapse is a smooth gradient
+spread over ~27% of the alpha range. E6 fires much later on RAM (alpha 0.850)
+than on Subaru (0.550), providing no early warning. The cliff vs gradient
+distinction is segment-dependent, which means E6's headroom cannot be assumed
+to generalize across real-driving sources without re-calibration.
+
+![E4-RAM interpolation](report/figures/e4_ram_interpolation.png)
+
+Full table: [`report/e4_ram_results.md`](report/e4_ram_results.md).
+
+### E7: ImageNet-C corruption sweep
+
+E6 was designed to catch the CARLA temporal-collapse failure mode. E7 tests
+whether it generalizes to a different class of distribution shift: the 15
+Hendrycks & Dietterich (ICLR 2019) ImageNet-C corruptions at 5 severity levels,
+applied to the same real comma driving frames.
+
+E6 mostly fails on photometric corruptions (mean AUROC 0.52-0.74 across
+corruption types). It detects only extreme corruptions that actually freeze the
+recurrent state (frost severity 5: AUROC 1.000, impulse noise severity 5: AUROC
+0.906). Feature-space baselines (Mahalanobis, Relative Mahalanobis) detect
+corruptions that E6 misses, firing at >95% on noise, weather, and compression
+corruptions at moderate severities.
+
+This is the expected result: E6 monitors temporal dynamics of the recurrent
+state and fires when the state freezes. Photometric corruptions degrade the
+input but still produce temporally varying frame sequences, so the recurrent
+state stays active. E6 is a collapse detector, not a universal OOD detector.
+A production system would need both a temporal monitor (E6) and a feature-space
+detector (Mahalanobis or similar) to cover both failure modes.
+
+![E7 severity sweep](report/figures/e7_severity_sweep.png)
+![E7 AUROC heatmap](report/figures/e7_auroc_heatmap.png)
+
+Full table: [`report/e7_results.md`](report/e7_results.md).
+
+### Hyperparameter ablations
+
+Two key hyperparameters were ablated:
+
+- **KNN k**: AUROC = 1.000 for all k in {5, 10, 20, 50, 100}. The detector is
+  completely insensitive to the neighbour count.
+- **E6 window size**: AUROC ranges from 0.957 (window=10) to 1.000 (window=50).
+  The default window=30 (AUROC 0.996) offers the best balance between detection
+  power and early warning (fires-at-alpha 0.550).
+
+Full table: [`report/ablations_results.md`](report/ablations_results.md).
 
 ## Limitations
 
@@ -189,13 +271,24 @@ model's own outputs gave it away.
 - CARLA only. comma's MetaDrive sim shows consistent erratic behavior (#31711) but is
   not instrumented here.
 - E5 localizes the collapse downstream of the vision encoder (no encoder
-  stage drops below 0.96 activity), but does not pin it to a specific
-  recurrent / policy submodule. The exact submodule remains to be
-  identified.
+  stage drops below 0.96 activity). Submodule probing pins the cliff entry
+  to `summarizer_div` (the VAE-mu bottleneck, cliff alpha 0.900) with
+  amplification at `action_block_body` (cliff alpha 0.500) due to the
+  `prev_desired_curv` feedback loop. Caveat: the summarizer's `mu / sigma`
+  division means part of the apparent collapse could be variance
+  normalization rather than information loss; probing pre-Div mu alone
+  would split that further.
 - E6 calibrates a fire threshold on two real-driving segments; production
   use would need a much larger real corpus before the 1.15% false-positive
   rate could be trusted across driving conditions (night, rain, dense
   urban).
+- E4-RAM shows the cliff/gradient distinction is segment-dependent (Subaru:
+  0.015 cliff, RAM: 0.274 gradient). E6's early-warning headroom cannot be
+  assumed to generalize without re-calibration on each source.
+- E7 shows E6 is a collapse detector, not a universal OOD detector. It
+  catches temporal freeze (CARLA) but not photometric corruptions
+  (ImageNet-C mean AUROC 0.52-0.74). A production system would need
+  complementary detectors.
 - E4's interpolation overlays two scenes (a double-exposure), so it is an overlay-interference probe, not a photometric sim-to-real morph.
 - E4's 0.015 transition width is a linear-interpolation estimate within a single 0.025-wide alpha step; the sweep resolves the cliff to roughly one step, not to finer precision.
 
@@ -207,6 +300,8 @@ model's own outputs gave it away.
 - Generalize the E6 detector across simulator engines (MetaDrive in
   particular, since comma's own bridge sees the same erratic behavior in
   #31711) and across real-world OOD stimuli (rain, glare, blown highlights).
+- Combine E6 (temporal collapse) with a feature-space baseline (Mahalanobis
+  or similar) to cover both failure classes identified in E7.
 - Real-data phantom-brake mining at scale, using `src/scout_phantom.py`.
 
 ## Reproduce
@@ -239,6 +334,21 @@ env -u PYTHONPATH .venv/bin/python -m src.teardown --collect # re-collect, then 
 `env -u PYTHONPATH` is used because a sourced ROS 2 environment otherwise shadows
 packages; the project venv is self-contained.
 
+**E5 submodule probing.** Collecting E5 submodule activations requires GPU +
+CARLA (`python -m src.e5_submodule --collect`). Analysis runs from the
+committed cache without either dependency (`python -m src.e5_submodule`).
+
+**E7 ImageNet-C.** Collecting E7 corrupted-frame activations requires GPU +
+real driving data (`python -m src.e7_corruption --collect`). Analysis runs from
+the cache (`python -m src.e7_corruption`).
+
+**E4-RAM.** Collecting requires GPU + RAM driving data + CARLA frames
+(`python -m src.e4_ram --collect`). Analysis runs from the cache
+(`python -m src.e4_ram`).
+
+**Ablations.** `python -m scripts.ablations` re-runs KNN k-sensitivity and E6
+window-size sweeps from the committed caches.
+
 ## Repo map
 
 | Path | What |
@@ -247,9 +357,12 @@ packages; the project venv is self-contained.
 | `src/run_parity.py`, `src/warped_preprocessor.py`, `src/transformations.py` | real-footage parity pipeline (calibrated warp) |
 | `src/probe_model.py`, `src/teardown.py` | the E1 / E2 / E3 distribution-shift teardown |
 | `src/e4_interp.py`, `report/e4_collected.npz` | the E4 real-to-sim interpolation sweep and its cached outputs |
+| `src/e4_ram.py` | E4-RAM vehicle-invariance sweep (RAM source) |
+| `src/e7_corruption.py` | E7 ImageNet-C corruption sweep (15 corruptions x 5 severities) |
+| `src/ablations.py` | KNN k-sensitivity and E6 window-size ablation sweeps |
 | `src/scenario.py`, `src/sim_preprocessor.py`, `src/path_sampling.py` | CARLA reproduction harness (the control) |
 | `src/scout_phantom.py` | phantom-brake scout for real comma drives |
-| `report/teardown_collected.npz` | cached per-frame model outputs — the teardown re-derives E1/E2/E3 from this |
+| `report/teardown_collected.npz` | cached per-frame model outputs -- the teardown re-derives E1/E2/E3 from this |
 | `report/figures/`, `report/teardown_results.md` | results |
 | `references/openpilot-v0.9.7/` | vendored openpilot v0.9.7 source (parity reference) |
 
