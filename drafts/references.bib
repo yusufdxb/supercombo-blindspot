@@ -1,0 +1,310 @@
+% References for phantom-braking / supercombo-blindspot paper.
+% Generated from paper_state/source_verification.md (paper-citation-verifier, 2026-05-30).
+% Every entry below corresponds to a CONFIRMED source in the Summary of VERDICTS table.
+% Preprints with no final venue carry a note flag for camera-ready re-pinning.
+
+% --- Motivation -------------------------------------------------------------
+
+@misc{commaai20704,
+  author       = {{comma.ai}},
+  title        = {Large Shadow phantom braking},
+  howpublished = {GitHub issue \#20704, commaai/openpilot},
+  year         = {2021},
+  note         = {Cited as motivation only, not as an academic source},
+  url          = {https://github.com/commaai/openpilot/issues/20704}
+}
+
+% --- openpilot and supercombo prior work ------------------------------------
+
+@inproceedings{vonstein2022,
+  author    = {von Stein, Meriel and Elbaum, Sebastian},
+  title     = {Finding Property Violations through Network Falsification: Challenges, Adaptations and Lessons Learned from OpenPilot},
+  booktitle = {Proceedings of the 37th IEEE/ACM International Conference on Automated Software Engineering (ASE '22), Industry Showcase},
+  year      = {2022},
+  address   = {Rochester, MI, USA},
+  doi       = {10.1145/3551349.3559500}
+}
+
+@article{chen2022deepdive,
+  author        = {Chen, Li and Tang, Tutian and Cai, Zhitian and Li, Yang and Wu, Penghao and Li, Hongyang and Shi, Jianping and Yan, Junchi and Qiao, Yu},
+  title         = {Level 2 Autonomous Driving on a Single Device: Diving into the Devils of Openpilot},
+  journal       = {arXiv preprint arXiv:2206.08176},
+  year          = {2022},
+  eprint        = {2206.08176},
+  archivePrefix = {arXiv},
+  note          = {Technical report; no proceedings venue confirmed},
+  url           = {https://arxiv.org/abs/2206.08176}
+}
+
+@article{adversarial2025,
+  author        = {Chen, Cheng and Wang, Yuhong and Munir, Nafis S. and Zhou, Xiangwei and Zhou, Xugui},
+  title         = {Revisiting Adversarial Perception Attacks and Defense Methods on Autonomous Driving Systems},
+  journal       = {arXiv preprint arXiv:2505.11532},
+  year          = {2025},
+  eprint        = {2505.11532},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2505.11532}
+}
+
+% --- Location-based feature-space OOD (the baseline family) ------------------
+
+@inproceedings{hendrycks2017msp,
+  author    = {Hendrycks, Dan and Gimpel, Kevin},
+  title     = {A Baseline for Detecting Misclassified and Out-of-Distribution Examples in Neural Networks},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2017},
+  eprint    = {1610.02136},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/1610.02136}
+}
+
+@inproceedings{liu2020energy,
+  author    = {Liu, Weitang and Wang, Xiaoyun and Owens, John D. and Li, Yixuan},
+  title     = {Energy-based Out-of-distribution Detection},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2020},
+  eprint    = {2010.03759},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2010.03759}
+}
+
+@inproceedings{lee2018,
+  author    = {Lee, Kimin and Lee, Kibok and Lee, Honglak and Shin, Jinwoo},
+  title     = {A Simple Unified Framework for Detecting Out-of-Distribution Samples and Adversarial Attacks},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2018},
+  eprint    = {1807.03888},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/1807.03888}
+}
+
+@article{ren2021,
+  author        = {Ren, Jie and Fort, Stanislav and Liu, Jeremiah and Roy, Abhijit Guha and Padhy, Shreyas and Lakshminarayanan, Balaji},
+  title         = {A Simple Fix to Mahalanobis Distance for Improving Near-OOD Detection},
+  journal       = {arXiv preprint arXiv:2106.09022},
+  year          = {2021},
+  eprint        = {2106.09022},
+  archivePrefix = {arXiv},
+  note          = {venue unconfirmed; pin at camera-ready},
+  url           = {https://arxiv.org/abs/2106.09022}
+}
+
+@inproceedings{sun2022,
+  author    = {Sun, Yiyou and Ming, Yifei and Zhu, Xiaojin and Li, Yixuan},
+  title     = {Out-of-Distribution Detection with Deep Nearest Neighbors},
+  booktitle = {Proceedings of the 39th International Conference on Machine Learning (ICML)},
+  year      = {2022},
+  eprint    = {2204.06507},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2204.06507}
+}
+
+@inproceedings{vim2022,
+  author    = {Wang, Haoqi and Li, Zhizhong and Feng, Litong and Zhang, Wayne},
+  title     = {{ViM}: Out-Of-Distribution with Virtual-logit Matching},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2022},
+  eprint    = {2203.10807},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2203.10807}
+}
+
+@inproceedings{muellerplus2025,
+  author        = {Mueller, Maximilian and Hein, Matthias},
+  title         = {{Mahalanobis++}: Improving OOD Detection via Feature Normalization},
+  booktitle     = {Proceedings of the 42nd International Conference on Machine Learning (ICML)},
+  year          = {2025},
+  eprint        = {2505.18032},
+  archivePrefix = {arXiv},
+  note          = {venue unconfirmed; pin at camera-ready},
+  url           = {https://arxiv.org/abs/2505.18032}
+}
+
+@inproceedings{yang2022openood,
+  author    = {Yang, Jingkang and Wang, Pengyun and Zou, Dejian and Zhou, Zitang and Ding, Kunyuan and Peng, Wenxuan and Wang, Haoqi and Chen, Guangyao and Li, Bo and Sun, Yiyou and Du, Xuefeng and Zhou, Kaiyang and Zhang, Wayne and Hendrycks, Dan and Li, Yixuan and Liu, Ziwei},
+  title     = {{OpenOOD}: Benchmarking Generalized Out-of-Distribution Detection},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track},
+  year      = {2022},
+  eprint    = {2210.07242},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2210.07242}
+}
+
+% --- AV-native OOD and uncertainty monitoring -------------------------------
+
+@inproceedings{keser2025,
+  author    = {Keser, Mert and Orhan, Halil Ibrahim and Amini-Naieni, Niki and Schwalbe, Gesina and Knoll, Alois and Rottmann, Matthias},
+  title     = {Benchmarking Vision Foundation Models for Input Monitoring in Autonomous Driving},
+  booktitle = {arXiv preprint arXiv:2501.08083},
+  year      = {2025},
+  eprint    = {2501.08083},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2501.08083}
+}
+
+@article{guosu2026,
+  author        = {Guo, Tongfei and Su, Lili},
+  title         = {Latent Dynamics-Aware OOD Monitoring for Trajectory Prediction with Provable Guarantees},
+  journal       = {arXiv preprint arXiv:2603.14603},
+  year          = {2026},
+  eprint        = {2603.14603},
+  archivePrefix = {arXiv},
+  note          = {venue unconfirmed; pin at camera-ready},
+  url           = {https://arxiv.org/abs/2603.14603}
+}
+
+@inproceedings{filos2020,
+  author    = {Filos, Angelos and Tigas, Panagiotis and McAllister, Rowan and Rhinehart, Nicholas and Levine, Sergey and Gal, Yarin},
+  title     = {Can Autonomous Vehicles Identify, Recover From, and Adapt to Distribution Shifts?},
+  booktitle = {Proceedings of the 37th International Conference on Machine Learning (ICML)},
+  year      = {2020},
+  eprint    = {2006.14911},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2006.14911}
+}
+
+@inproceedings{stocco2020,
+  author    = {Stocco, Andrea and Weiss, Michael and Calzana, Marco and Tonella, Paolo},
+  title     = {Misbehaviour Prediction for Autonomous Driving Systems},
+  booktitle = {Proceedings of the 42nd International Conference on Software Engineering (ICSE)},
+  year      = {2020},
+  doi       = {10.1145/3377811.3380353},
+  eprint    = {1910.04443},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/1910.04443}
+}
+
+@inproceedings{grewal2024,
+  author    = {Grewal, Ruben and Tonella, Paolo and Stocco, Andrea},
+  title     = {Predicting Safety Misbehaviours in Autonomous Driving Systems using Uncertainty Quantification},
+  booktitle = {Proceedings of the 17th IEEE International Conference on Software Testing, Verification and Validation (ICST)},
+  year      = {2024},
+  eprint    = {2404.18573},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2404.18573}
+}
+
+@article{hodge2025,
+  author        = {Hodge, Victoria J. and Paterson, Colin and Habli, Ibrahim},
+  title         = {Out-of-Distribution Detection for Safety Assurance of AI and Autonomous Systems},
+  journal       = {arXiv preprint arXiv:2510.21254},
+  year          = {2025},
+  eprint        = {2510.21254},
+  archivePrefix = {arXiv},
+  note          = {venue unconfirmed; pin at camera-ready},
+  url           = {https://arxiv.org/abs/2510.21254}
+}
+
+% --- Internal-activation and second-order monitors --------------------------
+
+@inproceedings{cheng2018,
+  author    = {Cheng, Chih-Hong and N{\"u}hrenberg, Georg and Yasuoka, Hirotoshi},
+  title     = {Runtime Monitoring Neuron Activation Patterns},
+  booktitle = {Design, Automation and Test in Europe Conference (DATE)},
+  year      = {2019},
+  pages     = {300--303},
+  eprint    = {1809.06573},
+  archivePrefix = {arXiv},
+  note      = {arXiv preprint 1809.06573 dated 2018; published at DATE 2019},
+  url       = {https://arxiv.org/abs/1809.06573}
+}
+
+@inproceedings{sastry2020,
+  author    = {Sastry, Chandramouli Shama and Oore, Sageev},
+  title     = {Detecting Out-of-Distribution Examples with Gram Matrices},
+  booktitle = {Proceedings of the 37th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {119},
+  pages     = {8491--8501},
+  year      = {2020},
+  eprint    = {1912.12510},
+  archivePrefix = {arXiv},
+  url       = {https://proceedings.mlr.press/v119/sastry20a.html}
+}
+
+@inproceedings{eigentrack2025,
+  author    = {Ettori, Federico and Darabi, Sajjad and others},
+  title     = {{EigenTrack}: Spectral Activation Feature Tracking for Hallucination and Out-of-Distribution Detection in LLMs and VLMs},
+  booktitle = {arXiv preprint arXiv:2509.15735},
+  year      = {2025},
+  eprint    = {2509.15735},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2509.15735}
+}
+
+@inproceedings{neco2024,
+  author    = {Ben Ammar, Mou{\"i}n and Belkhir, Nacim and Popescu, Sebastian and Manzanera, Antoine and Franchi, Gianni},
+  title     = {{NECO}: NEural Collapse Based Out-of-distribution detection},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+  eprint    = {2310.06823},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2310.06823}
+}
+
+% --- Simulation testing and corruption robustness ---------------------------
+
+@inproceedings{hendrycks2019imgnetc,
+  author    = {Hendrycks, Dan and Dietterich, Thomas},
+  title     = {Benchmarking Neural Network Robustness to Common Corruptions and Perturbations},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2019},
+  eprint    = {1903.12261},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/1903.12261}
+}
+
+@article{michaelis2019,
+  author        = {Michaelis, Claudio and Mitzkus, Benjamin and Geirhos, Robert and Rusak, Evgenia and Bringmann, Oliver and Ecker, Alexander S. and Bethge, Matthias and Brendel, Wieland},
+  title         = {Benchmarking Robustness in Object Detection: Autonomous Driving when Winter is Coming},
+  journal       = {arXiv preprint arXiv:1907.07484},
+  year          = {2019},
+  eprint        = {1907.07484},
+  archivePrefix = {arXiv},
+  note          = {venue unconfirmed; pin at camera-ready},
+  url           = {https://arxiv.org/abs/1907.07484}
+}
+
+@inproceedings{dosovitskiy2017carla,
+  author    = {Dosovitskiy, Alexey and Ros, German and Codevilla, Felipe and Lopez, Antonio and Koltun, Vladlen},
+  title     = {{CARLA}: An Open Urban Driving Simulator},
+  booktitle = {Proceedings of the 1st Annual Conference on Robot Learning (CoRL)},
+  year      = {2017},
+  eprint    = {1711.03938},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/1711.03938}
+}
+
+% --- Simulation testing of driving DNNs (DeepRoad line) ---------------------
+% Added 2026-05-30: closes the DeepRoad-line citation gap flagged by the
+% citation verifier; titles/authors/years confirmed via arXiv (WebFetch).
+
+@inproceedings{deeptest2018,
+  author    = {Tian, Yuchi and Pei, Kexin and Jana, Suman and Ray, Baishakhi},
+  title     = {{DeepTest}: Automated Testing of Deep-Neural-Network-driven Autonomous Cars},
+  booktitle = {Proceedings of the 40th International Conference on Software Engineering (ICSE)},
+  year      = {2018},
+  eprint    = {1708.08559},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/1708.08559}
+}
+
+@inproceedings{deeproad2018,
+  author    = {Zhang, Mengshi and Zhang, Yuqun and Zhang, Lingming and Liu, Cong and Khurshid, Sarfraz},
+  title     = {{DeepRoad}: {GAN}-based Metamorphic Autonomous Driving System Testing},
+  booktitle = {Proceedings of the 33rd ACM/IEEE International Conference on Automated Software Engineering (ASE)},
+  year      = {2018},
+  eprint    = {1802.02295},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/1802.02295}
+}
+
+@article{marmot2024,
+  author    = {Ayerdi, Jon and Iriarte, Asier and Valle, Pablo and Roman, Ibai and Illarramendi, Miren and Arrieta, Aitor},
+  title     = {{MarMot}: Metamorphic Runtime Monitoring of Autonomous Driving Systems},
+  journal   = {ACM Transactions on Software Engineering and Methodology (TOSEM)},
+  year      = {2024},
+  eprint    = {2310.07414},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2310.07414}
+}
