@@ -31,6 +31,28 @@ def calibrate_threshold(real_spreads: np.ndarray, percentile: float = 1.0) -> fl
     return float(np.percentile(s, percentile))
 
 
+def loco_fpr(real_hidden_by_corpus: dict[str, np.ndarray], window: int,
+             percentile: float) -> dict:
+    """Leave-one-corpus-out FPR. Calibrate threshold on N-1 corpora,
+    evaluate on the held-out corpus. Repeat for each corpus and report
+    per-fold FPR + mean + max + per-fold threshold."""
+    folds = {}
+    for held_out in real_hidden_by_corpus:
+        calib_keys = [k for k in real_hidden_by_corpus if k != held_out]
+        calib_hidden = np.concatenate([real_hidden_by_corpus[k] for k in calib_keys],
+                                      axis=0)
+        calib_spreads = rolling_spread(calib_hidden, window)
+        thr = calibrate_threshold(calib_spreads, percentile)
+        held_spreads = rolling_spread(real_hidden_by_corpus[held_out], window)
+        valid = held_spreads[~np.isnan(held_spreads)]
+        fpr = float(np.mean(valid < thr)) if len(valid) else float("nan")
+        folds[held_out] = {"threshold": thr, "fpr": fpr,
+                            "calibrated_on": calib_keys}
+    fprs = np.array([f["fpr"] for f in folds.values()])
+    return {"folds": folds, "fpr_mean": float(fprs.mean()),
+            "fpr_max": float(fprs.max())}
+
+
 def _e4_alphas(cache: Path) -> np.ndarray:
     """All unique alpha values present in the E4 cache, sorted ascending."""
     d = np.load(cache)
@@ -69,6 +91,13 @@ def _real_calibration_hidden() -> np.ndarray:
     return np.concatenate([d["subaru__hidden_state"], d["ram__hidden_state"]], axis=0)
 
 
+def _real_calibration_by_corpus() -> dict[str, np.ndarray]:
+    """Per-corpus hidden_state arrays from teardown_collected.npz."""
+    d = np.load("report/teardown_collected.npz")
+    return {"subaru": d["subaru__hidden_state"],
+            "ram": d["ram__hidden_state"]}
+
+
 def _figure(res: dict, out: Path) -> None:
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(7, 4), dpi=140)
@@ -87,14 +116,44 @@ def _figure(res: dict, out: Path) -> None:
     fig.savefig(out)
 
 
-def _write_results(res: dict, real_spreads: np.ndarray, out: Path) -> None:
+def _write_results(res: dict, real_spreads_or_hidden: np.ndarray, out: Path) -> None:
+    # Compute in-sample FPR for transparency (this is what the 1st-percentile
+    # threshold gives on the calibrated set by construction).
+    real_spreads = rolling_spread(real_spreads_or_hidden, 30) \
+        if real_spreads_or_hidden.ndim == 2 else real_spreads_or_hidden
     valid = real_spreads[~np.isnan(real_spreads)]
-    fpr = float(np.mean(valid < res["threshold"])) if len(valid) else float("nan")
+    in_sample_fpr = float(np.mean(valid < res["threshold"])) if len(valid) else float("nan")
+
+    loco = res["loco"]
     lines = ["# E6 Results: Self-Aware OOD Detector", ""]
-    lines.append(f"- threshold: {res['threshold']:.6f} "
-                 "(1st percentile of real-driving rolling spread)")
-    lines.append(f"- real-driving false-positive rate at this threshold: {fpr:.4f}")
-    lines.append(f"- detector fires (>50% of frames) at alpha = {res['fires_at']:.3f}")
+    lines.append("## Threshold and false-positive rate")
+    lines.append("")
+    lines.append(f"- threshold (calibrated on all real corpora, p=1.0): "
+                 f"{res['threshold']:.6f}")
+    lines.append(f"- in-sample FPR at this threshold (definitional, not a "
+                 f"generalisation claim): {in_sample_fpr:.4f}")
+    lines.append("")
+    lines.append("## Held-out FPR (leave-one-corpus-out across {subaru, ram})")
+    lines.append("")
+    lines.append("| held-out corpus | calibrated on | threshold | held-out FPR |")
+    lines.append("|---|---|---|---|")
+    for name, fold in loco["folds"].items():
+        calib = ", ".join(fold["calibrated_on"])
+        lines.append(f"| {name} | {calib} | {fold['threshold']:.6f} | "
+                     f"{fold['fpr']:.4f} |")
+    lines.append("")
+    lines.append(f"**LOCO mean FPR: {loco['fpr_mean']:.4f} "
+                 f"({loco['fpr_mean'] * 100:.2f}%)**")
+    lines.append(f"**LOCO max FPR: {loco['fpr_max']:.4f} "
+                 f"({loco['fpr_max'] * 100:.2f}%)**")
+    lines.append("")
+    lines.append("This is the honest generalisation estimate: on a held-out "
+                 "corpus the detector did not see during threshold calibration.")
+    lines.append("")
+    lines.append("## Detector response on the E4 sweep")
+    lines.append("")
+    lines.append(f"- detector fires (>50% of frames flagged) at alpha = "
+                 f"{res['fires_at']:.3f}")
     lines.append("")
     lines.append("| alpha | fired fraction |")
     lines.append("|---|---|")
@@ -113,15 +172,23 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--window", type=int, default=30)
     args = p.parse_args(argv)
 
-    real_hidden = _real_calibration_hidden()
-    real_spreads = rolling_spread(real_hidden, args.window)
-    thr = calibrate_threshold(real_spreads, args.percentile)
+    by_corpus = _real_calibration_by_corpus()
+    loco = loco_fpr(by_corpus, args.window, args.percentile)
 
-    res = evaluate_on_e4(Path("report/e4_collected.npz"), thr, args.window)
+    # For evaluating against the E4 cliff, use the threshold calibrated on
+    # ALL real corpora (this is what a production system would do at deploy
+    # time). The LOCO numbers are the honest generalisation estimate.
+    all_real = np.concatenate(list(by_corpus.values()), axis=0)
+    full_thr = calibrate_threshold(rolling_spread(all_real, args.window),
+                                   args.percentile)
+    res = evaluate_on_e4(Path("report/e4_collected.npz"), full_thr, args.window)
+    res["loco"] = loco
 
     _figure(res, Path("report/figures/e6_detector.png"))
-    _write_results(res, real_spreads, Path("report/e6_results.md"))
-    print("E6 done. threshold=", thr, "fires_at_alpha=", res["fires_at"])
+    _write_results(res, all_real, Path("report/e6_results.md"))
+    print(f"E6 done. full-corpus threshold={full_thr:.6f} "
+          f"LOCO fpr mean={loco['fpr_mean']:.4f} max={loco['fpr_max']:.4f} "
+          f"fires_at_alpha={res['fires_at']:.3f}")
     return 0
 
 

@@ -1,8 +1,27 @@
 # E6 Results: Self-Aware OOD Detector
 
-- threshold: 0.078873 (1st percentile of real-driving rolling spread)
-- real-driving false-positive rate at this threshold: 0.0115
-- detector fires (>50% of frames) at alpha = 0.550
+## Threshold and false-positive rate
+
+- threshold (calibrated on all real corpora, p=1.0): 0.078873
+- in-sample FPR at this threshold (definitional, not a generalisation claim): 0.0115
+
+## Held-out FPR (leave-one-corpus-out across {subaru, ram})
+
+| held-out corpus | calibrated on | threshold | held-out FPR |
+|---|---|---|---|
+| subaru | ram | 0.061982 | 0.0000 |
+| ram | subaru | 0.082197 | 0.0207 |
+
+**LOCO mean FPR: 0.0103 (1.03%)**
+**LOCO max FPR: 0.0207 (2.07%)**
+
+(N=2 real corpora; variance is not meaningfully reportable at two folds.)
+
+This is the honest generalisation estimate: on a held-out corpus the detector did not see during threshold calibration.
+
+## Detector response on the E4 sweep
+
+- detector fires (>50% of frames flagged) at alpha = 0.550
 
 | alpha | fired fraction |
 |---|---|
