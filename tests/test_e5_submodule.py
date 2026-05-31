@@ -113,8 +113,6 @@ def test_cache_loads_and_has_expected_shape():
 
 
 def test_results_md_has_expected_rows():
-    if not RESULTS.exists():
-        pytest.skip("e5_submodule_results.md not yet written")
     text = RESULTS.read_text()
     # Every probe must appear as a row in the per-probe table.
     for p in SUBMODULE_PROBES:
