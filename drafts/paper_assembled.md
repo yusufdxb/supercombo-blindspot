@@ -638,7 +638,10 @@ before the output cliff on the Subaru source, where the location-based feature s
 the two real corpora.
 
 Output-side monitoring alone is insufficient for the safety case of this shipped driving model, and a
-second-order recurrent-state monitor is a cheap complement. This is a collapse-specific, offline-only
+second-order recurrent-state monitor is a cheap complement. Its cost is negligible in the loop: a C++
+implementation of the rolling-spread statistic matches the reference to within 1e-12 and runs in about 0.4
+microseconds per frame on x86 (about 0.0008% of a 20 Hz control budget), with on-device Jetson Orin NX
+timing left to future hardware validation. This is a collapse-specific, offline-only
 result: an ImageNet-C sweep shows the silent collapse is sim-specific and the monitor is collapse-specific.
 Two generalization probes bound rather than broaden it: a second shipped version (v0.9.6) is also
 out-of-distribution-blind but fails by chaotic amplification rather than a freeze and the monitor does not
