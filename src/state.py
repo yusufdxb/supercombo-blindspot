@@ -45,6 +45,15 @@ def build_session(model_path: Path = MODEL_PATH) -> ort.InferenceSession:
     return ort.InferenceSession(str(model_path), so, providers=providers)
 
 
+def build_mirror(model_path: Path) -> "ModelStateMirror":
+    """Build a ModelStateMirror against an explicit model path (e.g. the v0.9.6
+    second model), loading its own output_slices from that file's metadata. The
+    v0.9.7 default path is still reachable via the no-arg constructor."""
+    sess = build_session(model_path)
+    slices = load_output_slices(model_path)
+    return ModelStateMirror(session=sess, output_slices=slices)
+
+
 class ModelStateMirror:
     """Mirror of openpilot ModelState. State buffers are float32 (matches reference);
     cast to float16 happens at the ONNX feed boundary."""
@@ -69,6 +78,16 @@ class ModelStateMirror:
 
         # cached for shape feed
         self._output_names = [o.name for o in self.session.get_outputs()]
+        self._input_names = {i.name for i in self.session.get_inputs()}
+
+        # v0.9.6 adds nav_features (1,256) + nav_instructions (1,150). Comma-faithful
+        # no-navigation operating point: both zeroed (openpilot v0.9.6 modeld.py:247-249
+        # zeros them when nav is disabled, the default). We only feed them when the loaded
+        # session actually exposes those inputs, so v0.9.7 (which lacks them) runs unchanged.
+        self._has_nav = {"nav_features", "nav_instructions"} <= self._input_names
+        if self._has_nav:
+            self.state["nav_features"] = np.zeros(256, dtype=np.float32)
+            self.state["nav_instructions"] = np.zeros(150, dtype=np.float32)
 
     # --- helpers ---
 
@@ -96,6 +115,9 @@ class ModelStateMirror:
             "prev_desired_curv": self.state["prev_desired_curv"].astype(np.float16).reshape(shapes["prev_desired_curv"]),
             "features_buffer": self.state["features_buffer"].astype(np.float16).reshape(shapes["features_buffer"]),
         }
+        if self._has_nav:
+            feed["nav_features"] = self.state["nav_features"].astype(np.float16).reshape(1, 256)
+            feed["nav_instructions"] = self.state["nav_instructions"].astype(np.float16).reshape(1, 150)
         return feed
 
     def _slice_outputs(self, flat: np.ndarray) -> dict[str, np.ndarray]:

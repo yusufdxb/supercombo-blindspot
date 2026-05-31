@@ -181,7 +181,7 @@ def fig_interp(alphas, norm, fproj, unc, a90, a10) -> None:
              label="feature collapse (1.0 = CARLA centroid)")
     if np.isfinite(a90) and np.isfinite(a10):
         ax1.axvspan(a90, a10, color=WARN_C, alpha=0.15,
-                    label=f"transition (width {a10 - a90:.2f})")
+                    label=f"transition (width {a10 - a90:.3f})")
     ax1.set_ylabel("normalized")
     ax1.set_title("E4  supercombo across the real-to-sim interpolation")
     ax1.legend(facecolor="#161a22", edgecolor="#3a3f4b")

@@ -53,30 +53,3 @@ Metrics match `src/e5_layer.py`:
 | 1.0000 | 1.893 | 0.185 | 0.179 | 0.180 | 0.164 | 0.193 | 2.714 | 0.253 |
 
 Figure: `report/figures/e5_submodule_localization.png`.
-
-## Where the cliff lives (answer)
-
-Reading the table left-to-right (in graph order):
-
-1. `vision_post` (1024 to 2048 post-encoder FC): activity ratio climbs to 1.89 at alpha=1, with a peak of 2.19 mid-sweep. The encoder + post-FC are MORE active on CARLA than on real Subaru, not less. This is consistent with E5: the encoder does not collapse.
-
-2. `summarizer_div` (the VAE-style normalised 512-D bottleneck, == `hidden_state`): activity stays above 1.0 through alpha=0.3, then falls monotonically and crosses 0.5 between alpha=0.7 (0.778) and alpha=0.8 (0.528). Mean shift at alpha=1 is 0.023, meaning the rolling mean of this 512-D vector collapses by almost two orders of magnitude. This is the entry point of the collapse and the same vector E6 monitors.
-
-3. `attention_block_out`, `transformer_block_out`, `reduce_sum`: these three tensors all track `summarizer_div` to within 2 percent across the whole sweep (e.g. at alpha=1: 0.179 / 0.180 / 0.164 vs 0.185). The transformer self-attention + FFN + reduce-sum stage does NOT introduce additional collapse: it is a passive relay of the summarizer bottleneck.
-
-4. `action_block_body` (last resblock of the steering branch, just before the desired_curvature Gemm): cliff alpha 0.500, activity 0.281 at alpha=0.5 already. This is by far the most sensitive submodule, dropping below 0.5 a full step earlier than summarizer. The 515 to 128 projection that mixes `summarizer + ReduceSum + lateral_control_params + prev_desired_curv` amplifies the collapse, presumably because once the recurrent input (`prev_desired_curv` rolling from the model's own collapsed outputs) joins in, the action stack saturates fast.
-
-5. `temporal_hydra_trunk` (plan / lane_lines / lead / etc. shared 512-D trunk): cliff alpha 0.900, activity 0.253. Tracks the upstream collapse with a small attenuation, consistent with E1 showing the 8 collapsing heads are all on this branch.
-
-6. `hydra_trunk` (meta / pose / desire_pred / wide_from_device_euler / road_transform): no cliff, activity ratio 2.71 at alpha=1, but mean shift 0.69. The non-temporal heads stay alive in temporal variation but their DC offsets drift. This is exactly the E1 result that meta and pose do NOT collapse on CARLA, now localised to the trunk that feeds them.
-
-The cliff is NOT in any one block; it is a two-stage failure:
-
-- the SUMMARIZER (`/summarizer/Div_output_0`, the VAE-mu / normalised hidden_state) is where temporal variation first falls below the real baseline. The transformer + reduce-sum stage is passive.
-- the ACTION_BLOCK then amplifies the collapse a full alpha step earlier than summarizer does, because it folds in the recurrent `prev_desired_curv` input which is itself the model's own collapsed curvature output rolled in.
-
-The two hydra trunks split cleanly: the temporal trunk follows the collapse, the non-temporal trunk does not. This matches and refines the E1 finding (`8 of 10 heads collapse`) by showing that the split happens at the hydra trunk level, not at the per-head Gemms.
-
-## Caveat
-
-The summarizer ends with `/summarizer/Div_output_0 = mu / sigma` (a VAE-style reparameterisation). The Div by sigma can mechanically suppress variance on out-of-distribution inputs if the predicted sigma grows. We have not separated `mu` (pre-Div Gemm output) from `Div` here, so part of the apparent collapse in `summarizer_div` could be variance normalisation rather than information loss. Probing `/summarizer/_mu/Gemm_output_0` alone would split that further; left for follow-up.
