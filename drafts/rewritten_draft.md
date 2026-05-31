@@ -469,6 +469,15 @@ about 0.23 blend-units. (As Section 5.4 notes, this headroom is Subaru-specific;
 firing point falls inside the transition band.) Figures E6a and E6b show the fire rate and the AUROC
 trajectory across alpha, and Figure E6c gives the ROC and PR curves at alpha=1.0.
 
+A split-conformal detector built on the same KNN-50 nonconformity score, added for completeness, behaves
+exactly as the rest of the location-based family: it matches KNN-50 on single-corpus separation (AUROC
+1.000) but its leave-one-corpus-out FPR is 100%, since cross-corpus exchangeability fails. Reading
+detection lead time against single-corpus AUROC makes the distinction concrete. KNN-50 and conformal each
+reach AUROC 1.000 with an apparent +0.459 blend-unit lead, yet both carry 100% LOCO FPR, so those fire
+points are meaningless under deployment; the monitor is the only detector with both a calibrated
+cross-corpus threshold (1.03% LOCO) and a positive lead (+0.234 blend-units). High single-corpus AUROC does
+not imply useful early warning. Figure E6d plots lead time against AUROC for all detectors.
+
 The honest positioning against the nearest neighbors follows from these numbers. Against the
 location-based family (Keser-style density, Lee Mahalanobis, Ren RMD, Sun KNN), the result is not that
 the monitor separates better, since KNN-50 ties it, but that the location-based scores fail to transfer
@@ -649,6 +658,8 @@ committed and the larger collection caches regenerate via the documented `--coll
 - Figure E6a (e6_detector.png): monitor fire rate versus alpha, firing before the cliff.
 - Figure E6b (auroc_vs_alpha.png): AUROC versus alpha for all five detectors.
 - Figure E6c (roc_curves.png + pr_curves.png): ROC and PR curves at alpha=1.0 (appendix candidate).
+- Figure E6d (lead_time.png): detection lead time versus single-corpus AUROC for all detectors, including
+  the conformal baseline.
 - Figure E7a (e7_auroc_heatmap.png): 15x5 monitor AUROC heatmap across corruption-severity cells.
 - Figure E7b (e7_severity_sweep.png): monitor fire rate versus severity per corruption family.
 - Figure E7c (e7_overlay.png): cell-for-cell output-collapse count versus monitor AUROC.
