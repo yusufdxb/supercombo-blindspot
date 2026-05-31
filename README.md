@@ -85,7 +85,7 @@ it became the control that exposed the real result.
 
 ## The experiments
 
-### E1 — Output collapse map
+### E1: Output collapse map
 
 Per output head, the temporal activity (mean per-element standard deviation across
 frames) on CARLA vs real footage. A head whose activity collapses is one the model
@@ -98,7 +98,7 @@ plausibly because it is driven by frame-to-frame optical flow, which retains som
 signal even in sim. `meta` (disengage / blinker probabilities) is low-activity on
 real footage too. Full table: [`report/teardown_results.md`](report/teardown_results.md).
 
-### E2 — Out-of-distribution inside the model
+### E2: Out-of-distribution inside the model
 
 ![E2 feature space](report/figures/e2_feature_ood.png)
 
@@ -108,7 +108,7 @@ to 2-D (PCA fit on real features), real driving spreads across the feature space
 real). The model is not just producing odd outputs; its internal representation of the
 sim world is frozen and degenerate.
 
-### E3 — The silent failure
+### E3: The silent failure
 
 ![E3 silent failure](report/figures/e3_confidence.png)
 
@@ -264,10 +264,22 @@ Two key hyperparameters were ablated:
 
 Full table: [`report/ablations_results.md`](report/ablations_results.md).
 
+## Generalization, baselines, and deployment (2026 upgrade)
+
+Four additions test how far the finding travels and make the monitor deployable. Every new number was independently re-verified by a separate agent and registered in [`paper_state/claim_ledger.md`](paper_state/claim_ledger.md) (c52-c61).
+
+**Second model (openpilot v0.9.6).** The full teardown was re-run on the immediately preceding shipped version. Parity holds (100% within +/-0.5 m/s^2 vs comma's own v0.9.6 reference, n=560). But v0.9.6 does not collapse the same way: only 1 of 10 heads collapse (vs 8/10), and the alpha-blend sweep is a gradient of chaotic amplification (activity peaks 14.6x real, stays 3.3x at full CARLA) rather than a freeze cliff. The v0.9.7-calibrated monitor does not transfer (33% leave-one-corpus-out FPR vs ~1%). Adjacent shipped versions fail OOD in qualitatively different ways; neither the collapse signature nor the monitor is claimed to generalize across versions. ([`report/teardown_v096_results.md`](report/teardown_v096_results.md), [`report/e4_v096_results.md`](report/e4_v096_results.md), [`report/e6_v096_results.md`](report/e6_v096_results.md), [`report/parity_v096_results.md`](report/parity_v096_results.md))
+
+**Real adverse weather.** Real comma-3 night plus headlight/tail-light glare footage at matched intrinsics does NOT collapse v0.9.7 (0/10 heads, E6 fires 0%, vs CARLA 8/10 and 100%). The silent collapse is predominantly sim-induced, not a real low-light phenomenon. Caveat: one real daytime segment intermittently enters a CARLA-like near-zero recurrent attractor that E6 fires on, with an unexplained trigger (an initial steer/speed explanation was falsified). ([`report/real_weather_results.md`](report/real_weather_results.md))
+
+**Conformal baseline plus lead time.** A split-conformal detector on the KNN-50 score ties KNN on single-corpus AUROC (1.000) but also fails cross-corpus (100% LOCO FPR). A lead-time-versus-AUROC table shows E6 is the only detector with both a calibrated cross-corpus threshold (1.03% LOCO) and a positive detection lead (+0.234 blend-units); high single-corpus AUROC does not imply early warning. ([`report/conformal_results.md`](report/conformal_results.md), [`report/lead_time_results.md`](report/lead_time_results.md))
+
+**Deployable monitor.** E6 is one O(d) statistic per frame. A portable C++17 implementation matches the Python reference to 3.4e-13 and runs in about 0.4 us per frame on x86 (0.0008% of a 20 Hz control budget). The in-the-loop ROS2 node lives in the `policy-health-monitor` package. Jetson Orin NX on-device timing is HW-pending. ([`report/deployment_results.md`](report/deployment_results.md), [`deploy/cpp/`](deploy/cpp/))
+
 ## Limitations
 
-- One model version (openpilot v0.9.7, `supercombo`).
-- "Real" is two segments; a larger real corpus would further harden the E1/E2 baseline.
+- Two model versions tested (v0.9.7 and v0.9.6, see the upgrade section above); v0.9.6 fails OOD by chaotic amplification rather than collapse and the monitor does not transfer to it. No Tesla, Mobileye, Waymo, or research stack tested.
+- "Real" is two calibration segments; a third real corpus is still owed before a production FPR can be quoted.
 - CARLA only. comma's MetaDrive sim shows consistent erratic behavior (#31711) but is
   not instrumented here.
 - E5 localizes the collapse downstream of the vision encoder (no encoder
@@ -297,16 +309,16 @@ Full table: [`report/ablations_results.md`](report/ablations_results.md).
 - Pin the collapse to a specific recurrent / policy submodule (the E5
   result narrowed it to "downstream of the encoder"; finer probes inside
   the GRU / policy heads would localize further).
-- Generalize the E6 detector across simulator engines (MetaDrive in
-  particular, since comma's own bridge sees the same erratic behavior in
-  #31711) and across real-world OOD stimuli (rain, glare, blown highlights).
+- Generalize across simulator engines (MetaDrive, since comma's own bridge sees
+  the same erratic behavior in #31711). Real night and glare are now tested (no
+  collapse); real rain and a clean non-CARLA collapse with a known cause remain owed.
 - Combine E6 (temporal collapse) with a feature-space baseline (Mahalanobis
   or similar) to cover both failure classes identified in E7.
 - Real-data phantom-brake mining at scale, using `src/scout_phantom.py`.
 
 ## Reproduce
 
-**The teardown runs from a fresh clone** — no model, no CARLA, no multi-GB raw
+**The teardown runs from a fresh clone**, with no model, no CARLA, and no multi-GB raw
 frames. It re-derives every E1 / E2 / E3 / E4 table and figure from the
 committed collected-output caches (`report/teardown_collected.npz` and
 `report/e4_collected.npz`, the per-frame model outputs the results are computed
@@ -319,8 +331,8 @@ python -m src.e4_interp     # E4 interpolation sweep, from its cache
 python -m pytest -q         # unit tests + the teardown and E4 regression tests
 ```
 
-To re-run the model end-to-end instead — the parity control and a fresh
-collection pass — you need the full stack (Python 3.10 for the CARLA 0.9.15
+To re-run the model end-to-end instead (the parity control and a fresh
+collection pass), you need the full stack (Python 3.10 for the CARLA 0.9.15
 client), `supercombo.onnx`, the real comma segments, and a CARLA frame capture:
 
 ```bash
@@ -348,6 +360,23 @@ the cache (`python -m src.e7_corruption`).
 
 **Ablations.** `python -m scripts.ablations` re-runs KNN k-sensitivity and E6
 window-size sweeps from the committed caches.
+
+**Second model, real weather, conformal, deployment (2026 upgrade).**
+`python -m scripts.fetch_upgrade_data` re-fetches the v0.9.6 ONNX, comma's v0.9.6
+reference, and the real night/glare/control segments (none redistributed). Then:
+
+```bash
+env -u PYTHONPATH .venv/bin/python -m src.run_parity --model v096   # v0.9.6 parity gate
+python -m src.conformal_results && python -m src.lead_time          # conformal + lead-time, from caches
+( cd deploy/cpp && make )                                           # C++ E6 latency microbenchmark
+```
+
+The v0.9.6 teardown and the real-weather collection commands are documented at the
+top of [`report/teardown_v096_results.md`](report/teardown_v096_results.md) and
+[`report/real_weather_results.md`](report/real_weather_results.md). The large
+supporting caches (e7, e5_submodule, e4_ram) stay regenerated-via-`--collect`
+rather than shipped; moving them to git-LFS is a push-time decision left to the
+maintainer because of LFS bandwidth quotas on a public repo.
 
 ## Repo map
 
