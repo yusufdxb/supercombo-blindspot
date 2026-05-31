@@ -48,12 +48,16 @@ SCALARS = ["accel_t0", "desired_curv", "lead_prob"]
 E6_THRESHOLD = 0.078873
 E6_WINDOW = 30
 
-# daytime_control has a segment-specific bi-modal recurrent attractor (high steer
-# angle, low speed, unusual kinematics): after ~120 post-warmup frames the hidden
-# state falls to near-zero norm and stays there, driving rolling spread below the
-# E6 threshold. Output heads remain active throughout (E1 ratios all > 0.10), so
-# this is NOT a CARLA-type collapse. The E6 firing on daytime_control is a true
-# positive that flags unusual kinematics, not a false positive.
+# daytime_control intermittently enters a bi-modal near-zero recurrent attractor
+# that drives rolling spread below the E6 threshold (E6 fires ~58%). Independent
+# verification (2026-05-30) confirmed this is genuine model behaviour on clean,
+# correctly-warped input, NOT a pipeline artifact. The earlier "high steer + low
+# speed / after ~120-220 frames" explanation was FALSIFIED: the norm toggles from
+# frame ~16 (not a one-time settle), and EV6 night reaches a higher peak steer at
+# the same low speed without collapsing. In the low-norm regime the output heads
+# ARE suppressed (~45x on desired_curv); E1 reads 0/10 only because the activity
+# metric averages across both regimes. The trigger is UNEXPLAINED; treat the E6
+# firing here as an open caveat (a real-segment near-collapse), not settled.
 
 
 # --------------------------------------------------------------------------
@@ -484,24 +488,28 @@ def _write_report(results: dict[str, dict], baseline: dict, carla: dict) -> None
         L.append(
             f"NOTE: E6 also fires on the daytime control segment "
             f"({100*dc_e6['fired_frac']:.1f}% frames flagged). "
-            "This is NOT a false positive or pipeline error. The daytime_control segment "
-            "(dongle 376bf99325883932, seg 1) has sustained high steer angles "
-            "(max 249 deg) and low speed, which drives the model into a near-zero "
-            "recurrent attractor after ~220 frames. E1 output heads remain active "
-            "(zero collapsed) so the model is not blind; the E6 fire reflects unusual "
-            "kinematics, not synthetic domain gap. This distinguishes the E6 mechanism "
-            "from the CARLA case (E6 + E1 both fire on CARLA; only E6 fires here)."
+            "Independent verification confirms this is genuine model behaviour on clean, "
+            "correctly-warped input, not a pipeline artifact. The segment intermittently "
+            "enters a bi-modal near-zero recurrent attractor (norm toggles from frame ~16); "
+            "in the low-norm regime the output heads are suppressed (~45x on desired_curv), "
+            "and E1 reads 0/10 only because the activity metric averages across both regimes. "
+            "The earlier 'high steer + low speed' cause was falsified (EV6 night reaches a "
+            "higher peak steer at the same speed without collapsing). The trigger is "
+            "UNEXPLAINED; this is an open E6 caveat, a real-segment near-collapse the monitor "
+            "fires on, distinct from the fully silent CARLA case."
         )
 
     if all_night_no_collapse and not e6_night_fires:
         L += ["",
               "**Bounding conclusion**: real night + headlight/tail-light glare on a "
               "comma-3 device does not collapse the model (E1: 0 heads, "
-              "E6: does not fire). The collapse signature documented in E1-E6 is "
-              "CARLA-specific (synthetic domain gap), not a general adverse-lighting "
-              "phenomenon. This bounds the contribution: silent output collapse is "
-              "triggered by the sim-to-real rendering gap, not by real low-light or "
-              "glare conditions that openpilot's training distribution covers."]
+              "E6: does not fire on either night segment). The CARLA collapse signature "
+              "is driven by the synthetic sim-to-real rendering gap, not by real low-light "
+              "or glare conditions that openpilot's training distribution covers. One caveat "
+              "sharpens rather than contradicts this: a single real daytime segment "
+              "intermittently enters a CARLA-like near-zero recurrent attractor (E6 fires, "
+              "trigger unexplained), so the collapse is best described as predominantly "
+              "sim-induced rather than strictly CARLA-only."]
     elif all_night_no_collapse and e6_night_fires:
         L += ["",
               "**Partial finding**: E1 output heads remain active on real night footage "
