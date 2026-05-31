@@ -139,7 +139,7 @@ def fig_interp(alphas, norm, fproj, unc, a90, a10,
              label="feature collapse (1.0 = CARLA centroid)")
     if np.isfinite(a90) and np.isfinite(a10):
         ax1.axvspan(a90, a10, color=WARN_C, alpha=0.15,
-                    label=f"RAM transition ({a10 - a90:.2f})")
+                    label=f"RAM transition ({a10 - a90:.3f})")
     if np.isfinite(sub_a90) and np.isfinite(sub_a10):
         ax1.axvspan(sub_a90, sub_a10, color="#b39ddb", alpha=0.12,
                     label=f"Subaru transition ({sub_a10 - sub_a90:.2f})")
