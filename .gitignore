@@ -22,3 +22,7 @@ report/e7_collected.npz
 report/e4_ram_collected.npz
 # Ablations cache (small, regenerate via `python -m scripts.ablations`).
 report/ablations_collected.npz
+# Humanizer intermediate scratch (de-AI pass working files).
+.humanizer_work/
+# Scratch candidate models downloaded during the second-model upgrade scout.
+models/candidates/
