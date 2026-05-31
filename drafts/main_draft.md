@@ -586,9 +586,10 @@ seed=42) and the run environment is pinned in `requirements.txt`. One open issue
 publication-readiness audit: the E5 cache (about 3.9 GB) and the E7 cache (about 110 MB) are currently
 excluded from the public repository, so the reproduce-from-cache path for E5 and E7 requires either
 Git LFS tracking or a regeneration script with a smaller committed summary; the E1 through E4 and E6
-caches reproduce from the committed files as-is. [TODO: verify] the final cache-distribution decision
-(LFS versus regeneration script) before the public release, and confirm that a fresh clone plus
-`git lfs pull` recovers the E5 and E7 caches.
+caches reproduce from the committed files as-is. Large experiment caches (E5 submodule, E7, E4-RAM)
+are gitignored with `--collect` regeneration instructions in the README; E1–E4 and E6 collected tensors
+are committed directly (E4 in git-lfs), and E5-layer uses a small summary cache (e5_summary.npz)
+committed after GPU collection for fast analysis reruns.
 
 ---
 
