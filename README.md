@@ -335,6 +335,10 @@ To re-run the model end-to-end instead (the parity control and a fresh
 collection pass), you need the full stack (Python 3.10 for the CARLA 0.9.15
 client), `supercombo.onnx`, the real comma segments, and a CARLA frame capture:
 
+**Obtain dependencies:**
+- `supercombo.onnx` (51 MB): download from the [openpilot v0.9.7 release](https://github.com/commaai/openpilot/releases/tag/v0.9.7) on GitHub, place at `models/supercombo.onnx`.
+- Real comma driving segments: run `python -m scripts.fetch_upgrade_data` to retrieve them (also fetches v0.9.6 reference outputs for the upgrade section).
+
 ```bash
 uv venv --python 3.10 --seed .venv
 uv pip install --python .venv/bin/python -r requirements.txt
@@ -348,15 +352,15 @@ packages; the project venv is self-contained.
 
 **E5 submodule probing.** Collecting E5 submodule activations requires GPU +
 CARLA (`python -m src.e5_submodule --collect`). Analysis runs from the
-committed cache without either dependency (`python -m src.e5_submodule`).
+cache without either dependency (`python -m src.e5_submodule`; cache not included in public repo, re-run with `--collect` to regenerate).
 
 **E7 ImageNet-C.** Collecting E7 corrupted-frame activations requires GPU +
 real driving data (`python -m src.e7_corruption --collect`). Analysis runs from
-the cache (`python -m src.e7_corruption`).
+the cache (`python -m src.e7_corruption`; cache not included in public repo, re-run with `--collect` to regenerate).
 
 **E4-RAM.** Collecting requires GPU + RAM driving data + CARLA frames
 (`python -m src.e4_ram --collect`). Analysis runs from the cache
-(`python -m src.e4_ram`).
+(`python -m src.e4_ram`; cache not included in public repo, re-run with `--collect` to regenerate).
 
 **Ablations.** `python -m scripts.ablations` re-runs KNN k-sensitivity and E6
 window-size sweeps from the committed caches.
