@@ -42,7 +42,11 @@ Relative Mahalanobis, KNN) each hit 100% leave-one-corpus-out FPR and fail to tr
 two real corpora. This is a single-model negative finding with a collapse-specific monitor, not a
 general OOD detector: an ImageNet-C sweep shows the silent collapse is sim-specific (no corruption
 reproduces it; at most 1 of 10 heads collapses on any of 75 corruption-severity cells, versus 7
-of 10 under CARLA), and the monitor is near chance on most photometric corruptions. The
+of 10 under CARLA), and the monitor is near chance on most photometric corruptions. Two
+generalization probes bound the claim rather than broaden it: a second shipped version (v0.9.6) is
+also out-of-distribution-blind but fails by chaotic output amplification rather than a freeze and
+the monitor does not transfer to it (33% leave-one-corpus-out FPR), and a real night-and-glare axis
+at matched intrinsics does not induce the collapse, confirming it is predominantly sim-induced. The
 contribution is that output-side and location-based signals alone are insufficient for this one
 shipped model's safety case, and that a second-order recurrent-state monitor is a cheap complement
 that the present evidence does not claim generalizes.
@@ -554,9 +558,19 @@ mode, is sim-specific; the corruption sweep shows it is not a general model-robu
 cell-for-cell overlay shows the monitor is not a general corruption detector. The contribution is a
 targeted monitor for the specific, dangerous, sim-induced silent-collapse mode at about a 1% real-driving
 FPR (N=2), where output-side and location-based feature scores do not detect it. We do not claim the
-monitor generalizes beyond CARLA as a collapse detector, because no non-CARLA output collapse was induced
-for it to have caught. Figures E7a, E7b, and E7c give the AUROC heatmap, the severity sweep, and the
+monitor generalizes beyond CARLA as a collapse detector, because no clean non-CARLA output collapse was induced
+for it to have caught; the one real-segment near-collapse we did find (Section 5.8) has an unexplained trigger. Figures E7a, E7b, and E7c give the AUROC heatmap, the severity sweep, and the
 cell-for-cell collapse-versus-detection overlay.
+
+---
+
+### 5.8 Generalization probes: a second model and a real adverse-weather axis
+
+Two probes test whether the finding and the monitor extend beyond one model and one synthetic axis. Both bound the contribution rather than broaden it.
+
+**A second shipped model (openpilot v0.9.6).** We ported the harness to v0.9.6 supercombo, the immediately preceding release, whose input and output contract is identical to v0.9.7 apart from two navigation inputs that are zeroed at the stock no-navigation operating point. Parity holds: v0.9.6 matches comma's own v0.9.6 reference within +/-0.5 m/s^2 on 100% of 560 frames (median absolute delta 0.034), with the frame alignment corroborated by a tight-metric offset sweep rather than by the saturating +/-0.5 criterion alone. On the same CARLA frames, v0.9.6 does not reproduce the silent collapse. Only 1 of 10 output heads collapses, versus 8 of 10 for v0.9.7, and the alpha-blend sweep has the opposite shape: a gradient in which output activity peaks at 14.6x the real baseline near alpha=0.4 and remains 3.3x at full CARLA, rather than cliff-collapsing toward zero. The recurrent feature still separates cleanly from real input (spread ratio 0.44, d-prime 6.8, 100% linear separability) and the uncertainty heads stay silent, so v0.9.6 is also out-of-distribution-blind, but its output-space failure is chaotic amplification rather than a freeze. Calibrated on v0.9.6, the monitor does not transfer across corpora: leave-one-corpus-out mean FPR is 33% (versus about 1% on v0.9.7). Adjacent shipped versions can therefore fail out-of-distribution in qualitatively different ways, and neither the collapse signature nor the monitor is assumed to carry across them.
+
+**A real adverse-weather axis.** To separate the collapse from CARLA rendering, we fed three real comma-3 segments at matched fcam intrinsics through v0.9.7: two night segments with oncoming-headlight and tail-light or sign glare, and a daytime-dry control. Real night and glare do not collapse the model. Both night segments collapse 0 of 10 heads (versus 8 of 10 under CARLA) and the monitor fires on 0% of their frames (versus 100% under CARLA), so the silent collapse is predominantly sim-induced and real low-light and glare lie within openpilot's training distribution. One caveat sharpens this without overturning it: the daytime-dry control intermittently enters a near-zero recurrent attractor that resembles the CARLA collapse, with the output heads suppressed in that regime and the monitor firing on 58% of frames, on clean correctly-warped input. The trigger is unexplained, and an initial steer-and-speed hypothesis was falsified because a night segment reaches a higher peak steer at the same speed without collapsing. A non-CARLA near-collapse therefore exists on real footage and the monitor fires on it, but its cause is open and the night-and-glare axis specifically does not induce the collapse.
 
 ---
 
@@ -565,11 +579,15 @@ cell-for-cell collapse-versus-detection overlay.
 We state the boundaries that define where the evidence does and does not extend, so that the bounded
 finding is not mistaken for a general result.
 
-**N=1 model.** Every result is on supercombo v0.9.7 alone. No other openpilot version, and no Tesla,
-Mobileye, Waymo, or research imitation-learning stack, was tested. The silent-collapse phenomenon and the
-monitor are demonstrated on this one model, and we claim no generalization to any other. Whether silent
-collapse is a property of this architecture, this training recipe, or end-to-end driving models broadly is
-the N>1 study this paper does not attempt.
+**Models tested: v0.9.7 and v0.9.6.** The headline collapse and the monitor are characterized on supercombo
+v0.9.7. We additionally ran the full teardown on the immediately preceding shipped version, v0.9.6 (Section
+5.8), and it does not behave the same: it is also out-of-distribution-blind but fails by chaotic output
+amplification rather than a freeze, and the v0.9.7 monitor does not transfer to it (33% leave-one-corpus-out
+FPR). Adjacent shipped versions therefore fail out-of-distribution in qualitatively different ways, and
+neither the collapse signature nor the monitor is claimed to generalize across versions. No Tesla,
+Mobileye, Waymo, or research imitation-learning stack was tested; whether silent collapse is a property of
+an architecture, a training recipe, or end-to-end driving models broadly remains the cross-architecture
+study this paper does not attempt.
 
 **N=2 corpora; LOCO is a two-fold estimate.** The cross-corpus calibration rests on two real corpora.
 Leave-one-corpus-out at N=2 is a two-fold estimate whose variance is not meaningfully reportable, and the
@@ -579,10 +597,12 @@ corpus, at minimum, is needed before any single production FPR can be quoted wit
 **Monitor scope: collapse-specific and offline-only.** The corruption overlay (Section 5.7) shows the
 monitor is collapse-specific and near chance on most real-frame corruptions, so it is not a universal OOD
 detector. It is demonstrated offline on logged, rendered, and corrupted frames only; no on-road, in-stack,
-or real-time deployment was run, and no causal link to field incidents was established. The residual gap is
-that no non-CARLA output collapse was ever induced, so the monitor was never tested as a collapse detector
-on anything other than CARLA; real adverse-weather footage (rain, night, glare) that actually induces a
-non-CARLA collapse remains pending, and is the most reviewer-resistant follow-up.
+or real-time deployment was run, and no causal link to field incidents was established. We did probe a real
+adverse-weather axis (Section 5.8): real night and headlight or tail-light glare at matched intrinsics do
+not induce the collapse, which places the silent-collapse mode predominantly in the synthetic sim-to-real
+gap rather than in real low-light. One real in-distribution daytime segment does intermittently enter a
+near-zero recurrent attractor that the monitor fires on, but its trigger is unexplained, so a clean
+non-CARLA output collapse with a known cause, and real rain footage specifically, remain pending.
 
 **Partial localization.** The collapse is pinned to the summarizer's variational bottleneck and the
 action-block feedback path by ruling out the encoder and probing eight submodules, but the mu-versus-sigma
@@ -609,10 +629,13 @@ before the output cliff on the Subaru source, where the location-based feature s
 the two real corpora.
 
 Output-side monitoring alone is insufficient for the safety case of this shipped driving model, and a
-second-order recurrent-state monitor is a cheap complement. This is a single-model, collapse-specific,
-offline-only result: an ImageNet-C sweep shows the silent collapse is sim-specific and the monitor is
-collapse-specific, and the present evidence does not support generalization to other models, OOD axes, or
-deployment contexts. Those are the next studies, not this one's claims.
+second-order recurrent-state monitor is a cheap complement. This is a collapse-specific, offline-only
+result: an ImageNet-C sweep shows the silent collapse is sim-specific and the monitor is collapse-specific.
+Two generalization probes bound rather than broaden it: a second shipped version (v0.9.6) is also
+out-of-distribution-blind but fails by chaotic amplification rather than a freeze and the monitor does not
+transfer to it, and a real night-and-glare axis does not induce the collapse. Generalization to other
+architectures, a clean real-world collapse, and on-vehicle deployment are the next studies, not this one's
+claims.
 
 ---
 
@@ -640,6 +663,13 @@ machine; it will be replaced by a small committed summary array (per-stage, per-
 is all the layer analysis reads. The cache-distribution decision is therefore settled: the four headline caches
 are committed and reproduce from a fresh clone, and the three smaller supporting caches are regenerated via the
 documented `--collect` passes rather than shipped in the public repo.
+
+The second-model and real-weather additions (Section 5.8) follow the same pattern. `scripts/fetch_upgrade_data.py`
+fetches the v0.9.6 ONNX, its comma model-replay reference, and the real comma-3 night, glare, and daytime-control
+segments, none of which are redistributed in the repo. The v0.9.6 results (`report/teardown_v096_results.md`,
+`report/e4_v096_results.md`, `report/e6_v096_results.md`, and the parity in `report/parity_v096_results.md`) and
+the real-weather results (`report/real_weather_results.md`) are committed; the small v0.9.6 teardown cache is
+committed and the larger collection caches regenerate via the documented `--collect` passes.
 
 ---
 
