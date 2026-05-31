@@ -414,6 +414,7 @@ class TestWriteResults:
                 "mahalanobis": 100.0,
                 "relative_mahalanobis": 50.0,
                 "knn50": 1.5,
+                "conformal": 0.99,
             },
             "window": 30,
             "e6_percentile": 1.0,

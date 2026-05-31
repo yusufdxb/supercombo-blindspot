@@ -28,4 +28,6 @@ opencv-python-headless==4.13.0.92
 
 # CARLA simulator client — pins us to Python 3.10
 carla==0.9.15
-matplotlib
+
+# figures
+matplotlib==3.10.8
