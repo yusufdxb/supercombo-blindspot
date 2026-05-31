@@ -80,11 +80,20 @@ _HEADS = {
 }
 
 
-def collect(six_list: list[np.ndarray], sess, slices) -> dict[str, np.ndarray]:
+def collect(six_list: list[np.ndarray], sess=None, slices=None) -> dict[str, np.ndarray]:
     """Warm a fresh ModelStateMirror on `six_list`; return per-frame stacked
     arrays for every tracked head, the model's predicted uncertainties, and its
-    internal recurrent feature vector."""
-    state = ModelStateMirror(session=sess, output_slices=slices)
+    internal recurrent feature vector.
+
+    `sess`/`slices` may be a passed-in v0.9.6 session + its output_slices (built
+    via src.state.build_mirror / build_session + load_output_slices on the v0.9.6
+    path). ModelStateMirror auto-detects the nav_features/nav_instructions inputs
+    from the session, so v0.9.7 behaviour is unchanged. When both are None the
+    default v0.9.7 session is used."""
+    if sess is None and slices is None:
+        state = ModelStateMirror()
+    else:
+        state = ModelStateMirror(session=sess, output_slices=slices)
     rec: dict[str, list] = defaultdict(list)
     prev = None
     for six in six_list:
