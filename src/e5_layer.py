@@ -99,6 +99,32 @@ def load_cache(path: Path) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     return alphas, per_layer
 
 
+def save_summary_cache(path: Path, alphas: np.ndarray,
+                       ratios: dict[str, np.ndarray],
+                       cliffs: dict[str, float],
+                       mean_shifts: dict[str, float]) -> None:
+    """Persist only the pre-computed analysis metrics (not raw activations).
+    Output is ~hundreds of bytes vs the ~3 GB full cache, safe to commit."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, np.ndarray] = {"alphas": alphas}
+    for name in ratios:
+        payload[f"ratio__{name}"] = ratios[name]
+        payload[f"cliff__{name}"] = np.array([cliffs[name]])
+        payload[f"mshift__{name}"] = np.array([mean_shifts[name]])
+    np.savez_compressed(path, **payload)
+
+
+def load_summary_cache(path: Path) -> tuple[np.ndarray, dict, dict, dict]:
+    """Load the pre-computed summary cache (alphas, ratios, cliffs, mean_shifts)."""
+    d = np.load(path)
+    alphas = d["alphas"]
+    names = {k.removeprefix("ratio__") for k in d.files if k.startswith("ratio__")}
+    ratios = {n: d[f"ratio__{n}"] for n in names}
+    cliffs = {n: float(d[f"cliff__{n}"][0]) for n in names}
+    mean_shifts = {n: float(d[f"mshift__{n}"][0]) for n in names}
+    return alphas, ratios, cliffs, mean_shifts
+
+
 def cliff_alpha(alphas: np.ndarray, ratios: np.ndarray, threshold: float = 0.5) -> float:
     """Smallest alpha at which the activity ratio first drops below `threshold`.
     Returns NaN if no crossing in range."""
@@ -130,28 +156,38 @@ def _build_probed_session():
 
 def collect_per_layer(alphas: np.ndarray, n_frames: int,
                       real_six: list[np.ndarray],
-                      carla_six: list[np.ndarray]) -> dict[str, np.ndarray]:
+                      carla_six: list[np.ndarray],
+                      *,
+                      session=None,
+                      slices=None,
+                      probes: list[LayerProbe] | None = None) -> dict[str, np.ndarray]:
     """For each alpha, blend frame-by-frame and run the probed model.
-    Returns {layer_name: array of shape (n_alphas, n_frames - 1, *layer_shape)}."""
+    Returns {layer_name: array of shape (n_alphas, n_frames - 1, *layer_shape)}.
+
+    Pass ``session``, ``slices``, and ``probes`` to run against an alternate
+    model (e.g. v0.9.6); otherwise the default v0.9.7 probed session is used."""
     from src.e4_interp import blend
     from src.state import ModelStateMirror, load_output_slices
     from src.warped_preprocessor import stack_pair
 
-    sess, _ = _build_probed_session()
-    slices = load_output_slices()
-    per_layer: dict[str, list[np.ndarray]] = {p.name: [] for p in LAYER_PROBES}
+    if session is None:
+        session, _ = _build_probed_session()
+    if slices is None:
+        slices = load_output_slices()
+    active_probes = probes if probes is not None else LAYER_PROBES
+    per_layer: dict[str, list[np.ndarray]] = {p.name: [] for p in active_probes}
 
     for a in alphas:
-        state = ModelStateMirror(session=sess, output_slices=slices)
+        state = ModelStateMirror(session=session, output_slices=slices)
         prev = None
-        rows: dict[str, list[np.ndarray]] = {p.name: [] for p in LAYER_PROBES}
+        rows: dict[str, list[np.ndarray]] = {p.name: [] for p in active_probes}
         for k in range(n_frames):
             six = blend(real_six[k], carla_six[k], float(a))
             if prev is not None:
                 inp = stack_pair(prev, six)
                 _ = state.run(inp, inp)
                 raw = state.last_raw_outputs
-                for probe in LAYER_PROBES:
+                for probe in active_probes:
                     rows[probe.name].append(
                         np.asarray(raw[probe.tensor], dtype=np.float32).ravel()
                     )
@@ -225,6 +261,7 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
 
     cache = Path("report/e5_collected.npz")
+    summary = Path("report/e5_summary.npz")
     alphas = np.linspace(0.0, 1.0, args.alphas)
 
     if args.collect:
@@ -234,10 +271,20 @@ def main(argv: list[str] | None = None) -> int:
         carla = load_carla_six(CARLA_NPY, args.frames)
         per_layer = collect_per_layer(alphas, args.frames, real, carla)
         save_cache(cache, alphas, per_layer)
+        a = _analyse(alphas, per_layer)
+        save_summary_cache(summary, alphas, a["ratios"], a["cliffs"], a["mean_shifts"])
+    elif summary.exists() and not cache.exists():
+        alphas, ratios, cliffs, mean_shifts = load_summary_cache(summary)
+        a = {"ratios": ratios, "cliffs": cliffs, "mean_shifts": mean_shifts}
+        _figure(alphas, a["ratios"], Path("report/figures/e5_layer_localization.png"))
+        _write_results(alphas, a["ratios"], a["cliffs"], a["mean_shifts"],
+                       Path("report/e5_results.md"))
+        print("E5 done (from summary):", a["cliffs"])
+        return 0
     else:
         alphas, per_layer = load_cache(cache)
+        a = _analyse(alphas, per_layer)
 
-    a = _analyse(alphas, per_layer)
     _figure(alphas, a["ratios"], Path("report/figures/e5_layer_localization.png"))
     _write_results(alphas, a["ratios"], a["cliffs"], a["mean_shifts"],
                    Path("report/e5_results.md"))
