@@ -2,7 +2,7 @@
 
 Pixel alpha-blend of the Subaru real sequence and the CARLA sequence (N=320 frames, 100 warmup discarded). alpha=0 is the real frame, alpha=1 is the CARLA frame. Model: supercombo_v096.onnx.
 
-**Verdict: gradient.** Output activity falls from 0.9 to 0.1 of the real baseline over alpha nan to nan (transition width nan; < 0.2 reads as a cliff).
+**Verdict: gradient (feature-collapse signal).** Output-activity floor never reaches 0.1x (min 1.00x); transition computed on feature-collapse signal instead: alpha 0.198 to 0.568 (transition width 0.371; < 0.2 reads as a cliff).
 
 | alpha | output activity | feature collapse | feature spread | plan uncertainty |
 |---|---|---|---|---|
