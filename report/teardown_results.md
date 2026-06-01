@@ -1,6 +1,6 @@
 # Teardown results
 
-Real: Subaru + RAM segments (320 frames each, 100 warmup discarded). CARLA: 320 captured clean-road frames. supercombo openpilot v0.9.7.
+Real: Subaru + RAM segments (320 frames captured, 100 warmup discarded; 319 stored after pair-processing, 219 analysis frames). CARLA: 319 stored clean-road frames. supercombo openpilot v0.9.7.
 
 ## E1  output collapse map
 

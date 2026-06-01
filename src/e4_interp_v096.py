@@ -21,7 +21,7 @@ from src.e4_interp import (
     BASE_ALPHAS, CLIFF_WIDTH, REFINE_GAP, REFINE_ROUNDS,
     activity_per_head, blend, feature_centroid, feature_projection,
     feature_spread, mean_uncertainty, normalized_activity, transition_width,
-    load_cache, save_cache,
+    load_cache, save_cache, _fc_transition_width, _is_finite,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -109,18 +109,31 @@ def fig_interp_v096(alphas, norm, fproj, unc, a90, a10) -> None:
 
 
 def write_results_v096(alphas, norm, fproj, spread, unc,
-                       a90, a10, width, verdict) -> None:
+                       a90, a10, fc_10, fc_90, fc_width, verdict) -> None:
     xs = sorted(alphas)
+    norm_min = min(norm[a] for a in xs)
     L = ["# E4 v0.9.6 results: real-to-sim interpolation", "",
          f"Pixel alpha-blend of the Subaru real sequence and the CARLA "
          f"sequence (N={N} frames, {WARMUP} warmup discarded). alpha=0 is the "
-         f"real frame, alpha=1 is the CARLA frame. Model: supercombo_v096.onnx.", "",
-         f"**Verdict: {verdict}.** Output activity falls from 0.9 to 0.1 of "
-         f"the real baseline over alpha {a90:.3f} to {a10:.3f} "
-         f"(transition width {width:.3f}; < {CLIFF_WIDTH} reads as a cliff).",
-         "",
-         "| alpha | output activity | feature collapse | feature spread | plan uncertainty |",
-         "|---|---|---|---|---|"]
+         f"real frame, alpha=1 is the CARLA frame. Model: supercombo_v096.onnx.", ""]
+    if a90 is not None and a10 is not None:
+        width = a10 - a90
+        L.append(
+            f"**Verdict: {verdict}.** Output activity falls from 0.9 to 0.1 of "
+            f"the real baseline over alpha {a90:.3f} to {a10:.3f} "
+            f"(transition width {width:.3f}; < {CLIFF_WIDTH} reads as a cliff)."
+        )
+    else:
+        L.append(
+            f"**Verdict: {verdict} (feature-collapse signal).** "
+            f"Output-activity floor never reaches 0.1x (min {norm_min:.2f}x); "
+            f"transition computed on feature-collapse signal instead: "
+            f"alpha {fc_10:.3f} to {fc_90:.3f} "
+            f"(transition width {fc_width:.3f}; < {CLIFF_WIDTH} reads as a cliff)."
+        )
+    L += ["",
+          "| alpha | output activity | feature collapse | feature spread | plan uncertainty |",
+          "|---|---|---|---|---|"]
     for a in xs:
         L.append(f"| {a:.4f} | {norm[a]:.4f} | {fproj[a]:.4f} "
                  f"| {spread[a]:.2f} | {unc[a]:.4f} |")
@@ -151,8 +164,16 @@ def main(argv: list[str] | None = None) -> int:
     spread = {a: feature_spread(post[a]) for a in alphas}
     unc = {a: mean_uncertainty(post[a]) for a in alphas}
     a90, a10 = transition_width(alphas, norm)
-    width = a10 - a90
-    verdict = "cliff" if width < CLIFF_WIDTH else "gradient"
+
+    # Compute feature-collapse transition width (monotone 0->1, always valid)
+    fc_10, fc_90, fc_width = _fc_transition_width(alphas, fproj)
+
+    # Base verdict on the signal that crosses cleanly.
+    if a90 is not None and a10 is not None:
+        width = a10 - a90
+        verdict = "cliff" if width < CLIFF_WIDTH else "gradient"
+    else:
+        verdict = "cliff" if fc_width < CLIFF_WIDTH else "gradient"
 
     print(f"\n=== E4 v0.9.6  REAL-TO-SIM INTERPOLATION ({len(alphas)} alphas) ===")
     print(f"  {'alpha':>7} {'activity':>10} {'feat collapse':>14} "
@@ -160,11 +181,21 @@ def main(argv: list[str] | None = None) -> int:
     for a in alphas:
         print(f"  {a:>7.4f} {norm[a]:>10.4f} {fproj[a]:>14.4f} "
               f"{unc[a]:>12.4f}")
-    print(f"\n  transition width: alpha {a90:.3f} -> {a10:.3f} "
-          f"= {width:.3f}  ->  {verdict.upper()}")
+    if a90 is not None and a10 is not None:
+        print(f"\n  transition width (output-activity): alpha {a90:.3f} -> {a10:.3f} "
+              f"= {a10 - a90:.3f}  ->  {verdict.upper()}")
+    else:
+        norm_min = min(norm[a] for a in alphas)
+        print(f"\n  output-activity floor never reaches 0.1x (min {norm_min:.2f}x); "
+              f"transition on feature-collapse: alpha {fc_10:.3f} -> {fc_90:.3f} "
+              f"= {fc_width:.3f}  ->  {verdict.upper()}")
 
-    fig_interp_v096(alphas, norm, fproj, unc, a90, a10)
-    write_results_v096(alphas, norm, fproj, spread, unc, a90, a10, width, verdict)
+    # For figure: use fc crossings since output-activity doesn't cross
+    fig_a90 = a90 if a90 is not None else fc_10
+    fig_a10 = a10 if a10 is not None else fc_90
+    fig_interp_v096(alphas, norm, fproj, unc, fig_a90, fig_a10)
+    write_results_v096(alphas, norm, fproj, spread, unc,
+                       a90, a10, fc_10, fc_90, fc_width, verdict)
     print(f"  figure -> {FIG.relative_to(ROOT)}   "
           f"results -> {RESULTS.relative_to(ROOT)}")
     return 0

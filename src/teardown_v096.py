@@ -134,8 +134,9 @@ def fig_confidence_v096(e3: list[dict]) -> None:
 
 def _write_results_md(e1, e2, e3) -> None:
     L = ["# Teardown results (v0.9.6)", "",
-         f"Real: Subaru + RAM segments ({N} frames each, {WARMUP} warmup discarded). "
-         f"CARLA: {N} captured clean-road frames. supercombo openpilot v0.9.6.", "",
+         f"Real: Subaru + RAM segments (320 frames captured, {WARMUP} warmup discarded; "
+         f"319 stored after pair-processing, 219 analysis frames). "
+         f"CARLA: 319 stored clean-road frames. supercombo openpilot v0.9.6.", "",
          "## E1  output collapse map", "",
          "| head | real activity | CARLA activity | CARLA/real | collapsed elems | state |",
          "|---|---|---|---|---|---|"]

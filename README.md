@@ -10,11 +10,14 @@ project instruments openpilot v0.9.7's `supercombo` and asks one safety question
 
 > When the model is shown input it was never trained on, does it fail loudly, or silently?
 
-The answer, measured: **silently, and completely.** On CARLA-rendered driving scenes,
-the model's outputs collapse to a near-constant default across 8 of its 10 output
-heads, its internal recurrent state freezes to a single point, and its own predicted
-uncertainty rises so little it never leaves the model's normal real-driving range.
-Nothing the model emits would tell a downstream monitor it has stopped perceiving.
+The answer, measured at the exported output side: **silently, and completely.** On
+CARLA-rendered driving scenes, the model's outputs collapse to a near-constant default
+across 8 of its 10 output heads, its internal recurrent state freezes to a single point,
+and its own exported predictive-uncertainty heads rise so little they never leave the
+model's normal real-driving range (E3). Nothing the model emits on its output channels
+would tell a downstream monitor it has stopped perceiving. An internal recurrent signal
+does exist and is detectable (E6), but that signal is not surfaced by any exported
+uncertainty head.
 
 ---
 
@@ -39,6 +42,19 @@ Nothing the model emits would tell a downstream monitor it has stopped perceivin
 | **E7** ImageNet-C corruption sweep | 15 Hendrycks corruptions x 5 severities on real driving frames. E6 rolling-spread (a collapse detector) mostly fails to detect photometric corruptions (mean AUROC 0.52-0.74), correctly catching only extreme noise/frost that actually freezes the recurrent state. Feature-space baselines (Mahalanobis, Relative Mahalanobis) detect corruptions that E6 misses. E6 is a temporal-collapse detector, not a universal OOD detector |
 
 ![Hero: the four findings at a glance](report/figures/hero.png)
+
+## Claim scope
+
+What this project does and does not claim, by bucket:
+
+| Bucket | Claims |
+|---|---|
+| **VERIFIED** (v0.9.7, CARLA, Subaru/RAM corpora) | E1: 8/10 output heads collapse to under 1% of real activity. E2: recurrent feature separates from real at 87.9% (d'=2.19). E3: exported uncertainty heads rise only 1.20-1.84x; 0/219 CARLA frames exceed real p95 (silent exported-uncertainty failure). E4: collapse arrives as a hard cliff on Subaru (width 0.015) and a gradient on RAM (width 0.274). |
+| **REPLICATED on v0.9.6** | v0.9.6 is also out-of-distribution-blind in feature space (d'=6.8, 100% linear separability). |
+| **CONTRADICTED / DIFFERS on v0.9.6** | Silent freeze does not replicate (only 1/10 heads collapses vs 8/10); output fails by chaotic amplification instead. E6 monitor does not transfer (33% LOCO FPR vs ~1% on v0.9.7). |
+| **MONITOR-ONLY (E6)** | The rolling recurrent-spread detector is a collapse detector, not a general OOD detector. E7 shows photometric corruptions evade it (mean AUROC 0.52-0.74 across corruption types). |
+| **DEPLOYMENT-UNSUPPORTED** | The ~1% LOCO FPR rests on N=2 real corpora (a two-fold estimate). Cross-corpus FPR at fleet scale is unproven; a third corpus is the minimum before a production FPR can be quoted. |
+| **HYPOTHESIS / OPEN** | A real daytime-dry segment intermittently enters a near-zero recurrent attractor (E6 fires 58% of frames) on clean correctly-warped input. The trigger is unexplained; an initial steer/speed hypothesis was falsified. |
 
 ## Why this matters
 
@@ -117,7 +133,9 @@ standard deviations). If the model "knew" it was out of distribution, those woul
 spike. They do not: outputs lose ~99.5% of their activity, predicted uncertainty
 rises only 1.2-1.8×, and **not one CARLA frame's uncertainty exceeds the model's
 95th-percentile uncertainty on normal real driving.** Any monitor thresholded to not
-false-alarm on real driving would never fire. The model is confidently blind.
+false-alarm on real driving would never fire. The model's exported uncertainty channel
+is confidently silent about the collapse, even though (as E6 shows) an internal
+recurrent-spread signal does carry the OOD information.
 
 ### E4: Cliff, not gradient
 

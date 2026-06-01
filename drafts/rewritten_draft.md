@@ -19,8 +19,9 @@ not to our harness. Running the verified model on CARLA-rendered clean roads, we
 fails silently: 8 of 10 output heads collapse to under 1% of their real-driving temporal
 activity and the 512-D recurrent feature freezes to about 1e-5 of its real spread, while the
 model's own predictive-uncertainty heads rise only 1.20x to 1.84x and not one out-of-distribution
-frame (0 of 219) crosses the real-driving 95th percentile. Nothing the model emits flags the
-collapse. An alpha-blend sweep characterizes the collapse as a hard cliff on the Subaru source
+frame (0 of 219) crosses the real-driving 95th percentile. Nothing the model emits on its
+exported output channels flags the collapse, even though an internal recurrent signal does
+carry the OOD information (demonstrated in the monitor experiment below). An alpha-blend sweep characterizes the collapse as a hard cliff on the Subaru source
 (transition width 0.015), though the cliff shape is segment-dependent (a gradient of width 0.274
 on the RAM source), and a layer-by-layer probe localizes it downstream of the vision encoder, in
 the recurrent summarizer and action-block feedback path, not in perception. We then show that the
@@ -63,10 +64,12 @@ CARLA-rendered clean roads, 8 of 10 of the model's output heads collapse to unde
 real-driving temporal activity, and the 512-D recurrent state that threads the model's memory
 across frames freezes to roughly 1e-5 of its real spread. Yet the model's own predictive-uncertainty
 heads rise only 1.20x to 1.84x, and not one out-of-distribution frame, 0 of 219, exceeds the
-95th-percentile uncertainty the model exhibits in real driving. The failure is silent by the
-model's own signals: the planning trajectory, the acceleration command, and the lane and lead
-geometry all go dark, but the channel a safety case would watch to catch exactly that event stays
-quiet.
+95th-percentile uncertainty the model exhibits in real driving. The failure is silent at the exported output level: the planning trajectory, the acceleration
+command, and the lane and lead geometry all go dark, but the exported uncertainty channel a safety
+case would watch to catch exactly that event stays quiet. Crucially, this is a property of the
+model's exported signals, not of the model's internal state: as the monitor experiment
+(Section 5.6) shows, the recurrent feature does carry an OOD signal, but none of the
+exported uncertainty heads surface it.
 
 The failure mode this exposes is not hypothetical. Phantom braking under distribution shift, the
 model commanding a deceleration for an obstacle that is not there, is a known and user-reported
@@ -212,8 +215,8 @@ simulator, an unfamiliar geography, a degraded or unusual sensor condition. Unde
 three things happen at once and without warning. The output heads collapse to a plausible, nearly
 constant signal; the recurrent state that carries the model's temporal memory freezes; and the
 model's own predictive-uncertainty channel does not rise. The danger is not that the model is wrong,
-which a safety case expects and plans for, but that it is wrong while every signal a monitor would
-read says it is fine.
+which a safety case expects and plans for, but that it is wrong while every signal available on the
+model's output side says it is fine.
 
 **Why uncertainty-head monitoring misses it.** The most direct defense is to threshold the model's
 own predictive uncertainty: if the model says it is unsure, intervene. On this model that defense
@@ -377,10 +380,13 @@ frames exceeds the real-driving p95. The outputs lose roughly 99.5% of their act
 uncertainty channel barely moves and never crosses the threshold a real-calibrated monitor would set.
 
 The implication is the gap this paper turns on. A safety monitor that thresholds the model's own
-uncertainty, calibrated on real driving, never fires under the collapse, because nothing the model
-emits flags it. We state this strictly as an empirical finding about supercombo v0.9.7 under CARLA
-input, that the uncertainty channel stays quiet, and we draw no causal line from it to any field
-phantom-braking incident. Figure E3 plots the uncertainty distributions for real and CARLA frames
+exported uncertainty, calibrated on real driving, never fires under the collapse, because nothing
+on the model's output side flags it. We state this strictly as an empirical finding about
+supercombo v0.9.7's exported uncertainty heads under CARLA input: those heads stay quiet. This
+is not a claim that the model has no internal OOD signal; E6 demonstrates that the recurrent
+feature does carry such a signal. The claim is the narrower, precise one: the exported
+uncertainty channel is not a reliable OOD monitor for this collapse. We draw no causal line
+from this finding to any field phantom-braking incident. Figure E3 plots the uncertainty distributions for real and CARLA frames
 against the real-driving p95 line, making the silence visually unambiguous.
 
 ### 5.4 E4: Cliff characterization and segment dependence
@@ -549,6 +555,21 @@ Two probes test whether the finding and the monitor extend beyond one model and 
 We state the boundaries that define where the evidence does and does not extend, so that the bounded
 finding is not mistaken for a general result.
 
+### 6.0 Claim taxonomy
+
+The following table classifies every headline claim by its evidential status. The purpose is to
+separate what the evidence confirms from what it bounds, contradicts, or leaves open, so reviewers
+can locate each claim precisely.
+
+| Bucket | Claims |
+|---|---|
+| **VERIFIED** (v0.9.7, CARLA, Subaru/RAM corpora) | E1: 8/10 output heads collapse to under 1% of real activity. E2: recurrent feature is OOD and linearly separable from real at 87.9% (d'=2.19). E3: exported predictive-uncertainty heads rise only 1.20-1.84x; 0/219 CARLA frames exceed real p95 -- the exported uncertainty channel is not a reliable OOD monitor for this collapse. E4: collapse arrives as a hard cliff on the Subaru source (transition width 0.015) and as a gradient on the RAM source (width 0.274). |
+| **REPLICATED on v0.9.6** | v0.9.6 is also out-of-distribution-blind in feature space (100% linear separability, d'=6.8). |
+| **CONTRADICTED / DIFFERS on v0.9.6** | The silent output freeze does not replicate: only 1/10 heads collapses versus 8/10; the alpha-blend sweep shows chaotic amplification (peaks 14.6x real) rather than a cliff. The E6 monitor does not transfer (33% LOCO mean FPR vs ~1% on v0.9.7). |
+| **MONITOR-ONLY (E6)** | The rolling recurrent-spread detector catches the temporal-collapse mode with AUROC 0.996 and ~1% LOCO FPR. E7 shows it is a collapse detector, not a universal OOD detector: photometric corruptions evade it (mean AUROC 0.52-0.74 across corruption types). |
+| **DEPLOYMENT-UNSUPPORTED** | The ~1% LOCO FPR rests on N=2 real corpora (a two-fold estimate). Cross-corpus FPR at fleet scale is unproven; a minimum of one additional real corpus is needed before a production FPR can be quoted. |
+| **HYPOTHESIS / OPEN** | A real daytime-dry segment intermittently enters a near-zero recurrent attractor (monitor fires on 58% of frames) on clean correctly-warped input; the trigger is unexplained and an initial steer/speed hypothesis was falsified. |
+
 **Models tested: v0.9.7 and v0.9.6.** The headline collapse and the monitor are characterized on supercombo
 v0.9.7. We additionally ran the full teardown on the immediately preceding shipped version, v0.9.6 (Section
 5.8), and it does not behave the same: it is also out-of-distribution-blind but fails by chaotic output
@@ -584,11 +605,14 @@ complete mechanistic account.
 ## 7. Conclusion
 
 A shipped Level-2 driving model, openpilot v0.9.7 supercombo, shown CARLA-rendered input, collapses to a
-plausible near-constant and does not raise its own uncertainty: 8 of 10 output heads fall to under 1% of
-real activity, the recurrent state freezes to about 1e-5 of its real spread, and 0 of 219
-out-of-distribution frames exceeds the model's real-driving uncertainty p95. A simulation "pass" can
+plausible near-constant while its exported predictive-uncertainty heads do not rise: 8 of 10 output heads
+fall to under 1% of real activity, the recurrent state freezes to about 1e-5 of its real spread, and 0 of
+219 out-of-distribution frames exceeds the model's real-driving uncertainty p95. A simulation "pass" can
 therefore be the model collapsed to a safe-looking default rather than the model perceiving, and the
-output-side and uncertainty signals a safety case would trust are exactly the ones that stay silent.
+output-side and exported uncertainty signals a safety case would trust are exactly the ones that stay silent.
+The model's internal recurrent state does carry an OOD signal (demonstrated in E6), but the exported
+uncertainty heads do not surface it: the precise failure is that the output-side uncertainty channel is
+not a reliable OOD monitor for this collapse, not that the model contains no detectable OOD information.
 
 The signal those outputs hide is recoverable from the model's own recurrent feature with a single
 second-order statistic, the rolling temporal spread of the 512-D state: one O(d) quantity per forward pass,
