@@ -121,15 +121,27 @@ a Bash computation run in this session.
 
 ---
 
-## c11: E3 "0 of 220 CARLA frames above real p95"
+## c11: E3 "0 of 219 CARLA frames above real p95"
 
-- PROSE VALUE: "0 of 220 CARLA frames exceeds the real-driving 95th percentile" (Abstract, Section 5.3, Conclusion).
-- SOURCE ARTIFACT: `report/teardown_results.md` E3 table (0% column); `report/teardown_collected.npz`.
-- RECOMPUTED VALUE: computed per-frame mean uncertainty for plan, lead, desired_curv on concatenated subaru+ram (post-100 warmup) vs CARLA (post-100 warmup). p95 values: plan=0.635, lead=2.421, desired_curv=0.184. Frames above p95 in CARLA: 0/219 for all three heads.
-- COMMAND RUN: `python3 -c "... n_above = int((carla_per_frame > p95_real).sum()) ..."` (session).
-- RESULT: MISMATCH on n. The zero count is confirmed. But the npz has 319 stored frames per corpus; post-100-warmup yields 219 frames, not 220. The draft's "0 of 220" should read "0 of 219."
-- VERDICT: FLAGGED.
-- NOTE: The zero-count claim is correct and the conclusion is unaffected. The discrepancy is that 219 frames remain post-warmup (319 stored - 100 warmup discard), not 220. The raw data reportedly had 320 frames but the npz stores 319 (rolling-window artifact reduces by 1). The draft's Method section explains "320 frames, 100 discarded = 220" but the actual npz gives 219. Delta = 1 frame. This is a minor factual error in n that does not affect the finding.
+- PROSE VALUE (corrected in draft, 2026-05-31): "0 of 219 CARLA frames (0%) exceed the real-driving p95 of any monitored head" (Section 5.3 prose and table). Prior draft said "0 of 220"; corrected to 219 by this audit.
+- SOURCE ARTIFACT: `report/teardown_results.md` E3 table (0% column); `report/teardown_collected.npz`; `src/teardown.py` WARMUP=100, `_post()`.
+- RECOMPUTED VALUE: `python3 -c "import numpy as np; from src.teardown import _post, WARMUP, _load_cache, CACHE; segs=_load_cache(CACHE); carla=_post(segs['carla'],WARMUP); print(len(carla['plan']))"` -> 219 frames. Per-frame mean uncertainty for plan, lead, desired_curv on post-warmup CARLA: 0 frames exceed real-driving p95 for all three heads.
+- COMMAND RUN: `python3 -c "from src.teardown import _post,WARMUP,_load_cache,CACHE; s=_load_cache(CACHE); c=_post(s['carla'],WARMUP); print(len(c['plan']))"` -> 219.
+- RESULT: MATCH (after correction). N=319 stored frames in cache; `_post(319, WARMUP=100)` = 219 analysis frames. The prior "220" was wrong because it neglected the pair-processing step in `collect()` (N=320 raw -> 319 stored; 319-100=219, not 320-100=220). Zero above p95 confirmed on 219 frames.
+- VERDICT: CONFIRMED (post-correction).
+
+---
+
+## c11-framecounts: §4.2 frame count reconciliation (new audit, 2026-05-31)
+
+- PROSE VALUE (old, now corrected): "320 frames each, 100 warmup frames discarded (220 analysis frames each)" and "320 CARLA-rendered clean-road frames" in §4.2.
+- PROSE VALUE (new, in draft): 320 raw collected per segment; 319 stored (pair-processing reduces by 1); 219 E1/E2/E3 analysis frames; 319 frames for E6/metrics without warmup discard.
+- SOURCE ARTIFACT: `report/teardown_collected.npz` shapes (all 319 per corpus); `src/teardown.py` N=320, WARMUP=100, `_post()`; `src/probe_model.py` `collect()` (pair-processing loop skips first frame, produces N-1 outputs); `src/e6_detector.py` `_real_calibration_hidden()` (loads 319 frames directly, no `_post`); `src/baselines.py` `_real_calibration_hidden()` (same); `report/metrics_results.md` header "n=638 ID, n=319 OOD".
+- RECOMPUTED VALUE: `python3 -c "import numpy as np; d=np.load('report/teardown_collected.npz'); print(d['subaru__accel_t0'].shape, d['ram__accel_t0'].shape, d['carla__accel_t0'].shape)"` -> (319,) (319,) (319,). Confirms: cache stores 319 per corpus (not 320). `_post(319, 100)` = 219 analysis frames for E1/E2/E3. `e6_detector._real_calibration_hidden()` concatenates raw 319+319=638.
+- COMMAND RUN: `python3 -c "import numpy as np; d=np.load('report/teardown_collected.npz'); print(d['subaru__accel_t0'].shape)"` -> (319,).
+- RESULT: Old §4.2 text was MISMATCH on three counts: (a) "220 analysis frames" should be 219; (b) "320 CARLA frames" in the OOD bullet described raw collection count, not the stored or analysis count; (c) no mention of the two distinct analysis paths (E1-E3 vs E6/metrics). All corrected in draft 2026-05-31.
+- VERDICT: CONFIRMED (post-correction).
+- NOTE: The "100 warmup frames discarded" claim IS substantiated by `src/teardown.py` WARMUP=100 and the `_post()` call. The warmup step is real and documented in the code. The off-by-one on 220 vs 219 arose because the pair-processing step in `collect()` (which reduces N=320 raw frames to N-1=319 stored frames) was not accounted for in the prose.
 
 ---
 

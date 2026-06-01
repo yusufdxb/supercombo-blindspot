@@ -2,7 +2,7 @@
 
 > Working title. Alternatives: "Does a Production L2 Driving Model Know When It Is Blind?" / "Collapse Without Warning: Internal-Feature Monitoring for Shipped Driving Models"
 
-**Draft skeleton, v0.** Numbers below are pulled verbatim from the committed `report/*.md` result files (verified). Sections marked `[AUTHOR TODO]` are gaps from the publication-readiness audit (2026-05-29). Sections marked `[PENDING E7]` are blocked on running `python -m src.e7_corruption` against the already-collected `report/e7_collected.npz` cache (no GPU, no CARLA; the single P0 blocker to a submittable draft).
+**Draft skeleton, v0.** Numbers below are pulled verbatim from the committed `report/*.md` result files (verified). Sections marked `[AUTHOR TODO]` are remaining gaps from the publication-readiness audit (2026-05-29). The E7 corruption sweep is complete (collected and analyzed 2026-05-30); both prior P0 blockers are closed.
 
 Target venue: SafeAI @ UAI 2026 (confirmed open) or a NeurIPS 2026 workshop track. Format-agnostic for now; port to the venue template once chosen.
 
@@ -10,7 +10,7 @@ Target venue: SafeAI @ UAI 2026 (confirmed open) or a NeurIPS 2026 workshop trac
 
 ## Abstract
 
-`[DRAFT]` Production L2 driver-assistance systems are validated, in large part, in simulation. We ask whether a shipped end-to-end driving model can tell when its input has left the distribution it was trained on, or whether it fails silently. We instrument openpilot v0.9.7's `supercombo` network, the model that drives comma hardware on public roads, and build a parity-exact reimplementation of its inference path, verified to within +/-0.5 m/s^2 of comma's own reference output on 100% of 1159 real-footage frames (median absolute delta 0.04 m/s^2). Running the verified model on CARLA-rendered driving scenes, we find that 8 of 10 output heads collapse to under 1% of their real-driving temporal activity and the 512-D recurrent feature vector freezes to 1e-5 of its real spread, while the model's own predictive-uncertainty heads rise only 1.2x to 1.8x and never exceed their real-driving 95th percentile on a single out-of-distribution (OOD) frame. The failure is therefore silent: nothing the model emits flags the collapse. An alpha-blend sweep shows the collapse is a hard cliff (transition width 0.015 in blend fraction), and a layer-by-layer probe localizes it downstream of the vision encoder, in the recurrent summarizer and action block, not in perception. Finally, we show a 0-retraining monitor on the model's own 512-D recurrent feature, the rolling temporal spread of the state, calibrated leave-one-corpus-out to a ~1% real-driving false-positive rate, detects the OOD condition (AUROC 0.996) roughly 0.23 blend-units before outputs cliff, where standard location-sensitive feature-space OOD scores (Mahalanobis, Relative Mahalanobis, KNN) fail to transfer across real corpora. The safety implication: a sim "pass" can be the model collapsed to a safe-looking default, not the model perceiving, and output-side monitors alone cannot catch it.
+`[DRAFT]` Production L2 driver-assistance systems are validated, in large part, in simulation. We ask whether a shipped end-to-end driving model can tell when its input has left the distribution it was trained on, or whether it fails silently. We instrument openpilot v0.9.7's `supercombo` network, the model that drives comma hardware on public roads, and build a parity-exact reimplementation of its inference path, verified to within +/-0.5 m/s^2 of comma's own reference output on 100% of 1159 real-footage frames (median absolute delta 0.04 m/s^2). Running the verified model on CARLA-rendered driving scenes, we find that 8 of 10 output heads collapse to under 1% of their real-driving temporal activity and the 512-D recurrent feature vector freezes to 1e-5 of its real spread, while the model's own predictive-uncertainty heads rise only 1.2x to 1.8x and never exceed their real-driving 95th percentile on any of the 219 out-of-distribution (OOD) frames (0 of 219 CARLA frames above real p95 for plan, lead, or desired_curv). The failure is therefore silent: nothing the model emits flags the collapse. An alpha-blend sweep shows the collapse is a hard cliff (transition width 0.015 in blend fraction), and a layer-by-layer probe localizes it downstream of the vision encoder, in the recurrent summarizer and action block, not in perception. Finally, we show a 0-retraining monitor on the model's own 512-D recurrent feature, the rolling temporal spread of the state, calibrated leave-one-corpus-out to a ~1% real-driving false-positive rate, detects the OOD condition (AUROC 0.996) roughly 0.23 blend-units before outputs cliff, where standard location-sensitive feature-space OOD scores (Mahalanobis, Relative Mahalanobis, KNN) fail to transfer across real corpora. The safety implication: a sim "pass" can be the model collapsed to a safe-looking default, not the model perceiving, and output-side monitors alone cannot catch it.
 
 A corruption sweep (15 ImageNet-C corruptions x 5 severities on real frames) bounds the claim two ways. The silent collapse is **sim-specific**: no corruption reproduces it (at most 1 of 10 output heads collapses on any corruption-severity cell, versus 7 of 10 under CARLA). And E6 is **collapse-specific**: it stays near chance on the photometric shifts the model tolerates and rises only on a few severe corruptions (frost AUROC 1.00, impulse-noise 0.91, gaussian-noise 0.86), but a cell-for-cell E1-vs-E6 overlay shows those firings track a recurrent-feature-spread shift, not output collapse, which never occurs here. The contribution is a targeted monitor for the sim-induced silent-collapse mode, not a universal OOD detector.
 
@@ -26,7 +26,7 @@ A corruption sweep (15 ImageNet-C corruptions x 5 severities on real frames) bou
 - **Why it is credible.** The result is a negative finding about a production model, so the harness must be trustworthy. We establish parity first (Section 4.1) so the collapse is the model, not our reimplementation.
 - **Contributions (4):**
   1. A **parity-exact** reimplementation of openpilot v0.9.7 `supercombo` inference, verified to 100% of 1159 frames within +/-0.5 m/s^2 of comma's reference output (median abs delta 0.04 m/s^2), including correct recurrent state threading and unnormalized YUV input handling. Released.
-  2. An empirical demonstration of **silent failure** under visual distribution shift: output collapse (E1), feature-space freeze (E2), and a non-responsive uncertainty channel (E3) occurring simultaneously, with 0% of OOD frames exceeding the model's real-driving uncertainty p95.
+  2. An empirical demonstration of **silent failure** under visual distribution shift: output collapse (E1), feature-space freeze (E2), and a non-responsive uncertainty channel (E3) occurring simultaneously, with 0 of 219 CARLA OOD frames exceeding the model's real-driving uncertainty p95 (0% across plan, lead, and desired_curv).
   3. A characterization of the collapse as a **hard cliff** (E4, transition width 0.015) **localized downstream of the vision encoder** (E5: encoder stages stay at or above real activity; the cliff enters at the recurrent summarizer VAE-mu bottleneck and the action-block feedback path).
   4. A **0-retraining recurrent-feature monitor** (E6): rolling temporal spread of the 512-D state, LOCO-calibrated to ~1% real-driving FPR, AUROC 0.996 on CARLA, firing ~0.23 blend-units before the output cliff, where standard location-sensitive OOD scores fail to transfer across corpora (100% LOCO FPR). An ImageNet-C corruption sweep bounds the claim two ways: the silent collapse is **sim-specific** (no corruption reproduces it, at most 1/10 output heads collapse vs 7/10 under CARLA), and a cell-for-cell E1-vs-E6 overlay shows E6's few firings (frost AUROC 1.00, impulse 0.91, gaussian 0.86) track a recurrent-feature shift rather than output collapse. E6 is collapse-specific, not a universal corruption detector.
 
@@ -54,7 +54,7 @@ Organize into five short paragraphs:
 
 - **The threat.** A shipped driving model deployed in a visually shifted context (rendered sim, weather, glare, novel geography, sensor degradation). Under sufficient shift, three things happen at once and silently: output collapse to a plausible constant, no rise in the uncertainty channel, and a frozen recurrent state.
 - **Existing defenses and why each misses this mode** (one paragraph each, all evidence-backed):
-  - Predictive-uncertainty heads: E3, ratios 1.20x to 1.84x, 0% of OOD frames above real p95, a real-calibrated threshold never fires.
+  - Predictive-uncertainty heads: E3, ratios 1.20x to 1.84x, 0 of 219 CARLA frames above real p95 for any monitored head (0%), a real-calibrated threshold never fires.
   - Plan-feasibility / accel / lateral-accel limits: collapsed outputs (plan 0.0057x, accel_t0 0.0040x) look like a benign stationary scene, so plausibility passes.
   - Output-disagreement / temporal-jitter monitors: frozen outputs have *lower* variance, so a jitter monitor reads the freeze as increased stability.
   - Same-architecture ensembles: E5 localizes the collapse downstream of the encoder, so an ensemble of the same architecture shares the collapse path.
@@ -75,10 +75,9 @@ Organize into five short paragraphs:
 
 ### 4.2 Data `[verified]`
 
-- **Real (ID):** two comma corpora, `subaru` and `ram`, 320 frames each, 100 warmup frames discarded (220 analysis frames each).
-- **OOD:** 320 CARLA-rendered clean-road frames (openpilot v0.9.7 sim pipeline).
+- **Real (ID):** two comma corpora, `subaru` and `ram`, 320 raw frames collected per segment (`src/teardown.py` constant `N=320`). The inference loop processes consecutive frame pairs, so the first frame is consumed as the initial recurrent-state seed and is never emitted as output; this leaves 319 stored frames per corpus in `report/teardown_collected.npz`. For the E1/E2/E3 collapse and confidence analyses (`src/teardown.py` main), the first 100 stored frames are then discarded as recurrent-state warmup (`WARMUP=100`, function `_post`), leaving **219 analysis frames per corpus** (438 real total). For the E6 monitor and the threshold-free metrics (`src/e6_detector.py`, `src/baselines.py`), the full 319 stored frames per corpus are used directly (the rolling-spread window handles the initial NaN frames internally), giving **ID n=638** (319 subaru + 319 ram).
+- **OOD:** 320 raw CARLA-rendered clean-road frames collected (`N=320`), pair-processed to 319 stored frames. For E1/E2/E3: 219 CARLA analysis frames (100 warmup discarded). For E6/metrics: **319 CARLA OOD frames** (`n=319`).
 - **Interpolation (E4):** pixel alpha-blend of the Subaru real sequence and the CARLA sequence, alpha=0 real, alpha=1 sim, 29 alpha points.
-- `[AUTHOR TODO]` State N explicitly wherever a percentage appears (e.g., E3 "0%" = 0 of 220 CARLA frames).
 
 ### 4.3 Metrics `[verified]`
 
@@ -97,7 +96,7 @@ Organize into five short paragraphs:
 
 - Three applicable post-hoc feature-space scores on the *same* 512-D feature: Mahalanobis, Relative Mahalanobis (RMD), KNN-50; plus a PCA-Mahalanobis ablation.
 - **Not applicable, with structural reasons** (state these so reviewers do not read them as omissions): MSP (no softmax head), Energy (no logits), ViM (no classifier weight matrix on the recurrent feature). supercombo's heads are Gaussian-mixture regressions and existence probabilities.
-- `[AUTHOR TODO]` One-sentence note that RMD's "background" uses a 2-component GMM because with a single ID class the Ren et al. marginal Gaussian collapses to the class Gaussian (making RMD identically zero). Source: `src/baselines.py` lines 148-191.
+- RMD's "background" model is a 2-component diagonal GMM rather than the single pooled Gaussian of Ren et al. (arXiv:2106.09022): supercombo's recurrent feature carries no class labels, so a single pooled background Gaussian would be identical to the (single-class) foreground Gaussian and force RMD identically to zero. The relative score is therefore the class-Mahalanobis distance minus the best-component background Mahalanobis. Source: `src/baselines.py` lines 148-217.
 
 ---
 
@@ -126,13 +125,13 @@ CARLA recurrent-feature spread is 1e-5 of the real spread (trace of `hidden_stat
 
 ### E3: Silent failure (the centerpiece) `[verified]`
 
-Outputs lose ~99.5% of their activity, but predictive-uncertainty heads rise only 1.20x to 1.84x, and 0% of CARLA frames exceed the real-driving p95 of any monitored head. Figure: `report/figures/e3_confidence.png`.
+Outputs lose ~99.5% of their activity, but predictive-uncertainty heads rise only 1.20x to 1.84x, and 0 of 219 CARLA frames (0%) exceed the real-driving p95 of any monitored head. Figure: `report/figures/e3_confidence.png`.
 
 | head | output retained | unc. ratio | OOD frames above real p95 |
 |---|---|---|---|
-| plan | 0.6% | 1.35x | 0% (0 / 220) |
-| lead | 0.4% | 1.20x | 0% (0 / 220) |
-| desired_curv | 0.2% | 1.84x | 0% (0 / 220) |
+| plan | 0.6% | 1.35x | 0% (0 / 219) |
+| lead | 0.4% | 1.20x | 0% (0 / 219) |
+| desired_curv | 0.2% | 1.84x | 0% (0 / 219) |
 
 ### E4: Cliff, not gradient `[verified]`
 
@@ -146,7 +145,7 @@ Every vision-encoder stage stays at or above the real-driving activity baseline 
 
 ### E6: A monitor could have caught it `[verified]`
 
-The rolling-spread monitor on the 512-D recurrent feature, calibrated LOCO to mean FPR 1.03% / max 2.07% (in-sample 1.15%), fires (>50% of frames flagged) at alpha=0.550, well before the E4 output-collapse cliff at alpha~0.784. The gap is ~0.23 alpha-units of early warning. Figure: `report/figures/e6_detector.png`, `report/figures/auroc_vs_alpha.png`.
+The rolling-spread monitor on the 512-D recurrent feature, calibrated LOCO to mean FPR 1.03% / max 2.07% (N=2 two-fold estimate across {subaru, ram}; in-sample 1.15% on n=609 valid ID frames), fires (>50% of frames flagged) at alpha=0.550, well before the E4 output-collapse cliff at alpha~0.784. The gap is ~0.23 alpha-units of early warning. Figure: `report/figures/e6_detector.png`, `report/figures/auroc_vs_alpha.png`.
 
 **Threshold-free comparison at alpha=1.0** (AUROC mean [95% CI], `report/metrics_results.md`):
 
@@ -162,7 +161,7 @@ The rolling-spread monitor on the 512-D recurrent feature, calibrated LOCO to me
 
 ### E7: Corruption sweep, E6 is collapse-specific (a bounded result) `[verified — report/e7_results.md, 2026-05-29]`
 
-We applied the 15 ImageNet-C corruptions (Hendrycks & Dietterich, ICLR 2019) at 5 severities to the real Subaru frames (raw RGB, pre-YUV), re-ran `supercombo` with correct recurrent state handling on each corrupted sequence (76 conditions, 319 frames each), and evaluated E6 and the baselines against clean real driving. Figures: `report/figures/e7_auroc_heatmap.png`, `report/figures/e7_severity_sweep.png`.
+We applied the 15 ImageNet-C corruptions (Hendrycks & Dietterich, ICLR 2019) at 5 severities to the real Subaru frames (raw RGB, pre-YUV), plus a clean baseline (76 conditions total: 15 corruptions x 5 severities + 1 clean), re-ran `supercombo` with correct recurrent state handling on each corrupted sequence (320 raw frames collected per condition, 319 stored after pair-processing, 219 post-warmup analysis frames per condition after discarding the first 100 as recurrent-state warmup, `src/e7_corruption.py` `WARMUP=100`), and evaluated E6 and the baselines against clean real driving. Figures: `report/figures/e7_auroc_heatmap.png`, `report/figures/e7_severity_sweep.png`.
 
 **The honest finding: E6 does not generalize as a generic corruption detector; it is specific to the recurrent-state collapse.** On most corruptions E6's AUROC sits near chance (mean per-corruption AUROC: jpeg 0.52, fog 0.55, snow 0.55, brightness 0.60, zoom_blur 0.58, defocus/motion/glass blur 0.68-0.71, pixelate 0.69, elastic 0.67), and at the CARLA-calibrated 1% threshold E6's fire rate is ~0.000 across nearly all corruption/severity cells. E6 detects strongly only on a few severe corruption-and-severity combinations (heavy frost, extreme noise) that pull the recurrent-feature spread far enough to separate from real driving (these do **not** reproduce the output collapse; see the overlay below):
 

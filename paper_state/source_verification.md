@@ -652,6 +652,116 @@ No proceedings venue confirmed. Bib entry uses arXiv. FLAG.
 | deeptest2018 | c51 | CONFIRMED | DeepTest, fetched arXiv:1708.08559 |
 | deeproad2018 | c51 | CONFIRMED | DeepRoad, fetched arXiv:1802.02295 |
 | marmot2024 | c51 | CONFIRMED | MarMot, fetched arXiv:2310.07414 |
+| liang2018odin | -- | CONFIRMED | ICLR 2018, arXiv:1706.02690 |
+| lakshminarayanan2017 | -- | CONFIRMED | NeurIPS 2017, arXiv:1612.01474 |
+| bogdoll2022 | -- | CONFIRMED | CVPR 2022 WAD workshop, arXiv:2204.07974 |
+| mcallister2017 | -- | CONFIRMED | IJCAI 2017, DOI 10.24963/ijcai.2017/661 |
+| dice2022 | -- | CONFIRMED | ECCV 2022, Springer LNCS 13684, arXiv:2111.09805 |
+| codevilla2019 | -- | CONFIRMED | ICCV 2019, arXiv:1904.08980 |
+| norden2019 | -- | CONFIRMED | arXiv:1912.03618 (no proceedings venue confirmed) |
+| henriksson_refsq2023 | -- | FLAGGED | Title/venue mismatch in related_work.md; see entry below |
+
+## NEW ENTRIES (added 2026-05-31: resolving [UNVERIFIED] tags in docs/related_work.md)
+
+---
+
+## [liang2018odin] Liang, Li, Srikant 2018 arXiv:1706.02690 -- ODIN
+
+- CLAIM (verbatim from related_work.md): "Temperature scaling + input perturbation on softmax. Per paper_plan.md, ODIN is treated as dated in 2024-2026 OOD-for-AV work and superseded by energy and Mahalanobis variants; we cite it for lineage only and do not run it as a baseline."
+- SOURCE: Shiyu Liang, Yixuan Li, R. Srikant, "Enhancing The Reliability of Out-of-distribution Image Detection in Neural Networks," ICLR 2018.
+  arXiv: 1706.02690, URL: https://arxiv.org/abs/1706.02690
+- FETCHED SUPPORTING QUOTE: "using temperature scaling and adding small perturbations to the input can separate the softmax score distributions between in- and out-of-distribution images, allowing for more effective detection."
+  (Fetched from https://arxiv.org/abs/1706.02690 on 2026-05-31.)
+- VERDICT: CONFIRMED. Temperature scaling plus input perturbation on softmax for OOD detection. Venue: ICLR 2018.
+
+---
+
+## [lakshminarayanan2017] Lakshminarayanan, Pritzel, Blundell 2017 arXiv:1612.01474 -- Deep Ensembles
+
+- CLAIM (verbatim from related_work.md): "Ensemble disagreement as an uncertainty signal. Per paper_plan.md, not applicable as a baseline: supercombo is a single shipped ONNX, no ensemble exists, and retraining for one is out of scope. Mentioned in limitations."
+- SOURCE: Balaji Lakshminarayanan, Alexander Pritzel, Charles Blundell, "Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles," NIPS 2017.
+  arXiv: 1612.01474, URL: https://arxiv.org/abs/1612.01474
+- FETCHED SUPPORTING QUOTE: The method "produces well-calibrated uncertainty estimates" and "is able to express higher uncertainty on out-of-distribution examples."
+  (Fetched from https://arxiv.org/abs/1612.01474 on 2026-05-31.)
+- VERDICT: CONFIRMED. Deep ensembles for predictive uncertainty, including OOD signal via disagreement. Venue: NIPS (NeurIPS) 2017.
+
+---
+
+## [bogdoll2022] Bogdoll, Nitsche, Zoellner 2022 arXiv:2204.07974 -- AV anomaly detection survey
+
+- CLAIM (verbatim from related_work.md): "Survey across sensor-, object-, and scenario-level anomaly detection; positions where recurrent-state monitoring falls in the taxonomy."
+- SOURCE: Daniel Bogdoll, Maximilian Nitsche, J. Marius Zoellner, "Anomaly Detection in Autonomous Driving: A Survey," CVPR 2022 Workshop on Autonomous Driving (WAD).
+  arXiv: 2204.07974, URL: https://arxiv.org/abs/2204.07974
+- FETCHED SUPPORTING QUOTE: "This survey provides an extensive overview of anomaly detection techniques based on camera, lidar, radar, multimodal and abstract object level data. We provide a systematization including detection approach, corner case level, ability for an online application, and further attributes."
+  (Fetched from https://arxiv.org/abs/2204.07974 on 2026-05-31.)
+- VERDICT: CONFIRMED. Survey covering sensor-level (camera, lidar, radar), multimodal, and object-level anomaly detection with a systematic taxonomy. Venue: CVPR 2022 WAD Workshop.
+
+---
+
+## [mcallister2017] McAllister et al. 2017 IJCAI -- Bayesian DL for AV safety
+
+- CLAIM (verbatim from related_work.md): "Foundational argument for runtime uncertainty in driving; E3 is exactly the failure mode this paper warned about."
+- SOURCE: Rowan McAllister, Yarin Gal, Alex Kendall, Mark van der Wilk, Amar Shah, Roberto Cipolla, Adrian Weller, "Concrete Problems for Autonomous Vehicle Safety: Advantages of Bayesian Deep Learning," Proceedings of the 26th International Joint Conference on Artificial Intelligence (IJCAI 2017), pp. 4745-4753, Melbourne, Australia, August 19-25, 2017.
+  DOI: 10.24963/ijcai.2017/661, URL: https://www.ijcai.org/proceedings/2017/661
+  NOTE: No arXiv id found; paper is available at the IJCAI proceedings URL and via the Oxford Research Archive (https://ora.ox.ac.uk/objects/uuid:06eb02bf-0071-4ab5-b5b1-7830ab1ba345).
+- FETCHED SUPPORTING QUOTE: "Safety can be improved by quantifying the uncertainties of component outputs and propagating them forward through the pipeline."
+  (Fetched from https://ora.ox.ac.uk/objects/uuid:06eb02bf-0071-4ab5-b5b1-7830ab1ba345 on 2026-05-31; DOI confirmed via https://www.ijcai.org/proceedings/2017/661.)
+- VERDICT: CONFIRMED. Paper argues for runtime uncertainty quantification in AV pipelines; E3 documents the exact failure (uncertainty channel silent under distribution shift). Venue: IJCAI 2017. DOI: 10.24963/ijcai.2017/661.
+- NOTE: No arXiv preprint found. Cite using DOI. The claim is about the paper's foundational argument, which is confirmed by the fetched quote.
+
+---
+
+## [dice2022] Sun and Li 2022 arXiv:2111.09805 -- DICE sparsification OOD
+
+- CLAIM (verbatim from related_work.md): "Activation sparsification at the penultimate layer; relevant as a contrast: under CARLA, supercombo's recurrent state does not just sparsify, its temporal spread collapses (E4 feature-spread row drops to 0.00 by alpha=0.78)."
+- SOURCE: Yiyou Sun, Yixuan Li, "DICE: Leveraging Sparsification for Out-of-Distribution Detection," Proceedings of the European Conference on Computer Vision (ECCV 2022), Lecture Notes in Computer Science vol. 13684, pp. 691-708. Springer.
+  arXiv: 2111.09805, URL: https://arxiv.org/abs/2111.09805
+  DOI: 10.1007/978-3-031-20053-3_40
+- FETCHED SUPPORTING QUOTE: "rank weights based on a measure of contribution, and selectively use the most salient weights to derive the output for OOD detection"; "By pruning away noisy signals, DICE provably reduces the output variance for OOD data, resulting in a sharper output distribution and stronger separability from ID data."
+  (Confirmed from arXiv abstract and GitHub README at https://github.com/deeplearning-wisc/dice, and Springer chapter listing at DOI 10.1007/978-3-031-20053-3_40, on 2026-05-31.)
+- VERDICT: CONFIRMED. Weight sparsification at the penultimate layer for OOD detection. Venue: ECCV 2022, Springer LNCS 13684. arXiv:2111.09805.
+
+---
+
+## [codevilla2019] Codevilla et al. 2019 arXiv:1904.08980 -- BC limitations
+
+- CLAIM (verbatim from related_work.md): "Limitations of IL-trained driving stacks; complements our finding that visual distribution shift collapses outputs even when the IL model is mature and shipped."
+- SOURCE: Felipe Codevilla, Eder Santana, Antonio M. Lopez, Adrien Gaidon, "Exploring the Limitations of Behavior Cloning for Autonomous Driving," IEEE International Conference on Computer Vision (ICCV 2019), pp. 9328-9337.
+  arXiv: 1904.08980, URL: https://arxiv.org/abs/1904.08980
+  ICCV Open Access: https://openaccess.thecvf.com/content_ICCV_2019/html/Codevilla_Exploring_the_Limitations_of_Behavior_Cloning_for_Autonomous_Driving_ICCV_2019_paper.html
+- FETCHED SUPPORTING QUOTE: "some well-known limitations (e.g., dataset bias and overfitting), new generalization issues (e.g., dynamic objects and the lack of a causal modeling)"
+  (Fetched from https://openaccess.thecvf.com/content_ICCV_2019/html/Codevilla_Exploring_the_Limitations_of_Behavior_Cloning_for_Autonomous_Driving_ICCV_2019_paper.html on 2026-05-31.)
+- VERDICT: CONFIRMED. Paper identifies dataset bias, overfitting, and new generalization failures in IL-trained driving stacks. Venue: ICCV 2019.
+
+---
+
+## [norden2019] Norden, O'Kelly, Sinha 2019 arXiv:1912.03618 -- black-box AV safety assessment
+
+- CLAIM (verbatim from related_work.md): "Adversarial scenario search; assumes the simulator is faithful enough that adversarial scenarios transfer to the real model. E1-E4 push back on this for visually-driven models."
+- SOURCE: Justin Norden, Matthew O'Kelly, Aman Sinha, "Efficient Black-box Assessment of Autonomous Vehicle Safety," arXiv:1912.03618, submitted December 8, 2019.
+  URL: https://arxiv.org/abs/1912.03618
+  NOTE: arXiv preprint only; no proceedings venue confirmed.
+- FETCHED SUPPORTING QUOTE: "We implement a simulation testing framework that evaluates an entire modern AV system as a black box"; "In order to accelerate rare-event probability evaluation, we efficiently learn to identify and rank failure scenarios via adaptive importance-sampling methods."
+  (Fetched from https://arxiv.org/abs/1912.03618 on 2026-05-31.)
+- VERDICT: CONFIRMED. Black-box simulation framework for AV safety assessment using scenario-search methods that assume simulator validity. Venue: arXiv preprint only (no proceedings venue confirmed).
+
+---
+
+## [henriksson_refsq2023] Henriksson et al. in related_work.md -- TITLE/VENUE MISMATCH (FLAGGED)
+
+- CLAIM (verbatim from related_work.md line 25): "Henriksson et al., 'Performance Analysis of OOD Detection on Various Trained Neural Networks,' RefSQ 2023 / IEEE. Empirical OOD-detector comparison on AV datasets; standard citation for OOD as part of the AV safety lifecycle."
+- PROBLEM: The title "Performance Analysis of OOD Detection on Various Trained Neural Networks" belongs to a DIFFERENT paper than the one at REFSQ 2023. Specifically:
+  - Title "Performance Analysis of Out-of-Distribution Detection on Various Trained Neural Networks": Jens Henriksson, Christian Berger, Markus Borg, Lars Tornberg, Sankar Raman Sathyamoorthy, Cristofer Englund. Presented at SEAA 2019 (Euromicro Conference on Software Engineering and Advanced Applications). arXiv:2103.15580. An extended journal version appeared in Information and Software Technology 130 (2021), article 106409, DOI 10.1016/j.infsof.2020.106409.
+  - The actual REFSQ 2023 paper with Henriksson as co-author is: Murat Erdogan, Jens Henriksson, Stig Ursing, Fredrik Warg, Anders Thorseen, Johan Jaxing, Ola Oersmark, Mathias Oertenberg Toftaas, Thomas Pressburger, "Out-of-Distribution detection as Support for Autonomous Driving Safety Lifecycle," REFSQ 2023. This has a completely different first author, a different title, and 9 authors.
+  - The IEEE AITest 2023 paper (arXiv:2401.17013) is: Jens Henriksson, Christian Berger, Stig Ursing, Markus Borg, "Evaluation of Out-of-Distribution Detection Performance on Autonomous Driving Datasets." This matches the description "Empirical OOD-detector comparison on AV datasets" much better, but its venue is AITest 2023, not REFSQ 2023.
+- VERDICT: FLAGGED. The related_work.md entry uses the SEAA 2019 title with the REFSQ 2023 venue label, conflating two distinct papers. The cited use case ("standard citation for OOD as part of the AV safety lifecycle") better matches the REFSQ 2023 paper (Erdogan et al.) or the AITest 2023 paper (arXiv:2401.17013). The drafter must choose which paper to cite and correct both title and venue. See recommended bibkeys below.
+- RECOMMENDED BIBKEYS:
+  - If the intent is the safety-lifecycle framing: cite erdogan2023refsq (Erdogan et al., REFSQ 2023, no DOI/arXiv pinned yet).
+  - If the intent is empirical comparison on AV datasets: cite henriksson2024aitest (arXiv:2401.17013, IEEE AITest 2023).
+  - If the intent is the original empirical OOD-on-various-NNs result: cite henriksson2019seaa (arXiv:2103.15580, SEAA 2019; extended journal version DOI 10.1016/j.infsof.2020.106409).
+  - The current entry in source_verification.md (henriksson2024 / arXiv:2401.17013, IEEE AITest 2023) remains the closest match to the intent.
+
+---
 
 ## [deeproad-line / c51] DeepTest, DeepRoad, MarMot (added 2026-05-30 to close hallucination-gate D7)
 
