@@ -249,7 +249,7 @@ def write_results(
         "- activity ratio = sum of per-element temporal std, CARLA / real",
         "- mean shift = sum |mean|(CARLA) / sum |mean|(real) at alpha=1",
         "- cliff alpha = smallest alpha at which activity ratio first drops",
-        "  below 0.5; NaN if it never crosses",
+        "  below 0.5; N/A if it never crosses",
         "",
         "## Probe list (8 points, chosen from"
         " `report/e5_submodule_enumeration.md`)",

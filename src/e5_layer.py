@@ -247,7 +247,9 @@ def _write_results(alphas: np.ndarray, ratios: dict[str, np.ndarray],
     lines.append("| layer | cliff alpha | activity ratio @ alpha=1 | mean shift @ alpha=1 |")
     lines.append("|---|---|---|---|")
     for name in ratios:
-        lines.append(f"| {name} | {cliffs[name]:.3f} | "
+        ca = cliffs[name]
+        ca_s = "N/A" if np.isnan(ca) else f"{ca:.3f}"
+        lines.append(f"| {name} | {ca_s} | "
                      f"{ratios[name][-1]:.4f} | {mean_shifts[name]:.4f} |")
     out.write_text("\n".join(lines) + "\n")
 

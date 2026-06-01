@@ -1,0 +1,162 @@
+{
+  "generated_iso": "2026-06-01T22:41:13.479531+00:00",
+  "git": {
+    "commit": "57bea59aad1544d87b85f0f095d4fe9506b06d92",
+    "branch": "main",
+    "dirty": true
+  },
+  "env": {
+    "python_version": "3.10.12 (main, Mar  3 2026, 11:56:32) [GCC 11.4.0]",
+    "packages": {
+      "onnxruntime-gpu": "1.23.2",
+      "onnxruntime": "absent",
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "scikit-learn": "1.7.2",
+      "matplotlib": "3.10.9",
+      "carla": "0.9.15"
+    }
+  },
+  "models": [
+    {
+      "filename": "supercombo.onnx",
+      "path_relative": "models/supercombo.onnx",
+      "sha256": "b31b504bc0b440d3bc72967507a00eb4f112285626fbfb3135011500325ee6d6",
+      "size_bytes": 51452435,
+      "mtime_iso": "2026-05-17T17:16:56.678630+00:00",
+      "model_tag": "openpilot v0.9.7"
+    },
+    {
+      "filename": "supercombo_probed.onnx",
+      "path_relative": "models/supercombo_probed.onnx",
+      "sha256": "e584fcd732b6fd90b93cc1dde898d5f44ce79442b840a2984bab2bd30961e727",
+      "size_bytes": 51502532,
+      "mtime_iso": "2026-05-26T05:27:39.715012+00:00",
+      "model_tag": "openpilot v0.9.7 (E6 probed variant)"
+    },
+    {
+      "filename": "supercombo_submodule_probed.onnx",
+      "path_relative": "models/supercombo_submodule_probed.onnx",
+      "sha256": "8eeafdc2efa95515a45b88541298a6f4f8174473a2b1e93acde1a5fdbdaff317",
+      "size_bytes": 51501755,
+      "mtime_iso": "2026-05-26T19:58:11.987921+00:00",
+      "model_tag": "openpilot v0.9.7 (E5 submodule probed variant)"
+    },
+    {
+      "filename": "supercombo_v096.onnx",
+      "path_relative": "models/supercombo_v096.onnx",
+      "sha256": "c11f99aab832242a604b1bb4c4cf391c9c3d5e90cbc07ab0d4c133473b56a3a4",
+      "size_bytes": 48193749,
+      "mtime_iso": "2026-05-31T01:48:27.969087+00:00",
+      "model_tag": "openpilot v0.9.6"
+    }
+  ],
+  "caches": [
+    {
+      "filename": "ablations_collected.npz",
+      "path_relative": "report/ablations_collected.npz",
+      "sha256": "fd9ba447a72a4b365fc7cec3c2ad52d5b3cf4f457b8d6470171f69f59dda2450",
+      "size_bytes": 1945,
+      "mtime_iso": "2026-06-01T15:31:57.953368+00:00"
+    },
+    {
+      "filename": "baselines_collected.npz",
+      "path_relative": "report/baselines_collected.npz",
+      "sha256": "cebd1c9a03a1b1ff9a9211f30aefabe454fe41a597bd9647dec3f2e12b41e2b9",
+      "size_bytes": 12174315,
+      "mtime_iso": "2026-06-01T15:31:04.166726+00:00"
+    },
+    {
+      "filename": "e4_collected.npz",
+      "path_relative": "report/e4_collected.npz",
+      "sha256": "1b908a8c0adad17f43ce830aed3eb978003365ad718e62a7af834a242a353e47",
+      "size_bytes": 43021066,
+      "mtime_iso": "2026-05-31T20:55:08.239328+00:00"
+    },
+    {
+      "filename": "e4_ram_collected.npz",
+      "path_relative": "report/e4_ram_collected.npz",
+      "sha256": "3b89ceb50cc5c6c1212a54829324fc55ed0f638300bc86fa2ada241ce1990e6d",
+      "size_bytes": 28713197,
+      "mtime_iso": "2026-05-30T01:05:56.592409+00:00"
+    },
+    {
+      "filename": "e4_v096_collected.npz",
+      "path_relative": "report/e4_v096_collected.npz",
+      "sha256": "c9b93007a4a15737e6a6209197258944e3f7f132326315c16f6fd061e5d79e19",
+      "size_bytes": 52935024,
+      "mtime_iso": "2026-05-31T20:55:08.272328+00:00"
+    },
+    {
+      "filename": "e5_submodule_collected.npz",
+      "path_relative": "report/e5_submodule_collected.npz",
+      "sha256": "49fa63d2e4ca64e97eefe2ed5d0ebb69df87c2f7811b7058adf478272cd0066e",
+      "size_bytes": 102165506,
+      "mtime_iso": "2026-05-26T19:58:40.613069+00:00"
+    },
+    {
+      "filename": "e7_collected.npz",
+      "path_relative": "report/e7_collected.npz",
+      "sha256": "241c298bb929376fb38b21cff546874f9623aaf0964c77572e2429ba4cbb44c8",
+      "size_bytes": 115137846,
+      "mtime_iso": "2026-05-30T00:59:14.142333+00:00"
+    },
+    {
+      "filename": "metrics_collected.npz",
+      "path_relative": "report/metrics_collected.npz",
+      "sha256": "7d46a6faf0b67902625400f06063ed0dce31dabf00e981365d45d8f354771499",
+      "size_bytes": 216974,
+      "mtime_iso": "2026-06-01T22:40:21.417123+00:00"
+    },
+    {
+      "filename": "real_weather_collected.npz",
+      "path_relative": "report/real_weather_collected.npz",
+      "sha256": "cfd5b0b5884aa002f6b02e14e61d9bda7947a5033d422b62426bdd8ab2b794e7",
+      "size_bytes": 4589326,
+      "mtime_iso": "2026-05-31T20:55:08.288327+00:00"
+    },
+    {
+      "filename": "teardown_collected.npz",
+      "path_relative": "report/teardown_collected.npz",
+      "sha256": "ea7bb7d8731730cc854d6c9e4cdece018d1a69ad0589a5fcc147849dcd7cfa95",
+      "size_bytes": 4310976,
+      "mtime_iso": "2026-05-21T20:06:12.544820+00:00"
+    },
+    {
+      "filename": "teardown_v096_collected.npz",
+      "path_relative": "report/teardown_v096_collected.npz",
+      "sha256": "fa387f5e8621e8858dcf6ecb7a4bae0ca816938fc32dfb3ba716407c000cbc83",
+      "size_bytes": 4639992,
+      "mtime_iso": "2026-05-31T20:55:08.299327+00:00"
+    }
+  ],
+  "data_provenance": {
+    "weather_segments": {
+      "ev6_night_source": {
+        "dongle": "d545129f3ca90f28",
+        "time": "2022-11-07--20-43-08",
+        "seg": "3",
+        "label": "EV6 night residential + oncoming-headlight glare"
+      },
+      "bronco_night_source": {
+        "dongle": "54827bf84c38b14f",
+        "time": "2023-01-26--21-59-07",
+        "seg": "4",
+        "label": "Ford Bronco night highway + tail-light/sign glare"
+      },
+      "daytime_control_source": {
+        "dongle": "376bf99325883932",
+        "time": "2022-10-27--13-41-22",
+        "seg": "1",
+        "label": "Daytime-dry C3 in-distribution control"
+      }
+    },
+    "ci_parity_route": {
+      "dongle": "2f4452b03ccb98f0",
+      "time": "2022-12-03--13-45-30",
+      "seg": "6",
+      "description": "v0.9.6 parity reference (model_replay TEST_ROUTE seg-6)",
+      "hevc_url": "https://commadataci.blob.core.windows.net/openpilotci/2f4452b03ccb98f0/2022-12-03--13-45-30/6/fcamera.hevc"
+    }
+  }
+}
