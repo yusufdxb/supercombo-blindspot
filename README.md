@@ -37,7 +37,7 @@ uncertainty head.
 | **E3** silent failure | outputs lose **~99.5%** of their activity, but predicted uncertainty rises only 1.2-1.8× and **0%** of sim frames exceed the model's normal real-driving uncertainty |
 | **E4** cliff, not gradient | blending CARLA into a real frame, output activity first balloons to **6.3×** the real baseline (ghosted-input thrash), then collapses in a **hard cliff** at ~78% CARLA (transition width **0.015**); predicted uncertainty never spikes through it |
 | **E5** the encoder is fine (variation-wise) | per-stage temporal activity ratio (CARLA / real) stays at or above the real baseline through the full alpha sweep (minimum 0.96, several layers amplify 1.4-2.1x). Feature DC offsets do shift on CARLA input (stem \|mean\| 1.24x, head \|mean\| 1.33x), so the encoder produces differently-distributed but temporally-active features. The collapse in E1/E2 is downstream of the encoder, in the recurrent / policy stack that aggregates those features into a degenerate hidden state |
-| **E6** a monitor would catch the OOD stimulus | a 1st-percentile threshold on the rolling spread of the model's own 512-D recurrent feature vector fires on >50% of CARLA-blended frames at alpha = 0.550 (not perfect separation; full separation AUROC 0.996 is at alpha=1.0), well before the E4 output-collapse cliff at alpha ~ 0.78. The signature E3 said outputs hide is recoverable from internals. Leave-one-corpus-out across the two real-driving segments gives 1.03% mean false-positive rate (2.07% max; N=2 real corpora, so variance is not meaningfully reportable at two folds); a larger real corpus is needed before this number can be trusted as a deployment claim |
+| **E6** a monitor would catch the OOD stimulus | a 1st-percentile threshold on the rolling spread of the model's own 512-D recurrent feature vector fires on >50% of CARLA-blended frames at alpha = 0.550 (not perfect separation; full separation AUROC 0.996 is at alpha=1.0), well before the E4 output-collapse cliff at alpha ~ 0.78. The signature E3 said outputs hide is recoverable from internals. Leave-one-corpus-out across four real-driving corpora gives 2.41% mean false-positive rate (95% CI [0%, 5.17%], 6.90% max on the ram fold); the initial two-corpus estimate of 1.03% was optimistic, and even 2.41% is not yet a fleet-scale deployment number (`report/corpus_scaling_results.md`) |
 | **E4-RAM** vehicle invariance | re-running E4 with a RAM real-driving source instead of Subaru: the collapse endpoint is the same (activity < 1% at alpha=1.0), but the transition is a **gradient** (width 0.274) not a cliff (Subaru: 0.015). E6 fires at alpha 0.850 on RAM vs 0.550 on Subaru, providing **no early warning** on this source. The cliff/gradient distinction is vehicle- or segment-dependent |
 | **E7** ImageNet-C corruption sweep | 15 Hendrycks corruptions x 5 severities on real driving frames. E6 rolling-spread (a collapse detector) mostly fails to detect photometric corruptions (mean AUROC 0.52-0.74), correctly catching only extreme noise/frost that actually freezes the recurrent state. Feature-space baselines (Mahalanobis, Relative Mahalanobis) detect corruptions that E6 misses. E6 is a temporal-collapse detector, not a universal OOD detector |
 
@@ -51,9 +51,9 @@ What this project does and does not claim, by bucket:
 |---|---|
 | **VERIFIED** (v0.9.7, CARLA, Subaru/RAM corpora) | E1: 8/10 output heads collapse to under 1% of real activity. E2: recurrent feature separates from real at 87.9% (d'=2.19). E3: exported uncertainty heads rise only 1.20-1.84x; 0/219 CARLA frames exceed real p95 (silent exported-uncertainty failure). E4: collapse arrives as a hard cliff on Subaru (width 0.015) and a gradient on RAM (width 0.274). |
 | **REPLICATED on v0.9.6** | v0.9.6 is also out-of-distribution-blind in feature space (d'=6.8, 100% linear separability). |
-| **CONTRADICTED / DIFFERS on v0.9.6** | Silent freeze does not replicate (only 1/10 heads collapses vs 8/10); output fails by chaotic amplification instead. E6 monitor does not transfer (33% LOCO FPR vs ~1% on v0.9.7). |
+| **CONTRADICTED / DIFFERS on v0.9.6** | Silent freeze does not replicate (only 1/10 heads collapses vs 8/10); output fails by chaotic amplification instead. E6 monitor does not transfer (33% LOCO FPR vs 2.4% on v0.9.7). |
 | **MONITOR-ONLY (E6)** | The rolling recurrent-spread detector is a collapse detector, not a general OOD detector. E7 shows photometric corruptions evade it (mean AUROC 0.52-0.74 across corruption types). |
-| **DEPLOYMENT-UNSUPPORTED** | The ~1% LOCO FPR rests on N=2 real corpora (a two-fold estimate). Cross-corpus FPR at fleet scale is unproven; a third corpus is the minimum before a production FPR can be quoted. |
+| **DEPLOYMENT-UNSUPPORTED** | Scaling the clean-real calibration set from N=2 to N=4 raised the LOCO mean FPR from an optimistic 1.03% to 2.41% (segment-level bootstrap 95% CI [0%, 5.17%], 6.90% max on the ram fold). Fleet-scale FPR is still unproven and likely higher; N=4 is honest progress, not a production number. |
 | **HYPOTHESIS / OPEN** | A real daytime-dry segment intermittently enters a near-zero recurrent attractor (E6 fires 58% of frames) on clean correctly-warped input. The trigger is unexplained; an initial steer/speed hypothesis was falsified. |
 
 ## Why this matters
@@ -204,13 +204,14 @@ through the collapse. E6 asks the same question one layer deeper: instead of
 trusting any output head, watch the rolling spread of supercombo's own 512-D
 recurrent feature vector. We calibrate the fire threshold at the 1st
 percentile of the rolling spread on real driving and evaluate generalisation
-by leave-one-corpus-out across the two real segments: **1.03% mean
-held-out false-positive rate (2.07% max across folds)** (N=2 real
-corpora; variance is not meaningfully reportable at two folds). The two
-real segments have meaningfully different rolling-spread distributions
-(subaru median 0.12 vs ram median 0.19), which is exactly why the
+by leave-one-corpus-out. Across the initial two real segments this gave
+**1.03% mean held-out false-positive rate**, but scaling to four real corpora
+(subaru, ram, ev6_night, bronco_night) raises it to **2.41% mean (segment-level
+bootstrap 95% CI [0%, 5.17%], 6.90% max on the ram fold)** -- the two-corpus
+number was optimistic. The corpora have meaningfully different rolling-spread
+distributions (subaru median 0.12 vs ram median 0.19), which is exactly why the
 generalisation gap matters and why production deployment would need a much
-larger real corpus.
+larger real corpus still (`report/corpus_scaling_results.md`).
 
 On the E4 alpha sweep, the detector fires on >50% of frames at alpha =
 0.550 (this is the >50% flagging threshold, not perfect separation;
@@ -286,11 +287,11 @@ Full table: [`report/ablations_results.md`](report/ablations_results.md).
 
 Four additions test how far the finding travels and make the monitor deployable. Every new number was independently re-verified by a separate agent and registered in [`paper_state/claim_ledger.md`](paper_state/claim_ledger.md) (c52-c61).
 
-**Second model (openpilot v0.9.6).** The full teardown was re-run on the immediately preceding shipped version. Parity holds (100% within +/-0.5 m/s^2 vs comma's own v0.9.6 reference, n=560). But v0.9.6 does not collapse the same way: only 1 of 10 heads collapse (vs 8/10), and the alpha-blend sweep is a gradient of chaotic amplification (activity peaks 14.6x real, stays 3.3x at full CARLA) rather than a freeze cliff. The v0.9.7-calibrated monitor does not transfer (33% leave-one-corpus-out FPR vs ~1%). Adjacent shipped versions fail OOD in qualitatively different ways; neither the collapse signature nor the monitor is claimed to generalize across versions. ([`report/teardown_v096_results.md`](report/teardown_v096_results.md), [`report/e4_v096_results.md`](report/e4_v096_results.md), [`report/e6_v096_results.md`](report/e6_v096_results.md), [`report/parity_v096_results.md`](report/parity_v096_results.md))
+**Second model (openpilot v0.9.6).** The full teardown was re-run on the immediately preceding shipped version. Parity holds (100% within +/-0.5 m/s^2 vs comma's own v0.9.6 reference, n=560). But v0.9.6 does not collapse the same way: only 1 of 10 heads collapse (vs 8/10), and the alpha-blend sweep is a gradient of chaotic amplification (activity peaks 14.6x real, stays 3.3x at full CARLA) rather than a freeze cliff. The v0.9.7-calibrated monitor does not transfer (33% leave-one-corpus-out FPR vs 2.4% on v0.9.7). Adjacent shipped versions fail OOD in qualitatively different ways; neither the collapse signature nor the monitor is claimed to generalize across versions. ([`report/teardown_v096_results.md`](report/teardown_v096_results.md), [`report/e4_v096_results.md`](report/e4_v096_results.md), [`report/e6_v096_results.md`](report/e6_v096_results.md), [`report/parity_v096_results.md`](report/parity_v096_results.md))
 
 **Real adverse weather.** Real comma-3 night plus headlight/tail-light glare footage at matched intrinsics does NOT collapse v0.9.7 (0/10 heads, E6 fires 0%, vs CARLA 8/10 and 100%). The silent collapse is predominantly sim-induced, not a real low-light phenomenon. Caveat: one real daytime segment intermittently enters a CARLA-like near-zero recurrent attractor that E6 fires on, with an unexplained trigger (an initial steer/speed explanation was falsified). ([`report/real_weather_results.md`](report/real_weather_results.md))
 
-**Conformal baseline plus lead time.** A split-conformal detector on the KNN-50 score ties KNN on single-corpus AUROC (1.000) but also fails cross-corpus (100% LOCO FPR). A lead-time-versus-AUROC table shows E6 is the only detector with both a calibrated cross-corpus threshold (1.03% LOCO) and a positive detection lead (+0.234 blend-units); high single-corpus AUROC does not imply early warning. ([`report/conformal_results.md`](report/conformal_results.md), [`report/lead_time_results.md`](report/lead_time_results.md))
+**Conformal baseline plus lead time.** A split-conformal detector on the KNN-50 score ties KNN on single-corpus AUROC (1.000) but also fails cross-corpus (100% LOCO FPR). A lead-time-versus-AUROC table shows E6 is the only detector with both a calibrated cross-corpus threshold (1.03% LOCO on the subaru-ram sweep pair; 2.41% across all four real corpora) and a positive detection lead (+0.234 blend-units); high single-corpus AUROC does not imply early warning. ([`report/conformal_results.md`](report/conformal_results.md), [`report/lead_time_results.md`](report/lead_time_results.md))
 
 **Deployable monitor.** E6 is one O(d) statistic per frame. A portable C++17 implementation matches the Python reference to 3.4e-13 and runs in about 0.4 us per frame on x86 (0.0008% of a 20 Hz control budget). The in-the-loop ROS2 node lives in the `policy-health-monitor` package. Jetson Orin NX on-device timing is HW-pending. ([`report/deployment_results.md`](report/deployment_results.md), [`deploy/cpp/`](deploy/cpp/))
 
