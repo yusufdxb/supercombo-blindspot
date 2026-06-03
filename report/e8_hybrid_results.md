@@ -255,3 +255,74 @@ Activity ratios at alpha=0.5 (mid-sweep):
 
 The activity ratio measures sum(temporal std of activations at OOD) / sum(temporal std at real). A ratio below 0.5 means the activations have less than half the temporal variation they had on real frames -- the network's internal dynamics have frozen. The cliff alpha is the smallest alpha where this ratio drops below 0.5.
 
+## Per-vehicle calibration
+
+**Protocol:** each vehicle's 512-D hidden-state frames are shuffled (seed=42) and split 70% calibration / 30% test (223/96 frames for both subaru and ram). Both the E6 threshold (1st percentile of rolling spread on calib) and the Maha Gaussian (fit + 99th-percentile threshold on calib self-scores) are derived from the calib split only. FPR is measured on the held-out test frames from the SAME vehicle. This is the correct deployment protocol: a real openpilot install runs on ONE vehicle and the Maha arm is never transported across vehicles.
+
+### Per-vehicle combined FPR (real-driving false-alarm rate)
+
+| Vehicle | n_calib | n_test | E6 FPR | Maha FPR | Combined FPR |
+|---|---|---|---|---|---|
+| subaru | 223 | 96 | 0.0000 | 0.4479 | 0.4479 |
+| ram | 223 | 96 | 0.0000 | 0.3229 | 0.3229 |
+
+**Mean combined FPR: 0.3854**
+**Mean E6 FPR: 0.0000**
+**Mean Maha FPR: 0.3854**
+
+### Per-vehicle coverage: hybrid vs E6 vs Maha (AUROC, n_bootstrap=100)
+
+ID = vehicle test split. OOD_collapse = CARLA alpha=1.0. OOD_corruption = fog+gaussian_noise+contrast+jpeg_compression severity 5.
+
+#### Collapse axis (CARLA alpha=1.0)
+
+| Vehicle | Detector | AUROC | AUROC 95% CI | FPR@95TPR |
+|---|---|---|---|---|
+| subaru | e6 | 1.0000 | [1.0000, 1.0000] | 0.0000 |
+| subaru | mahalanobis | 1.0000 | [1.0000, 1.0000] | 0.0000 |
+| subaru | hybrid | 0.7760 | [0.7240, 0.8229] | 0.4479 |
+| ram | e6 | 1.0000 | [1.0000, 1.0000] | 0.0000 |
+| ram | mahalanobis | 0.2925 | [0.2246, 0.3797] | 0.7188 |
+| ram | hybrid | 0.7817 | [0.7302, 0.8246] | 0.9167 |
+
+#### Photometric corruption axis (fog+noise+contrast+jpeg severity 5)
+
+| Vehicle | Detector | AUROC | AUROC 95% CI | FPR@95TPR |
+|---|---|---|---|---|
+| subaru | e6 | 1.0000 | [1.0000, 1.0000] | 0.0000 |
+| subaru | mahalanobis | 1.0000 | [1.0000, 1.0000] | 0.0000 |
+| subaru | hybrid | 0.7760 | [0.7053, 0.8257] | 0.4479 |
+| ram | e6 | 1.0000 | [1.0000, 1.0000] | 0.0000 |
+| ram | mahalanobis | 0.9819 | [0.9732, 0.9892] | 0.0000 |
+| ram | hybrid | 0.8273 | [0.7810, 0.8674] | 0.3229 |
+
+### Interpretation
+
+**Does per-vehicle calibration fix the 100% LOCO FPR?**
+Partially. The LOCO failure had two causes: (1) the Maha arm is calibrated
+on corpus A and tested on corpus B -- this is fixed by within-vehicle calib.
+(2) The 512-D Gaussian cannot be reliably estimated from ~223 calib frames.
+With a 70/30 split on 319 frames, only ~2 samples define the 99th-percentile
+tail of the 512-D Maha distribution. The test-set FPR is 32-45%, not 100%,
+so per-vehicle calibration reduces the problem but does not eliminate it.
+
+**E6 arm (within-vehicle):** FPR = 0.0000 for both vehicles, consistent
+with its ~1% standalone FPR. E6 is the only arm with controlled FPR.
+
+**Maha arm (within-vehicle):** FPR = 0.32-0.45. Root cause: 512-D Gaussian
+needs N >> D for reliable tail quantile estimation (rule of thumb: N > 5D = 2560
+frames; we have 223). The 99th-percentile threshold set on calib frames does
+not generalize to test frames from the same sequence.
+
+**Hybrid (per-vehicle):** AUROC 0.78-0.83 on both axes, LOWER than E6-alone
+(1.0). This is expected: the high-FPR Maha arm adds false alarms on ID frames,
+inflating the combined score on both ID and OOD and reducing discriminability.
+
+**Defensible claim (revised):**
+Per-vehicle calibration solves the ACROSS-CORPUS disjoint-cloud problem
+(verified on synthetic data; test_loco_fails_per_vehicle_passes). On the real
+319-frame per-vehicle corpus the Maha arm is not viable at the 99th percentile
+-- it requires approximately 10x more frames for reliable 512-D tail estimation.
+E6 alone is the only detector with controlled FPR on real driving data at this
+corpus size. The hybrid is only deployable with per-vehicle calibration AND a
+sufficiently large per-vehicle calibration corpus (N >> 512).
