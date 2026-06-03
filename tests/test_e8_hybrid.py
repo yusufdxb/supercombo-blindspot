@@ -21,6 +21,7 @@ from src.e8_hybrid import (
     hybrid_scores,
     loco_fpr_hybrid,
     localize_collapse,
+    per_vehicle_hybrid_fpr,
 )
 
 
@@ -544,3 +545,320 @@ class TestResultsMd:
         content = md.read_text()
         assert "Task B" in content or "Submodule collapse" in content
         assert "action_block_body" in content or "summarizer_div" in content
+
+
+# ---------------------------------------------------------------------------
+# per_vehicle_hybrid_fpr: per-vehicle calibration tests (all FAST, 32-D)
+# ---------------------------------------------------------------------------
+
+
+class TestPerVehicleHybridFpr:
+    """All tests use the 32-D synthetic fixture. No 512-D Mahalanobis."""
+
+    def test_returns_expected_structure(self, id_features, rng):
+        """per_vehicle_hybrid_fpr returns the required top-level keys."""
+        veh_a = id_features[:100]
+        veh_b = id_features[100:]
+        res = per_vehicle_hybrid_fpr({"a": veh_a, "b": veh_b}, window=20)
+        assert "vehicles" in res
+        assert "e6_fpr_mean" in res
+        assert "maha_fpr_mean" in res
+        assert "combined_fpr_mean" in res
+
+    def test_per_vehicle_keys_present(self, id_features):
+        veh_a = id_features[:100]
+        veh_b = id_features[100:]
+        res = per_vehicle_hybrid_fpr({"a": veh_a, "b": veh_b}, window=20)
+        assert set(res["vehicles"].keys()) == {"a", "b"}
+        for vname, vr in res["vehicles"].items():
+            if vr.get("skip"):
+                continue
+            for col in ["n_calib", "n_test", "e6_fpr", "maha_fpr", "combined_fpr"]:
+                assert col in vr, f"Missing key '{col}' in vehicle '{vname}' result"
+
+    def test_fpr_in_unit_range(self, id_features):
+        veh_a = id_features[:100]
+        veh_b = id_features[100:]
+        res = per_vehicle_hybrid_fpr({"a": veh_a, "b": veh_b}, window=20)
+        for vname, vr in res["vehicles"].items():
+            if vr.get("skip"):
+                continue
+            assert 0.0 <= vr["e6_fpr"] <= 1.0, f"e6_fpr out of range for {vname}"
+            assert 0.0 <= vr["maha_fpr"] <= 1.0, f"maha_fpr out of range for {vname}"
+            assert 0.0 <= vr["combined_fpr"] <= 1.0, f"combined_fpr out of range for {vname}"
+
+    def test_combined_fpr_ge_each_arm(self, id_features):
+        """combined_fpr >= max(e6_fpr, maha_fpr) by OR-combination logic."""
+        veh_a = id_features[:100]
+        veh_b = id_features[100:]
+        res = per_vehicle_hybrid_fpr({"a": veh_a, "b": veh_b}, window=20)
+        for vname, vr in res["vehicles"].items():
+            if vr.get("skip"):
+                continue
+            assert vr["combined_fpr"] >= vr["e6_fpr"] - 1e-9, (
+                f"combined_fpr < e6_fpr for vehicle '{vname}'"
+            )
+            assert vr["combined_fpr"] >= vr["maha_fpr"] - 1e-9, (
+                f"combined_fpr < maha_fpr for vehicle '{vname}'"
+            )
+
+    def test_iid_corpora_fpr_controlled(self, rng):
+        """When both corpora are i.i.d., per-vehicle combined FPR should be
+        low (both arms calibrated on own data).
+
+        Note: with 32-D synthetic data and a 70/30 split the test set has
+        ~90 frames. The 99th-percentile Maha threshold is calibrated on
+        ~210 calib frames; on 90 test frames the empirical FPR has high
+        variance. We use a generous 0.20 bound -- the point is not that it
+        is exactly 1%, but that it is NOT 100% (which LOCO gives).
+        """
+        veh_a = rng.randn(300, 32).astype(np.float32) * 2.0
+        veh_b = rng.randn(300, 32).astype(np.float32) * 2.0
+        res = per_vehicle_hybrid_fpr({"a": veh_a, "b": veh_b}, window=20)
+        # E6 should be near 1% (calibrated at 1st percentile, within-vehicle)
+        for vname, vr in res["vehicles"].items():
+            if vr.get("skip"):
+                continue
+            assert vr["e6_fpr"] < 0.15, (
+                f"E6 FPR should be low for i.i.d. within-vehicle split, "
+                f"got {vr['e6_fpr']:.4f} for {vname}"
+            )
+        # Maha should also be low (within-vehicle calibration, not LOCO)
+        for vname, vr in res["vehicles"].items():
+            if vr.get("skip"):
+                continue
+            assert vr["maha_fpr"] < 0.20, (
+                f"Maha FPR should be low for i.i.d. within-vehicle split, "
+                f"got {vr['maha_fpr']:.4f} for {vname}. "
+                "With small synthetic data (32-D, ~90 test frames) the 99th-"
+                "percentile threshold has high variance. The key invariant is "
+                "NOT 100% (which LOCO gives), not that it equals exactly 1%."
+            )
+
+    def test_disjoint_corpora_fpr_still_controlled_per_vehicle(self, rng):
+        """The KEY property: with disjoint corpora (different means), per-vehicle
+        calibration CONTROLS the FPR on real frames (unlike LOCO which gives 100%).
+        LOCO fails because Maha is calibrated on corpus A and tested on corpus B.
+        Per-vehicle calibration trains and tests on the SAME vehicle.
+
+        We use a generous 0.25 bound because with 32-D data and ~90 test frames
+        the percentile threshold has high small-sample variance. The invariant
+        is: combined FPR is FAR below 1.0 (not that it equals exactly 1%).
+        """
+        corpus_a = rng.randn(300, 32).astype(np.float32)        # mean ~ 0
+        corpus_b = rng.randn(300, 32).astype(np.float32) + 20.0  # mean ~ 20 (disjoint)
+        res = per_vehicle_hybrid_fpr({"a": corpus_a, "b": corpus_b}, window=20)
+        # Per-vehicle: each vehicle calibrates on its own frames.
+        # Maha FPR should be low for BOTH vehicles (no cross-corpus transport).
+        for vname, vr in res["vehicles"].items():
+            if vr.get("skip"):
+                continue
+            assert vr["maha_fpr"] < 0.25, (
+                f"Per-vehicle Maha FPR should be low even for disjoint corpora "
+                f"(calibrate and test on same vehicle), got {vr['maha_fpr']:.4f} "
+                f"for {vname}"
+            )
+        # Combined FPR should also be controlled (not 100%)
+        assert res["combined_fpr_mean"] < 0.30, (
+            f"Per-vehicle combined FPR should be low for disjoint corpora, "
+            f"got mean={res['combined_fpr_mean']:.4f}"
+        )
+
+    def test_calib_split_uses_calib_frac(self, id_features):
+        """Verify n_calib and n_test respect the calib_frac parameter."""
+        T = 200
+        veh = id_features[:T]
+        for frac in [0.5, 0.7, 0.8]:
+            res = per_vehicle_hybrid_fpr({"v": veh}, window=20, calib_frac=frac)
+            vr = res["vehicles"]["v"]
+            if vr.get("skip"):
+                continue
+            expected_calib = max(int(T * frac), 20 + 1)
+            assert vr["n_calib"] == expected_calib, (
+                f"n_calib mismatch for calib_frac={frac}: "
+                f"got {vr['n_calib']}, expected {expected_calib}"
+            )
+            assert vr["n_test"] == T - expected_calib, (
+                f"n_test mismatch for calib_frac={frac}: "
+                f"got {vr['n_test']}, expected {T - expected_calib}"
+            )
+
+    def test_seed_reproducibility(self, id_features):
+        """Same seed gives identical results."""
+        veh = id_features[:150]
+        res1 = per_vehicle_hybrid_fpr({"v": veh}, window=20, seed=99)
+        res2 = per_vehicle_hybrid_fpr({"v": veh}, window=20, seed=99)
+        vr1 = res1["vehicles"]["v"]
+        vr2 = res2["vehicles"]["v"]
+        if not vr1.get("skip") and not vr2.get("skip"):
+            assert vr1["e6_fpr"] == vr2["e6_fpr"]
+            assert vr1["maha_fpr"] == vr2["maha_fpr"]
+            assert vr1["combined_fpr"] == vr2["combined_fpr"]
+
+    def test_different_seeds_may_differ(self, rng):
+        """Different seeds can give different FPR values (non-determinism check)."""
+        veh = rng.randn(300, 32).astype(np.float32) * 2.0
+        res1 = per_vehicle_hybrid_fpr({"v": veh}, window=20, seed=0)
+        res2 = per_vehicle_hybrid_fpr({"v": veh}, window=20, seed=999)
+        # They CAN differ (different splits). This test just ensures both run
+        # without error and produce valid FPR values.
+        for res in [res1, res2]:
+            vr = res["vehicles"]["v"]
+            if not vr.get("skip"):
+                assert 0.0 <= vr["combined_fpr"] <= 1.0
+
+    def test_single_vehicle(self, id_features):
+        """Works with a single vehicle dict."""
+        res = per_vehicle_hybrid_fpr({"solo": id_features}, window=20)
+        assert "solo" in res["vehicles"]
+        vr = res["vehicles"]["solo"]
+        if not vr.get("skip"):
+            assert np.isfinite(vr["e6_fpr"])
+            assert np.isfinite(vr["maha_fpr"])
+            assert np.isfinite(vr["combined_fpr"])
+
+    def test_mean_aggregation_consistent(self, id_features):
+        """combined_fpr_mean matches the mean of per-vehicle combined_fprs."""
+        veh_a = id_features[:100]
+        veh_b = id_features[100:]
+        res = per_vehicle_hybrid_fpr({"a": veh_a, "b": veh_b}, window=20)
+        vehicle_fprs = [
+            vr["combined_fpr"]
+            for vr in res["vehicles"].values()
+            if not vr.get("skip")
+        ]
+        expected_mean = float(np.mean(vehicle_fprs))
+        assert abs(res["combined_fpr_mean"] - expected_mean) < 1e-9, (
+            f"combined_fpr_mean={res['combined_fpr_mean']:.6f} != "
+            f"mean of per-vehicle fprs={expected_mean:.6f}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# per_vehicle_hybrid_fpr vs LOCO contrast (fast, 32-D)
+# ---------------------------------------------------------------------------
+
+
+class TestPerVehicleVsLoco:
+    """Demonstrates the key property: per-vehicle calibration controls FPR
+    where LOCO fails, using disjoint corpora."""
+
+    def test_loco_fails_per_vehicle_passes(self, rng):
+        """Canonical test: disjoint corpora give LOCO Maha FPR ~ 1.0 but
+        per-vehicle Maha FPR is controlled.
+
+        We use 1000 frames per corpus (32-D) so the 99th-percentile threshold
+        is estimated from 700 calib frames (~7 samples at the tail). With 300
+        test frames, the empirical Maha FPR converges to near the nominal 1%.
+        """
+        corpus_a = rng.randn(1000, 32).astype(np.float32)
+        corpus_b = rng.randn(1000, 32).astype(np.float32) + 30.0   # far from a
+
+        # LOCO protocol (the failing protocol)
+        loco = loco_fpr_hybrid({"a": corpus_a, "b": corpus_b}, window=20)
+        # Per-vehicle protocol (the fix)
+        pv = per_vehicle_hybrid_fpr({"a": corpus_a, "b": corpus_b}, window=20)
+
+        # LOCO should show high Maha FPR (the canonical finding)
+        assert loco["maha_fpr_max"] > 0.8, (
+            f"LOCO Maha FPR should be high for disjoint corpora, "
+            f"got max={loco['maha_fpr_max']:.4f}"
+        )
+        # Per-vehicle Maha FPR should be controlled (much less than 1.0)
+        # With 300 test frames and 700 calib frames (32-D), 99th percentile
+        # is reliable: empirical FPR should be near 1%, bound at 10%.
+        for vname, vr in pv["vehicles"].items():
+            if vr.get("skip"):
+                continue
+            assert vr["maha_fpr"] < 0.10, (
+                f"Per-vehicle Maha FPR should be controlled (within-vehicle calib), "
+                f"got {vr['maha_fpr']:.4f} for {vname}."
+            )
+        # The combined per-vehicle FPR should be far below LOCO combined FPR
+        assert pv["combined_fpr_mean"] < loco["combined_fpr_mean"] - 0.5, (
+            f"Per-vehicle combined FPR ({pv['combined_fpr_mean']:.4f}) should be "
+            f"much lower than LOCO ({loco['combined_fpr_mean']:.4f})"
+        )
+
+
+# ---------------------------------------------------------------------------
+# e8_demo smoke test (fast: uses mocked caches so no 512-D inv required)
+# ---------------------------------------------------------------------------
+
+
+class TestE8DemoSmoke:
+    """Smoke tests for the demo module. Fast variants only."""
+
+    def test_demo_module_importable(self):
+        """e8_demo can be imported without error."""
+        import importlib
+        mod = importlib.import_module("src.e8_demo")
+        assert hasattr(mod, "run_demo")
+        assert hasattr(mod, "rolling_spread")
+        assert hasattr(mod, "_fit_gaussian")
+        assert hasattr(mod, "_maha_from_prec")
+
+    def test_rolling_spread_in_demo(self):
+        """rolling_spread in e8_demo matches e6_detector.rolling_spread."""
+        from src.e8_demo import rolling_spread as demo_rs
+        from src.e6_detector import rolling_spread as e6_rs
+        rng = np.random.RandomState(0)
+        h = rng.randn(50, 16).astype(np.float32)
+        demo_out = demo_rs(h, 10)
+        e6_out = e6_rs(h, 10)
+        np.testing.assert_allclose(demo_out, e6_out, rtol=1e-5,
+                                   err_msg="demo rolling_spread differs from e6_detector")
+
+    def test_fit_gaussian_returns_correct_shapes(self):
+        """_fit_gaussian returns mu (D,) and prec (D, D)."""
+        from src.e8_demo import _fit_gaussian
+        rng = np.random.RandomState(0)
+        X = rng.randn(100, 16).astype(np.float64)
+        mu, prec = _fit_gaussian(X)
+        assert mu.shape == (16,)
+        assert prec.shape == (16, 16)
+
+    def test_maha_from_prec_matches_baselines(self):
+        """_maha_from_prec gives the same scores as baselines.mahalanobis."""
+        from src.e8_demo import _fit_gaussian, _maha_from_prec
+        from src.baselines import mahalanobis
+        rng = np.random.RandomState(0)
+        id_f = rng.randn(80, 16).astype(np.float64)
+        test_f = rng.randn(30, 16).astype(np.float64)
+        mu, prec = _fit_gaussian(id_f)
+        demo_scores = _maha_from_prec(mu, prec, test_f)
+        base_scores = mahalanobis(id_f, test_f)
+        np.testing.assert_allclose(demo_scores, base_scores, rtol=1e-4,
+                                   err_msg="_maha_from_prec differs from baselines.mahalanobis")
+
+    def test_vehicle_calib_test_split(self):
+        """_vehicle_calib_test returns two non-overlapping arrays."""
+        from src.e8_demo import _vehicle_calib_test
+        rng = np.random.RandomState(5)
+        h = rng.randn(200, 16).astype(np.float32)
+        calib, test = _vehicle_calib_test(h, calib_frac=0.7, seed=42)
+        assert len(calib) + len(test) == 200
+        assert len(calib) >= 1
+        assert len(test) >= 1
+        # No row appears in both splits (check via norm fingerprint)
+        calib_norms = set(float(np.linalg.norm(r)) for r in calib)
+        test_norms  = set(float(np.linalg.norm(r)) for r in test)
+        # Highly unlikely two distinct rows have identical L2 norms in 16-D
+        overlap = calib_norms & test_norms
+        assert len(overlap) == 0, (
+            f"Calib/test overlap detected: {len(overlap)} rows with same norm"
+        )
+
+    @pytest.mark.slow
+    def test_demo_runs_end_to_end(self):
+        """Full demo run (needs 512-D caches). Marked slow."""
+        e4 = Path("report/e4_collected.npz")
+        e7 = Path("report/e7_collected.npz")
+        teardown = Path("report/teardown_collected.npz")
+        if not (e4.exists() and e7.exists() and teardown.exists()):
+            pytest.skip("Required caches missing for demo e2e test")
+        from src.e8_demo import run_demo
+        run_demo()
+        out = Path("report/figures/e8_demo.png")
+        assert out.exists(), "Demo did not produce report/figures/e8_demo.png"
+        assert out.stat().st_size > 50_000, "Demo figure looks too small (< 50 KB)"
