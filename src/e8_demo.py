@@ -34,7 +34,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "report"
 FIG_DIR = REPORT / "figures"
-FIG_OUT = FIG_DIR / "e8_demo.png"
+FIG_OUT = FIG_DIR / "e8_demo_legacy.png"  # canonical e8_demo.png is now owned by src/e8_pca_hybrid.py
 
 WINDOW = 30
 WARMUP = 100   # frames discarded per segment (see teardown.py)
@@ -413,7 +413,14 @@ def run_demo() -> None:
 
 
 def main() -> int:
-    run_demo()
+    # The canonical demo is now the PCA-reduced per-vehicle hybrid
+    # (src/e8_pca_hybrid.py): it corrects the undersampled-Maha result (raw 512-D
+    # FPR ~38% was a dimensionality artifact; PCA k=32 gives ~2% FPR + corruption
+    # AUROC 1.0) and matches the repo figure style. Delegate so the demo command
+    # produces the corrected report/figures/e8_demo.png. run_demo() (legacy
+    # honest-negative writeup) is retained for reference and writes e8_demo_legacy.png.
+    from src.e8_pca_hybrid import main as pca_main
+    pca_main()
     return 0
 
 
