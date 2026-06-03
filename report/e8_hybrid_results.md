@@ -326,3 +326,37 @@ Per-vehicle calibration solves the ACROSS-CORPUS disjoint-cloud problem
 E6 alone is the only detector with controlled FPR on real driving data at this
 corpus size. The hybrid is only deployable with per-vehicle calibration AND a
 sufficiently large per-vehicle calibration corpus (N >> 512).
+
+---
+
+## PCA-reduced per-vehicle Mahalanobis: the fix (src/e8_pca_hybrid.py)
+
+The earlier "per-vehicle Maha FPR 32-45%, needs >2.5k frames" conclusion was a
+DIMENSIONALITY artifact, not a data shortage. A full 512-D Gaussian is
+ill-conditioned at 223 calibration frames; projecting to the top-k principal
+components of that vehicle's own ID features fixes it. Within-vehicle held-out
+FPR (10 random calib/test splits, calib 70%, threshold at the 99th percentile),
+pooled corruption (fog s5) and collapse (CARLA a=1.0) AUROC:
+
+| k (PCA dims) | within-vehicle FPR | corruption AUROC | collapse AUROC |
+|---|---|---|---|
+| 8   | 1.2% | 0.331 | 0.179 |
+| 16  | 1.5% | 0.658 | 0.155 |
+| 32  | 2.3% | 1.000 | 0.649 |
+| 64  | 5.4% | 1.000 | 0.651 |
+| 128 | 11.6% | 1.000 | 0.651 |
+
+Operating point k*=32:
+- subaru: FPR raw-512D 38.4% -> PCA 2.4%; corruption AUROC 1.000; E6 collapse AUROC 0.994
+- ram:    FPR raw-512D 32.2% -> PCA 2.0%; corruption AUROC 1.000; E6 collapse AUROC 0.999
+
+Reading: corruption AUROC needs ~32 components to saturate at 1.000 (the photometric
+OOD signal is not in the top-16 ID directions), while FPR climbs past k=32 (5.4% ->
+11.6% at k=64 -> 128) as the Gaussian re-enters the under-determined regime. k=32 is
+the principled operating point: 223 frames over-determine a 32-D Gaussian (N > 5D=160).
+
+CONCLUSION (corrects the earlier honest-negative): E6 (temporal collapse, AUROC
+~0.99) + per-vehicle PCA-Mahalanobis k=32 (photometric corruption, AUROC 1.000) is
+a hybrid that covers BOTH failure classes at a controlled within-vehicle FPR (~2%).
+Demo + figure: `env -u PYTHONPATH .venv/bin/python -m src.e8_pca_hybrid` ->
+report/figures/e8_demo.png.
