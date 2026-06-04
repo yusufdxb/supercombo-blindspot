@@ -156,18 +156,28 @@ def _plt():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     plt.rcParams.update({
-        "figure.facecolor": "#0d1017", "axes.facecolor": "#0d1017",
-        "savefig.facecolor": "#0d1017", "text.color": "#e6e6e6",
-        "axes.labelcolor": "#e6e6e6", "xtick.color": "#b8b8b8",
-        "ytick.color": "#b8b8b8", "axes.edgecolor": "#3a3f4b",
+        "figure.facecolor": CREAM, "axes.facecolor": CREAM,
+        "savefig.facecolor": CREAM, "text.color": INK,
+        "axes.labelcolor": INK, "xtick.color": "#5a544a",
+        "ytick.color": "#5a544a", "axes.edgecolor": "#bdb29c",
         "font.size": 11, "axes.titlesize": 12.5, "axes.grid": True,
-        "grid.color": "#23272f", "grid.linewidth": 0.8,
+        "grid.color": "#e3dccd", "grid.linewidth": 0.8,
+        "font.family": "serif",
+        "font.serif": ["Fraunces", "Georgia", "DejaVu Serif"],
     })
     return plt
 
 
-# repo palette (src/teardown.py): teal = real/controlled, orange = sim/OOD, amber = warn
-REAL_C, CARLA_C, WARN_C = "#39d0d8", "#ff7043", "#ffd54f"
+# editorial palette: cream paper, ink, ONE rust accent, muted warm secondaries
+CREAM = "#f4efe4"
+INK = "#2b2723"
+RUST = "#c0461f"     # the single accent, reserved for the key/benefit series
+SLATE = "#8a8275"    # muted warm grey for the secondary/cost series
+GOLD = "#b58838"     # muted ochre for threshold/reference lines only
+# legend styling
+_LEG = dict(facecolor="#ece4d4", edgecolor="#cbbfa8")
+# back-compat names used below: accent=RUST, secondary=SLATE, reference=GOLD
+REAL_C, CARLA_C, WARN_C = RUST, SLATE, GOLD
 
 
 def make_figure(out: Path = FIG_OUT) -> Path:
@@ -180,13 +190,13 @@ def make_figure(out: Path = FIG_OUT) -> Path:
 
     fig, (axA, axB, axC) = plt.subplots(1, 3, figsize=(15, 4.6))
     fig.suptitle("Does openpilot know when it is blind?   E8: PCA-Mahalanobis fixes the per-vehicle hybrid",
-                 color="#e6e6e6", fontsize=13.5, y=1.02)
+                 color=INK, fontsize=13.5, y=1.02)
 
     # (a) the tradeoff: FPR and corruption AUROC vs PCA dimensionality
     axA.set_title("(a) PCA dimensionality tradeoff")
     axA.plot(ks, fpr, "-o", color=CARLA_C, lw=2, label="within-vehicle FPR (%)")
     axA.axhline(1.0, color=WARN_C, ls="--", lw=1, alpha=0.7, label="1% target")
-    axA.axvline(K_STAR, color="#e6e6e6", ls=":", lw=1.2, alpha=0.6)
+    axA.axvline(K_STAR, color=INK, ls=":", lw=1.2, alpha=0.6)
     axA.set_xscale("log", base=2)
     axA.set_xticks(ks)
     axA.set_xticklabels([str(k) for k in ks])
@@ -200,12 +210,12 @@ def make_figure(out: Path = FIG_OUT) -> Path:
     axA2.set_ylim(0.0, 1.05)
     axA2.grid(False)
     axA.annotate(f"k*={K_STAR}\nFPR~2%, AUROC 1.0", xy=(K_STAR, 2.5),
-                 xytext=(K_STAR * 1.6, 18), color="#e6e6e6", fontsize=9,
-                 arrowprops=dict(arrowstyle="->", color="#e6e6e6"))
+                 xytext=(K_STAR * 1.6, 18), color=INK, fontsize=9,
+                 arrowprops=dict(arrowstyle="->", color=INK))
     h1, l1 = axA.get_legend_handles_labels()
     h2, l2 = axA2.get_legend_handles_labels()
     axA.legend(h1 + h2, l1 + l2, loc="upper left", fontsize=8,
-               facecolor="#161a22", edgecolor="#3a3f4b")
+               **_LEG)
 
     # (b) the fix: raw 512-D vs PCA k* within-vehicle FPR, per vehicle
     axB.set_title(f"(b) per-vehicle FPR: raw 512-D vs PCA k={K_STAR}")
@@ -218,13 +228,13 @@ def make_figure(out: Path = FIG_OUT) -> Path:
     axB.axhline(1.0, color=WARN_C, ls="--", lw=1, alpha=0.7, label="1% target")
     for xi, v in zip(x, veh):
         axB.text(xi - 0.2, 100 * hl["per_vehicle"][v]["fpr_raw512"] + 1,
-                 f"{100*hl['per_vehicle'][v]['fpr_raw512']:.0f}%", ha="center", fontsize=8, color="#e6e6e6")
+                 f"{100*hl['per_vehicle'][v]['fpr_raw512']:.0f}%", ha="center", fontsize=8, color=INK)
         axB.text(xi + 0.2, 100 * hl["per_vehicle"][v]["fpr_pca"] + 1,
-                 f"{100*hl['per_vehicle'][v]['fpr_pca']:.1f}%", ha="center", fontsize=8, color="#e6e6e6")
+                 f"{100*hl['per_vehicle'][v]['fpr_pca']:.1f}%", ha="center", fontsize=8, color=INK)
     axB.set_xticks(x)
     axB.set_xticklabels(veh)
     axB.set_ylabel("within-vehicle FPR (%)")
-    axB.legend(fontsize=8, facecolor="#161a22", edgecolor="#3a3f4b")
+    axB.legend(fontsize=8, **_LEG)
 
     # (c) coverage: each arm owns one failure class; hybrid covers both
     axC.set_title("(c) coverage: hybrid covers both classes")
@@ -236,12 +246,12 @@ def make_figure(out: Path = FIG_OUT) -> Path:
     axC.bar(x - 0.27, e6, 0.27, color=WARN_C, label="E6 (temporal)")
     axC.bar(x, pm, 0.27, color=REAL_C, label=f"PCA-Maha k={K_STAR}")
     axC.bar(x + 0.27, hyb, 0.27, color=CARLA_C, label="hybrid")
-    axC.axhline(0.5, color="#777", ls=":", lw=1, alpha=0.7)
+    axC.axhline(0.5, color="#9a9486", ls=":", lw=1, alpha=0.8)
     axC.set_xticks(x)
     axC.set_xticklabels(["collapse\n(CARLA)", "corruption\n(fog s5)"])
     axC.set_ylabel("AUROC (subaru)")
     axC.set_ylim(0, 1.08)
-    axC.legend(fontsize=8, facecolor="#161a22", edgecolor="#3a3f4b")
+    axC.legend(fontsize=8, **_LEG)
 
     fig.tight_layout()
     out.parent.mkdir(parents=True, exist_ok=True)
