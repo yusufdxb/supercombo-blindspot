@@ -553,6 +553,83 @@ a Bash computation run in this session.
 
 ---
 
+## c62 (re-confirm): corpus-scaling LOCO 2.41% / CI [0%, 5.17%] / max 6.90%
+
+Re-run requested by orchestrator after reframe.
+
+- PROSE VALUE: "2.41% real-driving FPR leave-one-corpus-out over N=4 corpora (95% CI [0%, 5.17%], max 6.90%); per-fold subaru 2.76% ram 6.90% ev6_night 0.00% bronco_night 0.00%" (Abstract, Section 5.6, Conclusion).
+- SOURCE ARTIFACT: `report/corpus_scaling_results.md`; `src/corpus_scaling.py`.
+- RECOMPUTED VALUE: `python3 -m src.corpus_scaling` -> held-out subaru 2.76%, ram 6.90%, ev6_night 0.00%, bronco_night 0.00%; LOCO mean 2.41%; CI [0.00%, 5.17%]; max 6.90%. All match artifact verbatim.
+- COMMAND RUN: `PYTHONPATH=. python3 -m src.corpus_scaling` -> exact values confirmed.
+- RESULT: MATCH.
+- VERDICT: CONFIRMED. Still matches after reframe.
+
+---
+
+## c63: E6 LOCO FPR@95%TPR 0.00% (0 of 1160 held-out real frames; realised TPR 94.8%)
+
+- PROSE VALUE: "flags 0 of 1160 held-out real frames: 0% false-positive rate at approximately 94.8% realised collapse detection across four real corpora" (Abstract, Section 5.6, Conclusion).
+- SOURCE ARTIFACT: `report/loco_threshold_free_results.md` + `src/loco_threshold_free.py`.
+- RECOMPUTED VALUE: `PYTHONPATH=. python3 -m src.loco_threshold_free` -> e6: LOCO mean 0.00%, max 0.00%, CI [0.00%, 0.00%]; all per-fold FPRs 0.00% (0 of 290 per corpus, 0 of 1160 total). Realised TPR = 0.9483 (identical across all 4 folds because E6 scores are ID-independent). 4 corpora x 290 valid frames each = 1160 confirmed. Tests pass: `pytest tests/test_loco_threshold_free.py` -> 3/3.
+- COMMAND RUN: `PYTHONPATH=. python3 -m src.loco_threshold_free` and `PYTHONPATH=. python3 -m pytest tests/test_loco_threshold_free.py -q`.
+- RESULT: MATCH. Every number in the prose traces exactly to the recomputed artifact.
+- VERDICT: CONFIRMED.
+
+---
+
+## c64: Baseline LOCO FPR@95%TPR: KNN-50 60.82%, Mahalanobis 95.14%, Relative Mahalanobis 99.69%
+
+- PROSE VALUE: "KNN-50 60.82% (95% CI [35.89%, 85.74%], max 100.00%), Mahalanobis 95.14% (95% CI [91.77%, 98.51%], max 100.00%), Relative Mahalanobis 99.69% (95% CI [99.06%, 100.00%], max 100.00%)" (Section 5.6, Table E6-OP).
+- SOURCE ARTIFACT: `report/loco_threshold_free_results.md` + `src/loco_threshold_free.py`.
+- RECOMPUTED VALUE: `python3 -m src.loco_threshold_free` -> knn50: mean 60.82% max 100.00% CI [35.89, 85.74]; mahalanobis: 95.14% max 100.00% CI [91.77, 98.51]; relative_mahalanobis: 99.69% max 100.00% CI [99.06, 100.00]. All match draft Table E6-OP verbatim to 2dp. Per-fold values in the artifact: knn50 subaru=100.00% ram=71.47% ev6_night=36.05% bronco_night=35.74%; mahalanobis subaru=100.00% ram=90.28% ev6_night=96.24% bronco_night=94.04%; relative_mahalanobis subaru=100.00% ram=98.75% ev6_night=100.00% bronco_night=100.00%.
+- COMMAND RUN: `PYTHONPATH=. python3 -m src.loco_threshold_free`.
+- RESULT: MATCH.
+- VERDICT: CONFIRMED.
+
+---
+
+## c65: Missed ~5% of collapse frames are onset/warmup transients
+
+- PROSE VALUE: "the approximately 5% of collapse frames the monitor misses at this operating point are onset and warmup transients, frames where the 30-frame rolling window straddles the real-to-collapse boundary and the spread has not yet crossed" (Section 5.6).
+- SOURCE ARTIFACT: `report/loco_threshold_free_results.md` (realised TPR 94.8%) + rolling spread values computed from `report/e4_collected.npz`.
+- RECOMPUTED VALUE: 15 of 290 collapse frames are missed (threshold at 5th percentile of negated spread). Indices 0-7 (8 frames): spread 0.032 to 0.139, genuine onset/warmup transients where the window still contains pre-collapse history. Indices 276-286 (7 frames): spread 7.38e-6 to 7.46e-6, i.e. ABOVE the threshold 7.38e-6 by less than 1%; these are in the collapse plateau's upper tail, not at a sequence boundary, and not onset transients.
+- COMMAND RUN: `PYTHONPATH=. python3 -` inline session; missed_indices = np.where(collapse_scores <= thr)[0] -> [0,1,2,3,4,5,6,7,276,277,280,281,282,285,286]. Spreads at those indices confirmed via rolling_spread() on e4_collected.npz.
+- RESULT: PARTIAL MISMATCH. The claim is correct for 8 of 15 missed frames (the genuine warmup/onset group). The remaining 7 missed frames are in the deep collapse plateau but their spread values (7.38e-6 to 7.46e-6) are barely above the threshold (7.38e-6) due to float-level variation within the frozen state. The "onset/warmup transients" label does not apply to them. The claim overstates the uniformity of the missed-frame explanation.
+- VERDICT: FLAGGED.
+- NOTE: The 7 plateau-edge missed frames are not harmful to the overall narrative (they are still genuinely collapsed frames, they just fall at the upper tail of the collapsed-spread distribution). The correction is: "approximately half of the missed frames are onset/warmup transients (rolling window straddles the real-to-collapse boundary); the remaining missed frames are at the upper tail of the collapsed-spread distribution, where float-level variation within the frozen state places their spread at or just above the 5th-percentile threshold." The prose should not claim all missed frames are onset transients.
+
+---
+
+## Internal Consistency Checks (additions, 2026-06-06 re-run)
+
+### IC-12: 1160 = 4 corpora x 290 valid frames -- PASS
+- 4 corpora x 290 non-NaN rolling-spread scores each = 1160 total. Recomputed: confirmed.
+- Draft prose says "0 of 1160 held-out real frames" -- correct. PASS.
+
+### IC-13: realised TPR 94.8% consistent with 15/290 missed -- PASS
+- 15 missed of 290 = 5.17% missed; 94.83% realised TPR. Rounds to 94.8%. PASS.
+- Prose says "approximately 94.8%"; 0.9483 rounds to 94.8%. PASS.
+
+### IC-14: CI [0.00%, 0.00%] for E6 LOCO FPR@95%TPR is plausible -- PASS
+- All 4 per-fold FPRs are exactly 0.00% (0 of 290 frames). A segment-level bootstrap over 4 values all equal to 0 will yield CI [0%, 0%]. PASS.
+
+### IC-15: Abstract LOCO FPR@95%TPR values vs Section 5.6 table -- PASS
+- Abstract: "KNN-50 60.8%, Mahalanobis 95.1%, Relative Mahalanobis 99.7%". Section 5.6: same values stated as "60.82%", "95.14%", "99.69%"; Table E6-OP has the 2dp values. 60.82% rounds to 60.8%, 95.14% rounds to 95.1%, 99.69% rounds to 99.7%. All consistent. PASS.
+
+### IC-16: Conclusion FPR values consistent with abstract and Section 5.6 -- PASS
+- Conclusion (line 697): "KNN-50 60.8%, Mahalanobis 95.1%, Relative Mahalanobis 99.7%" -- matches abstract exactly. PASS.
+
+### IC-17: Daytime_control 58% vs 60.3% discrepancy -- contextual, not a contradiction
+- real_weather_results.md: 57.9% at N=2 calibration threshold 0.078873.
+- corpus_scaling_results.md: 60.3% at N=4 calibration threshold 0.087077.
+- The two values use different thresholds and both are correct under their respective calibrations.
+- Draft Section 5.8 cites 58% (rounds from 57.9%), sourced from real_weather_results.md at the N=2 threshold. This is the original report and is consistent with c58 CONFIRMED status. No contradiction; both values should be traceable to their threshold.
+
+### IC-18: C++ "within 1e-12" vs artifact "3.4106e-13" -- PASS
+- 3.4106e-13 < 1e-12: the prose uses a looser bound. Technically correct (not misleading). PASS.
+
+---
+
 ## Drafter-Flagged Nuance Resolution
 
 The drafter noted that `report/e5_submodule_results.md` NARRATES summarizer_div "crossing 0.5 between alpha 0.7 and 0.8" but its cliff_alpha COLUMN says 0.900.

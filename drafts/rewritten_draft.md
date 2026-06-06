@@ -27,13 +27,20 @@ on the RAM source), and a layer-by-layer probe localizes it downstream of the vi
 the recurrent summarizer and action-block feedback path, not in perception. We then show that the
 signal the outputs hide is recoverable from the model's own recurrent feature with a single
 second-order statistic, the rolling temporal spread of the 512-D state: one O(d) quantity per
-forward pass, with no retraining and no architecture change. Calibrated leave-one-corpus-out to
-about a 2.4% real-driving false-positive rate (N=4 corpora, segment-level bootstrap 95% CI [0%, 5.2%],
-6.9% max; the initial N=2 estimate of 1% was optimistic), it
+forward pass, with no retraining and no architecture change. At a sensitivity-matched cross-corpus
+operating point (threshold set at 95% true-positive rate on the collapse set, identical protocol for
+every detector), the monitor flags 0 of 1160 held-out real frames: 0% false-positive rate at about
+94.8% realised collapse detection across four real corpora, where every location-based baseline fails
+to transfer (KNN-50 60.8%, Mahalanobis 95.1%, Relative Mahalanobis 99.7%). Calibrated the agnostic,
+collapse-unaware way instead (1st-percentile-of-real-spread threshold, leave-one-corpus-out over N=4
+corpora), it holds about a 2.4% real-driving false-positive rate (segment-level bootstrap 95% CI [0%,
+5.2%], 6.9% max; the initial N=2 estimate of 1% was optimistic). Both numbers are true and answer
+different deploy questions: location detectors separate the collapse but do not calibrate cross-corpus,
+while the second-order spread monitor does both. It
 separates the collapse at AUROC 0.996 [0.992, 1.000] and fires about 0.23 blend-units before the
 outputs cliff, where the location-based feature scores one would default to (Mahalanobis,
 Relative Mahalanobis, KNN) each hit 100% leave-one-corpus-out FPR and fail to transfer across the
-two real corpora. This is a single-model negative finding with a collapse-specific monitor, not a
+real corpora. This is a single-model negative finding with a collapse-specific monitor, not a
 general OOD detector: an ImageNet-C sweep shows the silent collapse is sim-specific (no corruption
 reproduces it; at most 1 of 10 heads collapses on any of 75 corruption-severity cells, versus 7
 of 10 under CARLA), and the monitor is near chance on most photometric corruptions. Two
@@ -91,7 +98,7 @@ does stream a second-order statistic of hidden activations through a trained cla
 warning, but on LLMs and VLMs, not on a driving model, and not under cross-corpus transfer. And the
 standard location-based feature-space scores one would reach for first (Mahalanobis, Relative
 Mahalanobis, KNN) each hit 100% leave-one-corpus-out false-positive rate on this model: calibrated
-on one of our two real corpora, they flag the entirety of the other.
+on one real corpus, they flag the entirety of the held-out corpora.
 
 This paper makes four contributions, each bounded to the single model under study. First, a
 parity-exact reimplementation of openpilot v0.9.7 supercombo inference, verified to within
@@ -105,8 +112,12 @@ of the collapse as a hard cliff on the Subaru source (transition width 0.015) wh
 segment-dependent (a gradient of width 0.274 on the RAM source), localized downstream of the
 vision encoder in the recurrent summarizer and action-block feedback path (a partial localization;
 an ambiguity in the summarizer's variational bottleneck remains). Fourth, a zero-retraining monitor
-on the model's own recurrent feature, the rolling temporal spread of the 512-D state, calibrated
-leave-one-corpus-out to about a 2.4% real-driving FPR (N=4; the initial N=2 estimate of 1% was optimistic), which separates the
+on the model's own recurrent feature, the rolling temporal spread of the 512-D state, which at a
+sensitivity-matched cross-corpus operating point flags 0 of 1160 held-out real frames (0% FPR at about
+94.8% realised collapse detection) while every location baseline fails to transfer (KNN-50 60.8%,
+Mahalanobis 95.1%, Relative Mahalanobis 99.7%), and which under collapse-unaware percentile calibration
+holds about a 2.4% real-driving FPR leave-one-corpus-out over N=4 corpora (the initial N=2 estimate of
+1% was optimistic); it separates the
 collapse at AUROC 0.996 and fires about 0.23 blend-units before the output cliff, where the
 location-based scores fail to transfer; bounded by an ImageNet-C sweep that shows the collapse is
 sim-specific and the monitor collapse-specific, not a universal OOD detector. Figure 1 previews all
@@ -318,7 +329,11 @@ threshold is set on the held-in corpora and its false-positive rate is read on t
 averaged over folds. The headline calibration uses four real corpora (subaru, ram, ev6_night,
 bronco_night), for which we report a segment-level bootstrap 95% confidence interval (resampling whole
 corpora, not autocorrelated frames). An earlier two-corpus subset (subaru, ram) gave an optimistic 1.03%
-mean and is identified as the N=2 two-fold estimate wherever it appears.
+mean and is identified as the N=2 two-fold estimate wherever it appears. We also report a
+sensitivity-matched operating point, LOCO FPR@95%TPR, in which the threshold is fixed at 95%
+true-positive rate on the collapse set under each fold's calibration-corpus ID model and the FPR is then
+read on the held-out real corpus, applied with an identical protocol to every detector so the
+cross-corpus comparison is sensitivity-matched and fair.
 
 **The monitor (E6).** The monitored quantity is the rolling temporal spread of the 512-D recurrent
 feature the model emits, computed as the trace of the covariance of a 30-frame window of the state.
@@ -460,19 +475,52 @@ frames: a distance-from-mean score cannot detect collapse-to-the-mean, and inver
 inherits the same inversion.
 
 The distinguishing axis is not single-corpus separation but cross-corpus calibration, and here the
-location-based scores fail to transfer. Under leave-one-corpus-out across subaru and ram, all three
-applicable location-based baselines (Mahalanobis, relative Mahalanobis, KNN-50) hit 100% LOCO FPR: a
-threshold calibrated on one corpus flags the entirety of the other. The PCA-Mahalanobis variant improves
-to 11.91% LOCO mean FPR, a partial recovery but still well above the monitor's operating point.
-The rolling-spread monitor holds 1.03% LOCO mean FPR (max 2.07%) on the subaru-ram pair used for this
-sweep comparison; scaling the calibration set to four real corpora raises the monitor's cross-corpus FPR
-to 2.41% mean (max 6.90%), so its honest operating point is about 2.4%, not a production false-positive
-rate. The geometric reason the location-based scores
+location-based scores fail to transfer. The sharpest way to see this is a sensitivity-matched operating
+point: fix every detector's threshold at 95% true-positive rate on the collapse set (under each fold's
+calibration-corpus model) and read its false-positive rate on the held-out real corpus, the identical
+protocol for all detectors. Under this LOCO FPR@95%TPR, the rolling-spread monitor flags 0 of 1160
+held-out real frames: a 0.00% cross-corpus false-positive rate across all four corpora (segment bootstrap
+CI [0.00%, 0.00%]), at an approximately 94.8% realised collapse-detection rate. The location-based
+baselines fail at the same operating point: KNN-50 reaches 60.82% LOCO FPR@95%TPR (max 100%),
+Mahalanobis 95.14%, and Relative Mahalanobis 99.69%. Table E6-OP collects these. We disclose honestly
+that the approximately 5% of collapse frames the monitor misses at this operating point (15 of 290) are
+of two kinds: about half are onset and warmup transients, frames where the 30-frame rolling window
+straddles the real-to-collapse boundary and the spread has not yet crossed; the rest sit at the upper
+tail of the collapsed-spread distribution, marginally above the threshold (spread near 7.4e-6 against a
+7.4e-6 cutoff). The realised true-positive rate is 94.8%, not exactly 95%.
+
+The collapse-unaware calibration tells the complementary story. Calibrating the threshold the agnostic
+way (the 1st percentile of the real-driving rolling-spread distribution, no access to the collapse set)
+and evaluating leave-one-corpus-out, all three applicable location-based baselines (Mahalanobis, relative
+Mahalanobis, KNN-50) hit 100% LOCO FPR: a threshold calibrated on one corpus flags the entirety of the
+others. The PCA-Mahalanobis variant improves to 11.91% LOCO mean FPR, a partial recovery but still well
+above the monitor. The rolling-spread monitor holds 1.03% LOCO mean FPR (max 2.07%) on the subaru-ram
+pair used for this sweep comparison; scaling the calibration set to four real corpora raises the
+monitor's cross-corpus FPR to 2.41% mean (max 6.90%, segment-level bootstrap 95% CI [0%, 5.17%]), so its
+honest agnostic operating point is about 2.4%, still N=4 and not a fleet-scale production number. The two
+calibrations answer different deployment questions, and both are reported: the collapse-unaware
+percentile threshold is what you can set with no labeled collapse data, while the sensitivity-matched
+operating point is what you set once you have a target detection rate, and there the monitor calibrates
+cross-corpus to 0% while the location baselines do not. The geometric reason the location-based scores
 fail is that the subaru and ram corpora occupy disjoint regions of the 512-D feature space whose
 inter-corpus separation dwarfs the within-corpus radius (visible as the two real clusters in Figure E2),
 so any absolute-position score calibrated on one corpus flags the whole of the other. The monitor reads
 the second-order trace, which is location-invariant, so it both separates and calibrates across the
 corpus shift.
+
+**Table E6-OP. Sensitivity-matched cross-corpus operating point (LOCO FPR@95%TPR).** Threshold fixed at
+95% true-positive rate on the collapse set under each fold's calibration-corpus ID model; false-positive
+rate measured on the held-out real corpus; identical protocol for every detector; N=4 corpora; segment-level
+bootstrap 95% CI.
+
+| detector | LOCO mean FPR@95%TPR | 95% CI | LOCO max FPR |
+|---|---|---|---|
+| E6 (rolling spread) | 0.00% | [0.00%, 0.00%] | 0.00% |
+| KNN-50 | 60.82% | [35.89%, 85.74%] | 100.00% |
+| Mahalanobis | 95.14% | [91.77%, 98.51%] | 100.00% |
+| Relative Mahalanobis | 99.69% | [99.06%, 100.00%] | 100.00% |
+
+E6 flags 0 of 1160 held-out real frames at a realised collapse-detection rate of approximately 94.8%.
 
 The monitor also fires before the outputs cliff. Sweeping alpha, the monitor's fired fraction crosses
 50% at alpha=0.550, where the E4 Subaru output cliff is at about alpha=0.784, an early-warning gap of
@@ -486,14 +534,16 @@ exactly as the rest of the location-based family: it matches KNN-50 on single-co
 detection lead time against single-corpus AUROC makes the distinction concrete. KNN-50 and conformal each
 reach AUROC 1.000 with an apparent +0.459 blend-unit lead, yet both carry 100% LOCO FPR, so those fire
 points are meaningless under deployment; the monitor is the only detector with both a calibrated
-cross-corpus threshold (1.03% LOCO on the subaru-ram sweep pair, 2.41% across all four real corpora) and a
-positive lead (+0.234 blend-units). High single-corpus AUROC does
+cross-corpus threshold (2.41% LOCO across all four real corpora, 0% at the sensitivity-matched operating
+point) and a positive lead (+0.234 blend-units). High single-corpus AUROC does
 not imply useful early warning. Figure E6d plots lead time against AUROC for all detectors.
 
 The honest positioning against the nearest neighbors follows from these numbers. Against the
 location-based family (Keser-style density, Lee Mahalanobis, Ren RMD, Sun KNN), the result is not that
 the monitor separates better, since KNN-50 ties it, but that the location-based scores fail to transfer
-across corpora (100% LOCO FPR) while the second-order monitor calibrates (about 2.4%, N=4; 1.03% on the N=2 subset). Against
+across corpora (100% LOCO FPR, and 60.8% to 99.7% even at a sensitivity-matched operating point) while
+the second-order monitor calibrates (about 2.4% LOCO over N=4 corpora, and 0% at the sensitivity-matched
+operating point). Against
 EigenTrack (arXiv:2509.15735), the nearest mechanism-twin, the deltas are substrate (a shipped driving
 model, not an LLM or VLM), statistic (a single location-invariant spread trace with a calibrated
 threshold, not a full eigenspectrum fed to a trained classifier), and evaluation axis (cross-corpus LOCO
@@ -532,8 +582,8 @@ tolerates and is not a universal corruption detector.
 thresholds (Mahalanobis and relative Mahalanobis fire at high rates across fog, frost, several noise
 families, snow, contrast, and zoom), but recall from Section 5.6 that both carry 100% LOCO FPR: they also
 flag held-out real driving, so their high corruption fire rates are not calibrated detection. KNN-50 fires
-only on the heaviest noise and frost. None of the baselines is calibrated to the 1% operating point the
-monitor holds.
+only on the heaviest noise and frost. None of the baselines calibrates cross-corpus to the operating point
+the monitor holds (2.41% LOCO over N=4 corpora, 0% at the sensitivity-matched operating point).
 
 **Synthesis.** The corruption sweep narrows the contribution precisely. The silent collapse, the dangerous
 mode, is sim-specific; the corruption sweep shows it is not a general model-robustness failure, and the
@@ -550,7 +600,7 @@ cell-for-cell collapse-versus-detection overlay.
 
 Two probes test whether the finding and the monitor extend beyond one model and one synthetic axis. Both bound the contribution rather than broaden it.
 
-**A second shipped model (openpilot v0.9.6).** We ported the harness to v0.9.6 supercombo, the immediately preceding release, whose input and output contract is identical to v0.9.7 apart from two navigation inputs that are zeroed at the stock no-navigation operating point. Parity holds: v0.9.6 matches comma's own v0.9.6 reference within +/-0.5 m/s^2 on 100% of 560 frames (median absolute delta 0.034), with the frame alignment corroborated by a tight-metric offset sweep rather than by the saturating +/-0.5 criterion alone. On the same CARLA frames, v0.9.6 does not reproduce the silent collapse. Only 1 of 10 output heads collapses, versus 8 of 10 for v0.9.7, and the alpha-blend sweep has the opposite shape: a gradient in which output activity peaks at 14.6x the real baseline near alpha=0.4 and remains 3.3x at full CARLA, rather than cliff-collapsing toward zero. The recurrent feature still separates cleanly from real input (spread ratio 0.44, d-prime 6.8, 100% linear separability) and the uncertainty heads stay silent, so v0.9.6 is also out-of-distribution-blind, but its output-space failure is chaotic amplification rather than a freeze. Calibrated on v0.9.6, the monitor does not transfer across corpora: leave-one-corpus-out mean FPR is 33% (versus about 1% on v0.9.7). Adjacent shipped versions can therefore fail out-of-distribution in qualitatively different ways, and neither the collapse signature nor the monitor is assumed to carry across them.
+**A second shipped model (openpilot v0.9.6).** We ported the harness to v0.9.6 supercombo, the immediately preceding release, whose input and output contract is identical to v0.9.7 apart from two navigation inputs that are zeroed at the stock no-navigation operating point. Parity holds: v0.9.6 matches comma's own v0.9.6 reference within +/-0.5 m/s^2 on 100% of 560 frames (median absolute delta 0.034), with the frame alignment corroborated by a tight-metric offset sweep rather than by the saturating +/-0.5 criterion alone. On the same CARLA frames, v0.9.6 does not reproduce the silent collapse. Only 1 of 10 output heads collapses, versus 8 of 10 for v0.9.7, and the alpha-blend sweep has the opposite shape: a gradient in which output activity peaks at 14.6x the real baseline near alpha=0.4 and remains 3.3x at full CARLA, rather than cliff-collapsing toward zero. The recurrent feature still separates cleanly from real input (spread ratio 0.44, d-prime 6.8, 100% linear separability) and the uncertainty heads stay silent, so v0.9.6 is also out-of-distribution-blind, but its output-space failure is chaotic amplification rather than a freeze. Calibrated on v0.9.6, the monitor does not transfer across corpora: leave-one-corpus-out mean FPR is 33% on the subaru-ram pair (versus 1.03% for v0.9.7 on the same pair, and 2.41% for v0.9.7 over N=4 corpora). Adjacent shipped versions can therefore fail out-of-distribution in qualitatively different ways, and neither the collapse signature nor the monitor is assumed to carry across them.
 
 **A real adverse-weather axis.** To separate the collapse from CARLA rendering, we fed three real comma-3 segments at matched fcam intrinsics through v0.9.7: two night segments with oncoming-headlight and tail-light or sign glare, and a daytime-dry control. Real night and glare do not collapse the model. Both night segments collapse 0 of 10 heads (versus 8 of 10 under CARLA) and the monitor fires on 0% of their frames (versus 100% under CARLA), so the silent collapse is predominantly sim-induced and real low-light and glare lie within openpilot's training distribution. One caveat sharpens this without overturning it: the daytime-dry control intermittently enters a near-zero recurrent attractor that resembles the CARLA collapse, with the output heads suppressed in that regime and the monitor firing on 58% of frames, on clean correctly-warped input. The trigger is unexplained, and an initial steer-and-speed hypothesis was falsified because a night segment reaches a higher peak steer at the same speed without collapsing. A non-CARLA near-collapse therefore exists on real footage and the monitor fires on it, but its cause is open and the night-and-glare axis specifically does not induce the collapse.
 
@@ -572,7 +622,7 @@ can locate each claim precisely.
 | **VERIFIED** (v0.9.7, CARLA, Subaru/RAM corpora) | E1: 8/10 output heads collapse to under 1% of real activity. E2: recurrent feature is OOD and linearly separable from real at 87.9% (d'=2.19). E3: exported predictive-uncertainty heads rise only 1.20-1.84x; 0/219 CARLA frames exceed real p95 -- the exported uncertainty channel is not a reliable OOD monitor for this collapse. E4: collapse arrives as a hard cliff on the Subaru source (transition width 0.015) and as a gradient on the RAM source (width 0.274). |
 | **REPLICATED on v0.9.6** | v0.9.6 is also out-of-distribution-blind in feature space (100% linear separability, d'=6.8). |
 | **CONTRADICTED / DIFFERS on v0.9.6** | The silent output freeze does not replicate: only 1/10 heads collapses versus 8/10; the alpha-blend sweep shows chaotic amplification (peaks 14.6x real) rather than a cliff. The E6 monitor does not transfer (33% LOCO mean FPR vs 2.4% on v0.9.7). |
-| **MONITOR-ONLY (E6)** | The rolling recurrent-spread detector catches the temporal-collapse mode with AUROC 0.996 and a 2.41% cross-corpus LOCO FPR (N=4; the original N=2 subset gave an optimistic 1.03%). E7 shows it is a collapse detector, not a universal OOD detector: photometric corruptions evade it (mean AUROC 0.52-0.74 across corruption types). |
+| **MONITOR-ONLY (E6)** | The rolling recurrent-spread detector catches the temporal-collapse mode with AUROC 0.996. At a sensitivity-matched cross-corpus operating point (95% TPR on the collapse set) it flags 0 of 1160 held-out real frames (0% LOCO FPR@95%TPR, approximately 94.8% realised detection) while every location baseline fails to transfer (KNN-50 60.8%, Mahalanobis 95.1%, Relative Mahalanobis 99.7%); under collapse-unaware percentile calibration it holds 2.41% cross-corpus LOCO FPR (N=4; the original N=2 subset gave an optimistic 1.03%). E7 shows it is a collapse detector, not a universal OOD detector: photometric corruptions evade it (mean AUROC 0.52-0.74 across corruption types). |
 | **DEPLOYMENT-UNSUPPORTED** | Scaling the clean-real calibration set from N=2 to N=4 raised the LOCO mean FPR from an optimistic 1.03% to 2.41% (segment-level bootstrap 95% CI [0%, 5.17%], 6.90% max). Fleet-scale FPR is still unproven and likely higher; N=4 is honest progress, not a production number. |
 | **HYPOTHESIS / OPEN** | A real daytime-dry segment intermittently enters a near-zero recurrent attractor (monitor fires on 58% of frames) on clean correctly-warped input; the trigger is unexplained and an initial steer/speed hypothesis was falsified. |
 
@@ -625,11 +675,14 @@ not a reliable OOD monitor for this collapse, not that the model contains no det
 
 The signal those outputs hide is recoverable from the model's own recurrent feature with a single
 second-order statistic, the rolling temporal spread of the 512-D state: one O(d) quantity per forward pass,
-with no retraining and no architecture change. Calibrated leave-one-corpus-out to about a 2.4% real-driving
-FPR (N=4 corpora; the initial N=2 estimate of 1% was optimistic), it separates the collapse at AUROC 0.996 and fires about 0.23 blend-units
-before the output cliff on the Subaru source, where the location-based feature scores one would default to
-(Mahalanobis, relative Mahalanobis, KNN) each hit 100% leave-one-corpus-out FPR and fail to transfer across
-the two real corpora.
+with no retraining and no architecture change. At a sensitivity-matched cross-corpus operating point it
+flags 0 of 1160 held-out real frames (0% FPR at about 94.8% realised collapse detection across four real
+corpora) while every location-based baseline fails to transfer (KNN-50 60.8%, Mahalanobis 95.1%, Relative
+Mahalanobis 99.7%); calibrated the collapse-unaware way instead it holds about a 2.4% real-driving LOCO FPR
+over N=4 corpora (the initial N=2 estimate of 1% was optimistic). It separates the collapse at AUROC 0.996
+and fires about 0.23 blend-units before the output cliff on the Subaru source, where the location-based
+feature scores one would default to (Mahalanobis, relative Mahalanobis, KNN) each hit 100%
+leave-one-corpus-out FPR and fail to transfer across the real corpora.
 
 Output-side monitoring alone is insufficient for the safety case of this shipped driving model, and a
 second-order recurrent-state monitor is a cheap complement. Its cost is negligible in the loop: a C++
