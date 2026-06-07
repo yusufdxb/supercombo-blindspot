@@ -1,8 +1,8 @@
-# Phantom-Braking deps — locked at first working config on RTX 5070 (sm_120, Blackwell)
+# Phantom-Braking deps: locked at first working config on RTX 5070 (sm_120, Blackwell)
 #
 # Ubuntu 22.04 LTS, NVIDIA driver 570.211.01, CUDA toolkit 12.8
 #
-# **Python 3.10 (not 3.11)** — CARLA 0.9.15's official Python client ships cp37 and cp310
+# **Python 3.10 (not 3.11)**: CARLA 0.9.15's official Python client ships cp37 and cp310
 # wheels only; cp311+ would require building from source. We downgraded from 3.11.15
 # to 3.10.12 on 2026-05-17 to integrate CARLA. ORT 1.26 dropped cp310, so we use the
 # latest cp310-compatible build (1.23.2). Parity vs comma's v0.9.7 modeld is bit-identical
@@ -13,7 +13,7 @@ onnxruntime-gpu==1.23.2
 numpy==2.2.6
 onnx==1.21.0
 
-# NVIDIA pip wheels — required for CUDAExecutionProvider; loaded via ort.preload_dlls()
+# NVIDIA pip wheels: required for CUDAExecutionProvider; loaded via ort.preload_dlls()
 nvidia-cudnn-cu12==9.22.0.52
 nvidia-cuda-runtime-cu12==12.9.79
 nvidia-cuda-nvrtc-cu12==12.9.86
@@ -26,7 +26,7 @@ nvidia-nvjitlink-cu12==12.9.86
 pycapnp==2.2.2
 opencv-python-headless==4.13.0.92
 
-# CARLA simulator client — pins us to Python 3.10
+# CARLA simulator client: pins us to Python 3.10
 carla==0.9.15
 
 # figures
