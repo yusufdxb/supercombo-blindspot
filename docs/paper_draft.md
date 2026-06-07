@@ -34,7 +34,7 @@ A corruption sweep (15 ImageNet-C corruptions x 5 severities on real frames) bou
 
 ## 2. Related Work
 
-`[DRAFT — source: docs/related_work.md and docs/paper_plan.md §2. Pull the table prose into paragraphs.]`
+`[DRAFT, source: docs/related_work.md and docs/paper_plan.md §2. Pull the table prose into paragraphs.]`
 
 Organize into five short paragraphs:
 
@@ -50,7 +50,7 @@ Organize into five short paragraphs:
 
 ## 3. Threat Model
 
-`[DRAFT — source: docs/threat_model.md, near-complete. Clean the "Agent A" artifact on line 43 of that file.]`
+`[DRAFT, source: docs/threat_model.md, near-complete. Clean the "Agent A" artifact on line 43 of that file.]`
 
 - **The threat.** A shipped driving model deployed in a visually shifted context (rendered sim, weather, glare, novel geography, sensor degradation). Under sufficient shift, three things happen at once and silently: output collapse to a plausible constant, no rise in the uncertainty channel, and a frozen recurrent state.
 - **Existing defenses and why each misses this mode** (one paragraph each, all evidence-backed):
@@ -102,7 +102,7 @@ Organize into five short paragraphs:
 
 ## 5. Experiments and Results
 
-### E1: Output collapse map `[verified — report/teardown_results.md]`
+### E1: Output collapse map `[verified: report/teardown_results.md]`
 
 8 of 10 heads collapse to under 1% of real-driving temporal activity on CARLA-clean input. Two heads survive (pose 0.18x, meta 0.72x). Figure: `report/figures/e1_head_collapse.png`.
 
@@ -159,7 +159,7 @@ The rolling-spread monitor on the 512-D recurrent feature, calibrated LOCO to me
 
 **The headline finding.** Location-sensitive feature-space scores fail on `supercombo` in two distinct ways. (1) Vanilla and PCA-Mahalanobis score *below chance* at alpha=1.0 (AUROC ~0.15): the recurrent state collapses *to the mean* of the ID Gaussian, and distance-from-mean cannot detect collapse-to-the-mean. (2) All three applicable baselines hit 100% LOCO FPR: the subaru and ram corpora occupy disjoint regions of the 512-D feature space (the feature encodes per-platform state at magnitudes that dwarf within-platform variance), so any absolute-position score that calibrates on one corpus flags the entire other corpus. E6 watches the *second-order trace* (location-invariant), so it both separates (AUROC 0.996) and calibrates across corpora (~1% FPR). The paper-worthy claim: on this production recurrent feature, standard OpenOOD post-hoc scores do not transfer; a second-order monitor does.
 
-### E7: Corruption sweep, E6 is collapse-specific (a bounded result) `[verified — report/e7_results.md, 2026-05-29]`
+### E7: Corruption sweep, E6 is collapse-specific (a bounded result) `[verified: report/e7_results.md, 2026-05-29]`
 
 We applied the 15 ImageNet-C corruptions (Hendrycks & Dietterich, ICLR 2019) at 5 severities to the real Subaru frames (raw RGB, pre-YUV), plus a clean baseline (76 conditions total: 15 corruptions x 5 severities + 1 clean), re-ran `supercombo` with correct recurrent state handling on each corrupted sequence (320 raw frames collected per condition, 319 stored after pair-processing, 219 post-warmup analysis frames per condition after discarding the first 100 as recurrent-state warmup, `src/e7_corruption.py` `WARMUP=100`), and evaluated E6 and the baselines against clean real driving. Figures: `report/figures/e7_auroc_heatmap.png`, `report/figures/e7_severity_sweep.png`.
 
@@ -183,7 +183,7 @@ We applied the 15 ImageNet-C corruptions (Hendrycks & Dietterich, ICLR 2019) at 
 
 ---
 
-## 6. Limitations `[DRAFT — source: docs/threat_model.md §4, strong]`
+## 6. Limitations `[DRAFT: source: docs/threat_model.md §4, strong]`
 
 - **N=1 model:** supercombo v0.9.7 only; no other openpilot version, Tesla, Mobileye, Waymo, or research IL stack.
 - **N=2 real corpora:** LOCO is a two-fold estimate; variance is not meaningfully reportable at N=2. A third corpus is needed before quoting a single production FPR.
@@ -199,18 +199,18 @@ We applied the 15 ImageNet-C corruptions (Hendrycks & Dietterich, ICLR 2019) at 
 
 ---
 
-## 8. Reproducibility `[verified — README documents a GPU-free, CARLA-free fresh-clone reproduce path from committed caches]`
+## 8. Reproducibility `[verified: README documents a GPU-free, CARLA-free fresh-clone reproduce path from committed caches]`
 
 - All result caches committed (`report/*_collected.npz`); analysis reruns from cache.
 - Bootstrap params: n=1000, seed=42. Requirements pinned (Python 3.10, onnxruntime-gpu 1.23.2, numpy 2.2.6, carla 0.9.15).
-- `[AUTHOR TODO — audit P1]` Verify `report/e5_collected.npz` (3.9 GB) and `report/e7_collected.npz` (110 MB) are tracked by Git LFS and survive a fresh clone + `git lfs pull`; if not, the E5/E7 "reproduce from cache" claim is false on the public repo. Pin `matplotlib` in requirements.txt.
+- `[AUTHOR TODO, audit P1]` Verify `report/e5_collected.npz` (3.9 GB) and `report/e7_collected.npz` (110 MB) are tracked by Git LFS and survive a fresh clone + `git lfs pull`; if not, the E5/E7 "reproduce from cache" claim is false on the public repo. Pin `matplotlib` in requirements.txt.
 
 ---
 
 ## Figures (all exist in report/figures/ unless marked)
 
 - `hero.png` (four findings at a glance), `e1_head_collapse.png`, `e2_feature_ood.png`, `e3_confidence.png`, `e4_interpolation.png`, `e5_layer_localization.png`, `e5_submodule_localization.png`, `e6_detector.png`, `roc_curves.png`, `pr_curves.png`, `auroc_vs_alpha.png`.
-- `e7_auroc_heatmap.png`, `e7_severity_sweep.png` `[verified — generated 2026-05-29]`.
+- `e7_auroc_heatmap.png`, `e7_severity_sweep.png` `[verified, generated 2026-05-29]`.
 
 ## Pre-submission checklist (from the 2026-05-29 publication-readiness audit; updated post-E7)
 
