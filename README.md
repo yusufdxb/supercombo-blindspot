@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/yusufdxb/supercombo-blindspot/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufdxb/supercombo-blindspot/actions/workflows/ci.yml)
 &nbsp;[![openpilot](https://img.shields.io/badge/openpilot-v0.9.7%20%2F%20v0.9.6-1f6feb)](https://github.com/commaai/openpilot)
-&nbsp;[![reproducible](https://img.shields.io/badge/reproducible-from%20cache-2da44e)](#reproduce)
+&nbsp;[![reproducible](https://img.shields.io/badge/reproducible-from%20cache-2da44e)](#reproducibility)
 
 `supercombo` is the end-to-end neural network that drives [openpilot](https://github.com/commaai/openpilot),
 the L2 driver-assistance system running on comma hardware on public roads today. This project
@@ -26,21 +26,21 @@ A full writeup is in [`drafts/paper.pdf`](drafts/paper.pdf).
 
 ## Contents
 
-- [Key results](#key-results)
-- [Claim scope](#claim-scope)
-- [Why this matters](#why-this-matters)
-- [Rigor and controls](#rigor-and-controls)
-- [The experiments](#the-experiments)
-- [Generalization, baselines, and deployment](#generalization-baselines-and-deployment)
+- [Findings](#findings)
+- [Scope of claims](#scope-of-claims)
+- [Significance](#significance)
+- [Controls and validity](#controls-and-validity)
+- [Experiments](#experiments)
+- [Generalization and deployment](#generalization-and-deployment)
 - [Limitations](#limitations)
-- [Reproduce](#reproduce)
-- [Repo map](#repo-map)
-- [Pinned versions](#pinned-versions)
-- [Notice](#notice)
+- [Reproducibility](#reproducibility)
+- [Repository layout](#repository-layout)
+- [Environment](#environment)
+- [Attribution and disclaimer](#attribution-and-disclaimer)
 
 ---
 
-## Key results
+## Findings
 
 ![The four findings at a glance](report/figures/hero.png)
 
@@ -62,7 +62,7 @@ output head, every predicted uncertainty, and the internal feature vector.
 
 Every claim is registered with its supporting evidence in [`paper_state/claim_ledger.md`](paper_state/claim_ledger.md).
 
-## Claim scope
+## Scope of claims
 
 What this project does and does not claim, by confidence bucket:
 
@@ -75,7 +75,7 @@ What this project does and does not claim, by confidence bucket:
 | **DEPLOYMENT-UNSUPPORTED** | Scaling clean-real calibration from N=2 to N=4 raised LOCO mean FPR from 1.03% to 2.41% (95% CI [0%, 5.17%], 6.90% max on the ram fold). Fleet-scale FPR is unproven and likely higher. |
 | **OPEN** | One real daytime-dry segment intermittently enters a near-zero recurrent attractor (E6 fires 58% of frames) on clean, correctly-warped input. The trigger is unexplained; an initial steer/speed hypothesis was falsified. |
 
-## Why this matters
+## Significance
 
 Every L2 and autonomous-driving program validates in simulation. If a production driving model is
 out-of-distribution-blind to your simulator, sim "passes" are false confidence: the car looks like
@@ -88,14 +88,14 @@ This is consistent with comma's own experience: openpilot's official simulator b
 is [reported to drive erratically](https://github.com/commaai/openpilot/issues/31711), and comma
 uses sim for integration and CI testing, not for trusting model behavior.
 
-**Origin (honest version).** The project began as an attempt to reproduce a documented openpilot
+**Provenance.** The project began as an attempt to reproduce a documented openpilot
 failure, [phantom braking at highway overpass shadows](https://github.com/commaai/openpilot/issues/20704),
 inside CARLA. The reproduction harness was built and works (`src/scenario.py`), but the model did
 not respond to the simulated scenes. Chasing *why* produced the teardown above. The project pivoted
 from "reproduce a known bug" to "rigorously characterize a silent failure mode," and the
 phantom-braking harness stayed as the control that exposed the real result.
 
-## Rigor and controls
+## Controls and validity
 
 - **Parity control.** `src/run_parity.py` reproduces comma's v0.9.7 reference output on a real
   segment to 100% within ±0.5 m/s². A skeptic's first objection ("your reimplementation is buggy")
@@ -111,7 +111,7 @@ phantom-braking harness stayed as the control that exposed the real result.
   failure-poor: a real finding about the difficulty of the original problem, reported rather than
   hidden.
 
-## The experiments
+## Experiments
 
 <details>
 <summary><b>E1: Output collapse map</b></summary>
@@ -251,7 +251,7 @@ Full table: [`report/e7_results.md`](report/e7_results.md).
 Full table: [`report/ablations_results.md`](report/ablations_results.md).
 </details>
 
-## Generalization, baselines, and deployment
+## Generalization and deployment
 
 Four additions test how far the finding travels and make the monitor deployable. Each new number was
 independently re-verified by a separate agent and registered in the claim ledger (c52-c61).
@@ -297,7 +297,7 @@ independently re-verified by a separate agent and registered in the claim ledger
   probe, not a photometric sim-to-real morph. Its 0.015 transition width is a linear-interpolation
   estimate within a single 0.025-wide alpha step.
 
-## Reproduce
+## Reproducibility
 
 **The teardown runs from a fresh clone**, with no model, no CARLA, and no multi-GB raw frames. It
 re-derives every E1 / E2 / E3 / E4 table and figure from the committed output caches
@@ -345,7 +345,7 @@ python -m src.conformal_results && python -m src.lead_time          # conformal 
 ```
 </details>
 
-## Repo map
+## Repository layout
 
 | Path | What |
 |---|---|
@@ -364,14 +364,14 @@ python -m src.conformal_results && python -m src.lead_time          # conformal 
 | `references/openpilot-v0.9.7/` | vendored openpilot v0.9.7 source (parity reference) |
 | `drafts/paper.pdf` | full writeup |
 
-## Pinned versions
+## Environment
 
 openpilot **v0.9.7** (`supercombo.onnx`, 51 MB, from the v0.9.7 tag) and **v0.9.6** (upgrade
 section); onnxruntime-gpu **1.23.2** with `ORT_DISABLE_ALL` graph optimization; Python **3.10**;
 CARLA **0.9.15**. Runs on an RTX 5070 (Blackwell sm_120): first inference pays a ~28 s PTX JIT, then
 ~2 ms/frame.
 
-## Notice
+## Attribution and disclaimer
 
 openpilot and `supercombo` are property of comma.ai and vendored here under their respective terms
 for parity-reference purposes only. This is independent research and is not affiliated with or
