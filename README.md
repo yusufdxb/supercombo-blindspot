@@ -1,26 +1,26 @@
 # supercombo-blindspot
 
-**Does a production L2 self-driving model know when it's blind? It doesn't, and it fails silently.**
+**Does a production L2 self-driving model know when it is blind? It does not, and it fails silently.**
 
 [![CI](https://github.com/yusufdxb/supercombo-blindspot/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufdxb/supercombo-blindspot/actions/workflows/ci.yml)
 &nbsp;[![openpilot](https://img.shields.io/badge/openpilot-v0.9.7%20%2F%20v0.9.6-1f6feb)](https://github.com/commaai/openpilot)
 &nbsp;[![reproducible](https://img.shields.io/badge/reproducible-from%20cache-2da44e)](#reproducibility)
 
 `supercombo` is the end-to-end neural network that drives [openpilot](https://github.com/commaai/openpilot),
-the L2 driver-assistance system running on comma hardware on public roads today. This project
-instruments openpilot's shipped `supercombo` model and answers one safety question:
+the L2 driver-assistance system deployed on comma hardware on public roads. This project instruments
+openpilot's shipped `supercombo` model and resolves a single safety question:
 
-> When the model is shown input it was never trained on, does it fail loudly, or silently?
+> Presented with input drawn from outside its training distribution, does the model fail conspicuously or silently?
 
-**The answer, measured at the model's own output channels: silently, and completely.** On
-CARLA-rendered driving scenes, openpilot v0.9.7's outputs collapse to a near-constant default
-across 8 of its 10 output heads, its internal recurrent state freezes to a single point, and its
-exported predictive-uncertainty heads rise so little they never leave the model's normal
-real-driving range. Nothing the model emits would tell a downstream monitor it has stopped
-perceiving. An internal recurrent signal *does* carry the failure and is detectable (E6), but the
-model never surfaces it.
+**Measured at the model's own output channels, the answer is: silently, and completely.** On
+CARLA-rendered driving scenes, openpilot v0.9.7's outputs collapse onto a near-constant default
+across 8 of its 10 output heads, its internal recurrent state contracts to a single point, and its
+exported predictive-uncertainty heads rise so little that they never depart the model's nominal
+real-driving range. No quantity the model emits would signal to a downstream monitor that it has
+ceased to perceive. An internal recurrent signal *does* encode the failure and is recoverable (E6),
+but the model never exposes it.
 
-A full writeup is in [`drafts/paper.pdf`](drafts/paper.pdf).
+A full writeup is available in [`drafts/paper.pdf`](drafts/paper.pdf).
 
 ---
 
@@ -44,84 +44,85 @@ A full writeup is in [`drafts/paper.pdf`](drafts/paper.pdf).
 
 ![The four findings at a glance](report/figures/hero.png)
 
-A **parity-exact** reimplementation of openpilot v0.9.7 `supercombo` inference, verified to **100% of
-1159 frames within ±0.5 m/s²** of comma's own reference output on real footage (median abs delta
-0.04 m/s²), is the foundation: the negative result below is the model, not the harness. With that
-control in place, the model was run on real comma footage versus CARLA renders, instrumenting every
-output head, every predicted uncertainty, and the internal feature vector.
+The study rests on a **parity-exact** reimplementation of openpilot v0.9.7 `supercombo` inference,
+agreeing with comma's own reference output on real footage to **100% of 1159 frames within
+±0.5 m/s²** (median absolute deviation 0.04 m/s²). With this control established, the negative result
+below is attributable to the model rather than to the harness. The model was then evaluated on real
+comma footage against CARLA renders, with every output head, every predicted uncertainty, and the
+internal feature vector instrumented.
 
-| | Experiment | Finding |
+| | Experiment | Result |
 |---|---|---|
-| **E1** | output collapse | 8 / 10 output heads (plan, lane lines, road edges, lead, curvature, ...) collapse to **< 1%** of their real-footage temporal activity on sim input |
-| **E2** | internal OOD | the 512-D recurrent feature vector collapses to **0.00001×** the real spread: 219 distinct sim frames map to one frozen point |
-| **E3** | silent failure | outputs lose **~99.5%** of their activity, yet predicted uncertainty rises only 1.2-1.8×, and **0%** of sim frames exceed the model's normal real-driving uncertainty |
-| **E4** | cliff, not gradient | blending CARLA into a real frame, output activity first balloons to **6.3×** baseline (ghosted-input thrash), then collapses in a **hard cliff** at ~78% CARLA (transition width **0.015**); uncertainty never spikes through it |
-| **E5** | encoder is fine | per-stage temporal activity (CARLA / real) stays at or above baseline through the full sweep (min 0.96, several layers amplify 1.4-2.1×). The collapse is **downstream** of the encoder, in the recurrent / policy stack |
-| **E6** | a monitor catches it | a 1st-percentile threshold on the rolling spread of the model's own 512-D recurrent vector fires on >50% of CARLA-blended frames at alpha 0.550, well before the E4 cliff at ~0.78. Leave-one-corpus-out over four real corpora: **2.41%** mean false-positive rate (95% CI [0%, 5.17%]) |
-| **E7** | not a universal detector | 15 ImageNet-C corruptions × 5 severities: E6 (a collapse detector) mostly misses photometric corruption (mean AUROC 0.52-0.74); feature-space baselines (Mahalanobis) catch what E6 misses |
+| **E1** | output collapse | 8 / 10 output heads (plan, lane lines, road edges, lead, curvature, ...) fall to **< 1%** of their real-footage temporal activity on simulated input |
+| **E2** | latent-space OOD | the 512-D recurrent feature vector contracts to **0.00001×** the real spread: 219 distinct simulated frames map onto a single point |
+| **E3** | uninformative uncertainty | outputs shed **~99.5%** of their activity, yet predicted uncertainty rises only 1.2-1.8×, and **0%** of simulated frames exceed the model's nominal real-driving uncertainty |
+| **E4** | discontinuous onset | under a real-to-CARLA blend, output activity first inflates to **6.3×** baseline (ghosted-input thrash), then collapses across a **hard discontinuity** at ~78% CARLA (transition width **0.015**); uncertainty never responds |
+| **E5** | encoder intact | per-stage temporal activity (CARLA / real) holds at or above baseline through the full sweep (minimum 0.96; several stages amplify 1.4-2.1×). The collapse originates **downstream** of the encoder, in the recurrent / policy stack |
+| **E6** | internal detectability | a 1st-percentile threshold on the rolling spread of the model's own 512-D recurrent vector fires on >50% of CARLA-blended frames at alpha 0.550, well ahead of the E4 discontinuity at ~0.78. Leave-one-corpus-out across four real corpora yields a **2.41%** mean false-positive rate (95% CI [0%, 5.17%]) |
+| **E7** | bounded coverage | over 15 ImageNet-C corruptions × 5 severities, E6 (a collapse detector) largely misses photometric corruption (mean AUROC 0.52-0.74); feature-space baselines (Mahalanobis) recover what E6 cannot |
 
 Every claim is registered with its supporting evidence in [`paper_state/claim_ledger.md`](paper_state/claim_ledger.md).
 
 ## Scope of claims
 
-What this project does and does not claim, by confidence bucket:
+What this project does and does not assert, partitioned by confidence:
 
 | Bucket | Claims |
 |---|---|
-| **VERIFIED** (v0.9.7, CARLA, Subaru/RAM) | E1: 8/10 output heads collapse below 1% of real activity. E2: recurrent feature separates from real at 87.9% (d'=2.19). E3: exported uncertainty heads rise only 1.20-1.84×; 0/219 CARLA frames exceed real p95. E4: collapse is a hard cliff on Subaru (width 0.015) and a gradient on RAM (width 0.274). |
-| **REPLICATED on v0.9.6** | v0.9.6 is also out-of-distribution-blind in feature space (d'=6.8, 100% linear separability). |
-| **DIFFERS on v0.9.6** | Silent freeze does not replicate (1/10 heads collapse vs 8/10); the model fails by chaotic amplification instead. The E6 monitor does not transfer (33% LOCO FPR vs 2.4% on v0.9.7). |
-| **MONITOR-ONLY (E6)** | The rolling recurrent-spread detector is a collapse detector, not a general OOD detector. E7 shows photometric corruptions evade it (mean AUROC 0.52-0.74). |
-| **DEPLOYMENT-UNSUPPORTED** | Scaling clean-real calibration from N=2 to N=4 raised LOCO mean FPR from 1.03% to 2.41% (95% CI [0%, 5.17%], 6.90% max on the ram fold). Fleet-scale FPR is unproven and likely higher. |
-| **OPEN** | One real daytime-dry segment intermittently enters a near-zero recurrent attractor (E6 fires 58% of frames) on clean, correctly-warped input. The trigger is unexplained; an initial steer/speed hypothesis was falsified. |
+| **VERIFIED** (v0.9.7, CARLA, Subaru/RAM) | E1: 8/10 output heads fall below 1% of real activity. E2: the recurrent feature separates from real input at 87.9% (d'=2.19). E3: exported uncertainty heads rise only 1.20-1.84×; 0/219 CARLA frames exceed the real p95. E4: the collapse is a hard discontinuity on Subaru (width 0.015) and a gradient on RAM (width 0.274). |
+| **REPLICATED on v0.9.6** | v0.9.6 is likewise out-of-distribution-blind in feature space (d'=6.8, 100% linear separability). |
+| **DIFFERS on v0.9.6** | The silent freeze does not reproduce (1/10 heads collapse vs 8/10); the model instead fails by chaotic amplification. The E6 monitor does not transfer (33% LOCO FPR vs 2.4% on v0.9.7). |
+| **MONITOR-ONLY (E6)** | The rolling recurrent-spread detector is a collapse detector, not a general OOD detector. E7 demonstrates that photometric corruptions evade it (mean AUROC 0.52-0.74). |
+| **DEPLOYMENT-UNSUPPORTED** | Expanding clean-real calibration from N=2 to N=4 raised the LOCO mean FPR from 1.03% to 2.41% (95% CI [0%, 5.17%], 6.90% maximum on the ram fold). A fleet-scale FPR remains unproven and is likely higher. |
+| **OPEN** | One real daytime-dry segment intermittently enters a near-zero recurrent attractor (E6 fires on 58% of frames) under clean, correctly-warped input. The trigger is unexplained; an initial steer/speed hypothesis was falsified. |
 
 ## Significance
 
 Every L2 and autonomous-driving program validates in simulation. If a production driving model is
-out-of-distribution-blind to your simulator, sim "passes" are false confidence: the car looks like
-it drives (stable, benign, plausible outputs) because the model has **collapsed to a safe-looking
-default**, not because it perceives anything in the scene. And because the model's own uncertainty
-heads do not flag the collapse (E3), you cannot catch this from model outputs alone. You need an
-external distribution-shift detector.
+out-of-distribution-blind to that simulator, sim passes confer false confidence: the vehicle appears
+to drive (stable, benign, plausible outputs) because the model has **collapsed onto a benign default
+output**, not because it perceives the scene. And because the model's own uncertainty heads do not
+register the collapse (E3), the condition is undetectable from model outputs alone. Detecting it
+requires an external distribution-shift monitor.
 
-This is consistent with comma's own experience: openpilot's official simulator bridge (MetaDrive)
-is [reported to drive erratically](https://github.com/commaai/openpilot/issues/31711), and comma
-uses sim for integration and CI testing, not for trusting model behavior.
+This is consistent with comma's own experience: openpilot's official simulator bridge (MetaDrive) is
+[reported to drive erratically](https://github.com/commaai/openpilot/issues/31711), and comma
+employs simulation for integration and CI testing rather than for trusting model behavior.
 
-**Provenance.** The project began as an attempt to reproduce a documented openpilot
-failure, [phantom braking at highway overpass shadows](https://github.com/commaai/openpilot/issues/20704),
-inside CARLA. The reproduction harness was built and works (`src/scenario.py`), but the model did
-not respond to the simulated scenes. Chasing *why* produced the teardown above. The project pivoted
-from "reproduce a known bug" to "rigorously characterize a silent failure mode," and the
-phantom-braking harness stayed as the control that exposed the real result.
+**Provenance.** The project began as an attempt to reproduce a documented openpilot failure,
+[phantom braking at highway overpass shadows](https://github.com/commaai/openpilot/issues/20704),
+inside CARLA. The reproduction harness was built and functions (`src/scenario.py`), but the model
+did not respond to the simulated scenes. Investigating that non-response produced the teardown above,
+and the project pivoted from reproducing a known bug to rigorously characterizing a silent failure
+mode. The phantom-braking harness was retained as the control that exposed the result.
 
 ## Controls and validity
 
 - **Parity control.** `src/run_parity.py` reproduces comma's v0.9.7 reference output on a real
-  segment to 100% within ±0.5 m/s². A skeptic's first objection ("your reimplementation is buggy")
-  is ruled out before any claim is made.
-- **The model is alive on real data.** Every output head has substantial frame-to-frame activity on
-  real footage (E1, "real activity" column). The collapse is sim-specific.
-- **Two real segments, two vehicles** (Subaru highway, RAM), each warmed from an independent
-  recurrent state with the warmup transient discarded, so the "real" baseline is neither one
+  segment to 100% within ±0.5 m/s², foreclosing the first objection any reviewer would raise, that
+  the reimplementation is itself at fault, before a single claim is made.
+- **Responsiveness on real data.** Every output head exhibits substantial frame-to-frame activity on
+  real footage (E1, "real activity" column); the collapse is specific to simulation.
+- **Two real segments, two vehicles** (Subaru highway, RAM), each initialized from an independent
+  recurrent state with the warmup transient discarded, so the real baseline is neither a single
   recording nor contaminated by initialization.
-- **Honest negative on the original goal.** `src/scout_phantom.py` scanned v0.9.7's output on real
-  drives for phantom brakes; it found legitimate curve and intersection braking and **no confirmed
-  phantom brake** in the sample. Phantom braking is rare and the easily accessible data is
-  failure-poor: a real finding about the difficulty of the original problem, reported rather than
-  hidden.
+- **Reported null result on the original objective.** `src/scout_phantom.py` scanned v0.9.7's output
+  on real drives for phantom brakes and found legitimate curve and intersection braking but **no
+  confirmed phantom brake** in the sample. Phantom braking is rare and the readily accessible data is
+  failure-poor: a substantive finding about the difficulty of the original problem, reported rather
+  than suppressed.
 
 ## Experiments
 
 <details>
 <summary><b>E1: Output collapse map</b></summary>
 
-Per output head, the temporal activity (mean per-element standard deviation across frames) on CARLA
-versus real footage. 8 of 10 heads collapse below 1% of real activity, including every perception
+For each output head, the temporal activity (mean per-element standard deviation across frames) on
+CARLA versus real footage. 8 of 10 heads fall below 1% of real activity, including every perception
 head (`lane_lines`, `road_edges`, `lead`) and every planning head (`plan`, `accel`, `desired_curv`,
 `desire_state`). `pose` (ego-motion) partially survives at 18%, plausibly because it is driven by
-frame-to-frame optical flow, which retains some signal even in sim. `meta` (disengage / blinker
-probabilities) is low-activity on real footage too.
+frame-to-frame optical flow, which retains some signal even in simulation. `meta` (disengage and
+blinker probabilities) is low-activity on real footage as well.
 
 Full table: [`report/teardown_results.md`](report/teardown_results.md).
 </details>
@@ -131,10 +132,10 @@ Full table: [`report/teardown_results.md`](report/teardown_results.md).
 
 ![E2 feature space](report/figures/e2_feature_ood.png)
 
-`supercombo` carries a 512-D `hidden_state` feature vector. Projected to 2-D (PCA fit on real
-features), real driving spreads across the feature space while **219 distinct CARLA frames collapse
-to a single point** (feature spread 0.00001× of real). The model's internal representation of the
-sim world is frozen and degenerate.
+`supercombo` carries a 512-D `hidden_state` feature vector. Projected to two dimensions (PCA fit on
+real features), real driving disperses across the feature space while **219 distinct CARLA frames
+contract to a single point** (feature spread 0.00001× of real). The model's internal representation
+of the simulated world is frozen and degenerate.
 </details>
 
 <details>
@@ -142,48 +143,48 @@ sim world is frozen and degenerate.
 
 ![E3 silent failure](report/figures/e3_confidence.png)
 
-`supercombo`'s plan / lead / curvature heads emit predicted uncertainties (MDN standard
-deviations). If the model "knew" it was out of distribution, those would spike. They do not: outputs
-lose ~99.5% of their activity, predicted uncertainty rises only 1.2-1.8×, and **not one CARLA
-frame's uncertainty exceeds the model's 95th-percentile uncertainty on normal real driving.** Any
-monitor thresholded to not false-alarm on real driving would never fire. The exported uncertainty
-channel is confidently silent about the collapse, even though (E6) an internal recurrent-spread
-signal does carry the information.
+`supercombo`'s plan, lead, and curvature heads emit predicted uncertainties (MDN standard
+deviations). Were the model to register that it had left its training distribution, these would
+spike. They do not: outputs shed ~99.5% of their activity, predicted uncertainty rises only 1.2-1.8×,
+and **not one CARLA frame's uncertainty exceeds the model's 95th-percentile uncertainty on nominal
+real driving.** Any monitor thresholded to avoid false alarms on real driving would never fire. The
+exported uncertainty channel is confidently silent about the collapse, even though (E6) an internal
+recurrent-spread signal carries the information.
 </details>
 
 <details>
-<summary><b>E4: Cliff, not gradient</b></summary>
+<summary><b>E4: Discontinuous onset</b></summary>
 
 ![E4 interpolation](report/figures/e4_interpolation.png)
 
-E1-E3 show the model collapses on CARLA; E4 asks *how the collapse arrives*. Each real Subaru
-model-frame is blended with a CARLA frame, `X(alpha) = (1-alpha)·real + alpha·CARLA`, swept across
-29 auto-refined alpha points. Across the first ~78% of the blend the model never degrades
-gracefully: output activity instead *balloons*, peaking at **6.3× baseline** near alpha 0.42 as the
-ghosted double-exposure makes it thrash. Then, inside a **0.015-wide window near alpha 0.79**,
-activity falls off a cliff from 1.4× to 0.03× of real. The 512-D recurrent vector, by contrast,
-slides smoothly to the CARLA centroid and is saturated by alpha 0.47, so the internal representation
-gives up well before the outputs do. Predicted uncertainty stays flat through the cliff: E3's silent
-failure holds across the whole interpolation.
+E1-E3 establish that the model collapses on CARLA; E4 characterizes *how the collapse arrives*. Each
+real Subaru model-frame is blended with a CARLA frame, `X(alpha) = (1-alpha)·real + alpha·CARLA`,
+swept across 29 auto-refined alpha points. Across the first ~78% of the blend the model never
+degrades gracefully: output activity instead *inflates*, peaking at **6.3× baseline** near alpha 0.42
+as the ghosted double-exposure drives erratic, high-variance output. Then, within a **0.015-wide
+window near alpha 0.79**, activity falls across a discontinuity from 1.4× to 0.03× of real. The
+512-D recurrent vector, by contrast, migrates smoothly to the CARLA centroid and saturates by alpha
+0.47, so the internal representation collapses well before the outputs do. Predicted uncertainty
+remains flat through the discontinuity: E3's silent failure holds across the entire interpolation.
 
-The blend overlays two scenes, so intermediate frames are a double-exposure, not a
+The blend superimposes two scenes, so intermediate frames are a double-exposure rather than a
 content-preserving morph: E4 is an overlay-interference probe along a monotone real-to-sim axis.
 Full table: [`report/e4_results.md`](report/e4_results.md).
 </details>
 
 <details>
-<summary><b>E5: Is the collapse in the encoder, or downstream?</b></summary>
+<summary><b>E5: Is the collapse in the encoder, or downstream of it?</b></summary>
 
 ![E5 layer localization](report/figures/e5_layer_localization.png)
 
-Adding one intermediate tensor per vision-encoder stage (stem, stages.0-3, post-pool flatten) to the
-ONNX graph and re-running the E4 sweep inverts the naive expectation: across all six encoder layers,
-temporal activity on CARLA stays at or above baseline, and several stages amplify (stage3 2.06×,
-head 2.14×). Nothing in the encoder collapses. Absolute mean magnitudes *do* shift (stem 1.24×, head
+Exposing one intermediate tensor per vision-encoder stage (stem, stages.0-3, post-pool flatten) in
+the ONNX graph and re-running the E4 sweep contradicts the naive hypothesis: across all six encoder
+layers, temporal activity on CARLA holds at or above baseline, and several stages amplify (stage3
+2.06×, head 2.14×). No encoder stage collapses. Absolute mean magnitudes *do* shift (stem 1.24×, head
 1.33×), so the encoder produces differently-distributed but fully temporally-active features. The
-collapse in E1/E2 is therefore not "the encoder went quiet" but the recurrent / policy stack
-collapsing the encoder's variation-rich features into a degenerate hidden state. The OOD failure
-mode is temporal-aggregation, not perception.
+collapse in E1/E2 is therefore not the encoder falling silent but the recurrent / policy stack
+contracting the encoder's variation-rich features into a degenerate hidden state. The OOD failure
+mode is one of temporal aggregation, not perception.
 
 Full table: [`report/e5_results.md`](report/e5_results.md).
 </details>
@@ -193,15 +194,16 @@ Full table: [`report/e5_results.md`](report/e5_results.md).
 
 ![E6 detector](report/figures/e6_detector.png)
 
-Instead of trusting any output head, watch the rolling spread of `supercombo`'s own 512-D recurrent
+Rather than trust any output head, observe the rolling spread of `supercombo`'s own 512-D recurrent
 vector. Calibrating the fire threshold at the 1st percentile of the rolling spread on real driving
-and evaluating by leave-one-corpus-out over four real corpora (subaru, ram, ev6_night, bronco_night)
-gives **2.41% mean held-out FPR** (segment-level bootstrap 95% CI [0%, 5.17%], 6.90% max on the ram
-fold). The initial two-corpus estimate of 1.03% was optimistic; the corpora have meaningfully
-different rolling-spread distributions (subaru median 0.12 vs ram median 0.19), which is exactly why
-the generalization gap matters. On the E4 sweep the detector fires on >50% of frames at alpha 0.550,
-while the output-collapse cliff does not arrive until ~0.78: a tiny external monitor watching
-internals could flag the OOD condition before the model's own outputs gave it away.
+and evaluating by leave-one-corpus-out across four real corpora (subaru, ram, ev6_night,
+bronco_night) yields a **2.41% mean held-out FPR** (segment-level bootstrap 95% CI [0%, 5.17%], 6.90%
+maximum on the ram fold). The initial two-corpus estimate of 1.03% was optimistic; the corpora carry
+materially different rolling-spread distributions (subaru median 0.12 vs ram median 0.19), which is
+precisely why the generalization gap matters. On the E4 sweep the detector fires on >50% of frames at
+alpha 0.550, whereas the output-collapse discontinuity does not arrive until ~0.78: a lightweight
+external monitor observing internal state can flag the OOD condition before the model's own outputs
+betray it.
 
 Full table: [`report/e6_results.md`](report/e6_results.md) and [`report/corpus_scaling_results.md`](report/corpus_scaling_results.md).
 </details>
@@ -216,12 +218,12 @@ Re-running the E4 sweep with a RAM real-driving source: the collapse endpoint is
 
 | Source | Transition width | E6 fires-at-alpha | E6 headroom | Verdict |
 |---|---|---|---|---|
-| Subaru | 0.015 | 0.550 | 0.234 | cliff |
+| Subaru | 0.015 | 0.550 | 0.234 | discontinuity |
 | RAM | 0.274 | 0.850 | -0.184 | gradient |
 
-E6 fires much later on RAM, providing no early warning. The cliff-versus-gradient distinction is
-segment-dependent, so E6's headroom cannot be assumed to generalize across real-driving sources
-without re-calibration. Full table: [`report/e4_ram_results.md`](report/e4_ram_results.md).
+E6 fires considerably later on RAM, affording no early warning. The discontinuity-versus-gradient
+distinction is segment-dependent, so E6's headroom cannot be assumed to generalize across
+real-driving sources without re-calibration. Full table: [`report/e4_ram_results.md`](report/e4_ram_results.md).
 </details>
 
 <details>
@@ -231,12 +233,13 @@ without re-calibration. Full table: [`report/e4_ram_results.md`](report/e4_ram_r
 ![E7 AUROC heatmap](report/figures/e7_auroc_heatmap.png)
 
 The 15 Hendrycks & Dietterich (ICLR 2019) ImageNet-C corruptions at 5 severities, applied to real
-comma frames. E6 mostly fails on photometric corruptions (mean AUROC 0.52-0.74), catching only
-extreme corruptions that actually freeze the recurrent state (frost severity 5: AUROC 1.000, impulse
-noise severity 5: 0.906). Feature-space baselines (Mahalanobis, Relative Mahalanobis) detect what E6
-misses, firing >95% on noise, weather, and compression at moderate severity. E6 monitors temporal
-dynamics and fires when the state freezes; photometric corruptions still produce temporally varying
-sequences. A production system would need both a temporal monitor (E6) and a feature-space detector.
+comma frames. E6 largely fails on photometric corruptions (mean AUROC 0.52-0.74), catching only
+extreme corruptions that genuinely freeze the recurrent state (frost severity 5: AUROC 1.000; impulse
+noise severity 5: 0.906). Feature-space baselines (Mahalanobis, Relative Mahalanobis) recover what E6
+misses, firing >95% on noise, weather, and compression at moderate severity. E6 monitors the temporal
+dynamics of the recurrent state and fires when it freezes; photometric corruptions still yield
+temporally varying sequences. A production system would therefore require both a temporal monitor
+(E6) and a feature-space detector.
 
 Full table: [`report/e7_results.md`](report/e7_results.md).
 </details>
@@ -244,62 +247,63 @@ Full table: [`report/e7_results.md`](report/e7_results.md).
 <details>
 <summary><b>Hyperparameter ablations</b></summary>
 
-- **KNN k**: AUROC = 1.000 for all k in {5, 10, 20, 50, 100}; insensitive to neighbour count.
-- **E6 window size**: AUROC 0.957 (window=10) to 1.000 (window=50); default window=30 (AUROC 0.996)
-  best balances detection power and early warning (fires-at-alpha 0.550).
+- **KNN k**: AUROC = 1.000 for all k in {5, 10, 20, 50, 100}; the detector is insensitive to the
+  neighbour count.
+- **E6 window size**: AUROC ranges from 0.957 (window=10) to 1.000 (window=50); the default
+  window=30 (AUROC 0.996) best balances detection power against early warning (fires-at-alpha 0.550).
 
 Full table: [`report/ablations_results.md`](report/ablations_results.md).
 </details>
 
 ## Generalization and deployment
 
-Four additions test how far the finding travels and make the monitor deployable. Each new number was
-independently re-verified by a separate agent and registered in the claim ledger (c52-c61).
+Four additions probe how far the finding travels and render the monitor deployable. Each new figure
+was independently re-verified by a separate agent and registered in the claim ledger (c52-c61).
 
 - **Second model (openpilot v0.9.6).** The full teardown was re-run on the immediately preceding
-  shipped version. Parity holds (100% within ±0.5 m/s² vs comma's v0.9.6 reference, n=560), but the
-  failure mode differs: only 1 of 10 heads collapse, the sweep is a gradient of chaotic
-  amplification (peaks 14.6× real, stays 3.3× at full CARLA), and the v0.9.7-calibrated monitor does
-  not transfer (33% LOCO FPR). Adjacent shipped versions fail OOD in qualitatively different ways.
-  ([v0.9.6 teardown](report/teardown_v096_results.md), [E4](report/e4_v096_results.md), [E6](report/e6_v096_results.md), [parity](report/parity_v096_results.md))
-- **Real adverse weather.** Real comma-3 night plus headlight/tail-light glare at matched intrinsics
-  does **not** collapse v0.9.7 (0/10 heads, E6 fires 0%, vs CARLA 8/10 and 100%). The silent
-  collapse is predominantly sim-induced, not a real low-light phenomenon (one daytime segment is the
-  open exception above). ([real_weather_results.md](report/real_weather_results.md))
-- **Conformal baseline plus lead time.** A split-conformal detector on the KNN-50 score ties KNN on
-  single-corpus AUROC (1.000) but also fails cross-corpus (100% LOCO FPR). A lead-time table shows
-  E6 is the only detector with both a calibrated cross-corpus threshold and positive detection lead
-  (+0.234 blend-units): high single-corpus AUROC does not imply early warning.
-  ([conformal](report/conformal_results.md), [lead_time](report/lead_time_results.md))
-- **Deployable monitor.** E6 is one O(d) statistic per frame. A portable C++17 implementation
-  matches the Python reference to 3.4e-13 and runs in ~0.4 µs per frame on x86 (0.0008% of a 20 Hz
-  control budget). The in-the-loop ROS 2 node lives in `policy-health-monitor`; Jetson Orin NX
-  on-device timing is HW-pending. ([deployment](report/deployment_results.md), [`deploy/cpp/`](deploy/cpp/))
+  shipped version. Parity holds (100% within ±0.5 m/s² against comma's v0.9.6 reference, n=560), but
+  the failure mode differs: only 1 of 10 heads collapses, the sweep is a gradient of chaotic
+  amplification (peaking at 14.6× real, holding at 3.3× at full CARLA), and the v0.9.7-calibrated
+  monitor does not transfer (33% LOCO FPR). Adjacent shipped versions fail OOD in qualitatively
+  distinct ways. ([v0.9.6 teardown](report/teardown_v096_results.md), [E4](report/e4_v096_results.md), [E6](report/e6_v096_results.md), [parity](report/parity_v096_results.md))
+- **Real adverse weather.** Real comma-3 night footage with headlight and tail-light glare at matched
+  intrinsics does **not** collapse v0.9.7 (0/10 heads, E6 fires 0%, against CARLA's 8/10 and 100%).
+  The silent collapse is predominantly simulation-induced, not a real low-light phenomenon (one
+  daytime segment is the open exception noted above). ([real_weather_results.md](report/real_weather_results.md))
+- **Conformal baseline and lead time.** A split-conformal detector on the KNN-50 score matches KNN on
+  single-corpus AUROC (1.000) but likewise fails cross-corpus (100% LOCO FPR). A lead-time table
+  establishes that E6 is the only detector possessing both a calibrated cross-corpus threshold and a
+  positive detection lead (+0.234 blend-units): high single-corpus AUROC does not imply early
+  warning. ([conformal](report/conformal_results.md), [lead_time](report/lead_time_results.md))
+- **Deployable monitor.** E6 is a single O(d) statistic per frame. A portable C++17 implementation
+  agrees with the Python reference to 3.4e-13 and runs in ~0.4 µs per frame on x86 (0.0008% of a
+  20 Hz control budget). The in-the-loop ROS 2 node resides in `policy-health-monitor`; Jetson Orin
+  NX on-device timing is hardware-pending. ([deployment](report/deployment_results.md), [`deploy/cpp/`](deploy/cpp/))
 
 ## Limitations
 
-- Two model versions tested (v0.9.7, v0.9.6); v0.9.6 fails by chaotic amplification, not collapse,
-  and the monitor does not transfer. No Tesla, Mobileye, Waymo, or research stack tested.
-- "Real" is a small set of calibration segments; a larger real corpus is owed before a production
-  FPR can be quoted (N=4 LOCO is honest progress, not a fleet number).
-- CARLA only. comma's MetaDrive sim shows consistent erratic behavior (#31711) but is not
+- Two model versions tested (v0.9.7, v0.9.6); v0.9.6 fails by chaotic amplification rather than
+  collapse, and the monitor does not transfer. No Tesla, Mobileye, Waymo, or research stack tested.
+- "Real" denotes a small set of calibration segments; a larger real corpus is owed before a
+  production FPR can be quoted (N=4 LOCO is honest progress, not a fleet number).
+- CARLA only. comma's MetaDrive bridge exhibits consistent erratic behavior (#31711) but is not
   instrumented here.
-- E5 localizes the collapse downstream of the encoder; submodule probing pins cliff entry to
-  `summarizer_div` (the VAE-mu bottleneck, cliff alpha 0.900) with amplification at
-  `action_block_body` (cliff alpha 0.500) via the `prev_desired_curv` feedback loop. The
-  summarizer's `mu / sigma` division means part of the apparent collapse could be variance
+- E5 localizes the collapse downstream of the encoder; submodule probing pins discontinuity entry to
+  `summarizer_div` (the VAE-mu bottleneck, discontinuity alpha 0.900) with amplification at
+  `action_block_body` (discontinuity alpha 0.500) via the `prev_desired_curv` feedback loop. The
+  summarizer's `mu / sigma` division means part of the apparent collapse could reflect variance
   normalization rather than information loss.
-- E4-RAM shows the cliff/gradient distinction is segment-dependent; E6's early-warning headroom does
-  not generalize without re-calibration per source.
-- E7 shows E6 is a collapse detector, not a universal OOD detector; a production system needs
+- E4-RAM shows the discontinuity/gradient distinction to be segment-dependent; E6's early-warning
+  headroom does not generalize without per-source re-calibration.
+- E7 shows E6 to be a collapse detector, not a universal OOD detector; a production system requires
   complementary detectors.
-- E4's interpolation overlays two scenes (a double-exposure), so it is an overlay-interference
-  probe, not a photometric sim-to-real morph. Its 0.015 transition width is a linear-interpolation
-  estimate within a single 0.025-wide alpha step.
+- E4's interpolation superimposes two scenes (a double-exposure), making it an overlay-interference
+  probe rather than a photometric sim-to-real morph. Its 0.015 transition width is a
+  linear-interpolation estimate within a single 0.025-wide alpha step.
 
 ## Reproducibility
 
-**The teardown runs from a fresh clone**, with no model, no CARLA, and no multi-GB raw frames. It
+**The teardown runs from a fresh clone**, without the model, CARLA, or multi-GB raw frames. It
 re-derives every E1 / E2 / E3 / E4 table and figure from the committed output caches
 (`report/teardown_collected.npz`, `report/e4_collected.npz`).
 
@@ -327,7 +331,7 @@ env -u PYTHONPATH .venv/bin/python -m src.run_parity         # parity control vs
 env -u PYTHONPATH .venv/bin/python -m src.teardown --collect # re-collect, then re-derive
 ```
 
-`env -u PYTHONPATH` is used because a sourced ROS 2 environment otherwise shadows packages; the
+`env -u PYTHONPATH` is required because a sourced ROS 2 environment otherwise shadows packages; the
 project venv is self-contained.
 
 **E5 / E7 / E4-RAM** collection requires GPU + CARLA / real data (`python -m src.e5_submodule
@@ -347,7 +351,7 @@ python -m src.conformal_results && python -m src.lead_time          # conformal 
 
 ## Repository layout
 
-| Path | What |
+| Path | Contents |
 |---|---|
 | `src/state.py`, `src/parser.py`, `src/constants.py` | parity-exact `supercombo` inference + recurrent state |
 | `src/run_parity.py`, `src/warped_preprocessor.py`, `src/transformations.py` | real-footage parity pipeline (calibrated warp) |
@@ -368,11 +372,11 @@ python -m src.conformal_results && python -m src.lead_time          # conformal 
 
 openpilot **v0.9.7** (`supercombo.onnx`, 51 MB, from the v0.9.7 tag) and **v0.9.6** (upgrade
 section); onnxruntime-gpu **1.23.2** with `ORT_DISABLE_ALL` graph optimization; Python **3.10**;
-CARLA **0.9.15**. Runs on an RTX 5070 (Blackwell sm_120): first inference pays a ~28 s PTX JIT, then
-~2 ms/frame.
+CARLA **0.9.15**. Runs on an RTX 5070 (Blackwell sm_120): the first inference pays a ~28 s PTX JIT,
+thereafter ~2 ms/frame.
 
 ## Attribution and disclaimer
 
-openpilot and `supercombo` are property of comma.ai and vendored here under their respective terms
-for parity-reference purposes only. This is independent research and is not affiliated with or
+openpilot and `supercombo` are the property of comma.ai and are vendored here under their respective
+terms for parity-reference purposes only. This is independent research, not affiliated with or
 endorsed by comma.ai.
