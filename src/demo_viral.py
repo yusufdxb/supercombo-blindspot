@@ -48,6 +48,7 @@ from src.state import ModelStateMirror
 from src.transformations import (_ar_ox_config, rot_from_euler,
                                  view_frame_from_device_frame)
 from src.warped_preprocessor import stack_pair
+from src import demo_style as ds
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
@@ -169,13 +170,18 @@ def run_model_sweep(real_six, carla_six, rpy_calib):
     features_buffer / prev_desired_curv); we instantiate it ONCE.
     """
     state = ModelStateMirror()
-    n = min(len(real_six), len(carla_six))
+    # real footage drives the motion (up to its full length); the CARLA "blind"
+    # target tiles, since under heavy blinding its degraded texture repeats
+    # harmlessly. This lets the demo run smooth native-rate motion for the full
+    # narration instead of stretching a short clip.
+    n = len(real_six)
+    nc = len(carla_six)
     rec = {"plan": [], "lane_lines": [], "road_edges": [], "plan_std": [],
            "hidden_state": [], "alpha": []}
     prev = None
     for k in range(n):
         a = alpha_at(k)
-        six = blend(real_six[k], carla_six[k], a)
+        six = blend(real_six[k], carla_six[k % nc], a)
         if prev is not None:
             inp = stack_pair(prev, six)
             p = state.run(inp, inp)
@@ -330,6 +336,53 @@ def end_card(w, h, finding_lines):
     return card
 
 
+def title_card(w, h):
+    card = np.full((h, w, 3), 14, np.uint8)
+    blocks = [("Does a self-driving car know when it's blind?", 1.35, C_TEXT, 3),
+              ("", 0, None, 0),
+              ("openpilot supercombo, running live on real dashcam footage", 0.85, C_DIM, 2)]
+    total = 0
+    for ln, scale, _, thick in blocks:
+        total += 40 if not ln else cv2.getTextSize(ln, cv2.FONT_HERSHEY_SIMPLEX, scale, thick)[0][1] + 38
+    y = (h - total) // 2
+    for ln, scale, col, thick in blocks:
+        if not ln:
+            y += 40; continue
+        (tw, th), _ = cv2.getTextSize(ln, cv2.FONT_HERSHEY_SIMPLEX, scale, thick)
+        cv2.putText(card, ln, ((w - tw) // 2, y + th), cv2.FONT_HERSHEY_SIMPLEX,
+                    scale, col, thick, cv2.LINE_AA)
+        y += th + 38
+    return card
+
+
+def draw_caption(img, text, sub=None):
+    """Big lower-third caption so the story reads on mute."""
+    h, w = img.shape[:2]
+    if not text:
+        return
+    (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.05, 2)
+    x, y = (w - tw) // 2, h - 150
+    band = img.copy()
+    cv2.rectangle(band, (0, y - th - 22), (w, y + 26), (16, 16, 20), -1)
+    cv2.addWeighted(band, 0.62, img, 0.38, 0, img)
+    cv2.putText(img, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1.05, C_TEXT, 2, cv2.LINE_AA)
+    if sub:
+        (sw, sh), _ = cv2.getTextSize(sub, cv2.FONT_HERSHEY_SIMPLEX, 0.66, 2)
+        cv2.putText(img, sub, ((w - sw) // 2, y + 24), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.66, C_WARN, 2, cv2.LINE_AA)
+
+
+def caption_for(frac):
+    """Act caption by timeline fraction (matches the narration beats)."""
+    if frac < 0.16:
+        return "Real footage. The green path is the model's live plan."
+    if frac < 0.52:
+        return "Slowly shifting the image toward simulator. Watch the path."
+    if frac < 0.82:
+        return "The plan is collapsing. The confidence bar is not."
+    return "Outputs look fine. The internal monitor catches it."
+
+
 # --------------------------------------------------------------------------
 # main
 # --------------------------------------------------------------------------
@@ -355,6 +408,12 @@ def main(argv=None) -> int:
     rpy = _calib_rpy()
     real_six = load_real_six(SUBARU_HEVC, SUBARU_RLOG, args.n)
     carla_six = load_carla_six(CARLA_NPY, args.n)
+
+    # scale the blinding schedule to the actual clip length so the ramp and the
+    # clean hold fill the narration at native motion rate (no choppy stretching)
+    global HOLD_CLEAN, RAMP_END
+    HOLD_CLEAN = max(int(0.18 * len(real_six)), 20)
+    RAMP_END = max(int(0.80 * len(real_six)), HOLD_CLEAN + 10)
 
     print("PARITY GATE: alpha=0 real path vs teardown subaru cache ...", flush=True)
     diff = parity_gate(real_six, rpy)
@@ -417,34 +476,45 @@ def main(argv=None) -> int:
     tmp_path = out_path.with_suffix(".raw.mp4")
     vw = cv2.VideoWriter(str(tmp_path), cv2.VideoWriter_fourcc(*"mp4v"),
                          FPS, (CAM_W, CAM_H))
+    # CARLA display frames (BGR) to morph the shown image toward, so the
+    # "blinding" is visible on screen. carla_rgb.npy is stored RGB.
+    carla_disp = np.load(CARLA_NPY, mmap_mode="r")
+    n_cd = len(carla_disp)
+
     print(f"Rendering {T} frames ...", flush=True)
+    # opening title card (~3s)
+    tcard = ds.title_card(CAM_W, CAM_H)
+    for _ in range(int(3.0 * FPS)):
+        vw.write(tcard)
     for t in range(T):
-        frame = rgb[t + 1].copy() if (t + 1) < len(rgb) else rgb[-1].copy()
+        real_f = rgb[t + 1] if (t + 1) < len(rgb) else rgb[-1]
+        carla_f = np.asarray(carla_disp[t % n_cd])[:, :, ::-1]   # RGB -> BGR
+        # cap the visible morph so the road stays readable while clearly degraded
+        frame = ds.degrade_display(real_f, carla_f, min(alphas[t], 0.72))
         ood_fires = bool(np.isfinite(spread[t]) and spread[t] < sp_thr)
         collapsed = bool(collapse_flag[t])
         draw_overlay(frame, plan[t], lanes[t], edges[t], cam_from_dev)
-        draw_hud(frame, alphas[t],
-                 conf_frac=float(conf[t]),
-                 conf_label=f"{100*conf[t]:.0f}%",
-                 ood_frac=float(ood_frac[t]),
-                 ood_fires=ood_fires,
-                 collapsed=collapsed,
-                 reach_m=float(reach[t]))
+        frame = ds.draw_frame(frame, alphas[t],
+                              conf_frac=float(conf[t]),
+                              ood_frac=float(ood_frac[t]),
+                              ood_fires=ood_fires,
+                              collapsed=collapsed,
+                              reach_m=float(reach[t]))
         vw.write(frame)
-    # hold the last collapse frame, then end card
-    for _ in range(int(1.2 * FPS)):
+    # reveal hold on the collapsed frame (~4s)
+    for _ in range(int(4.0 * FPS)):
         vw.write(frame)
-    card = end_card(CAM_W, CAM_H, FINDING_LINES)
-    for _ in range(int(3.0 * FPS)):
+    card = ds.end_card(CAM_W, CAM_H)
+    for _ in range(int(4.0 * FPS)):
         vw.write(card)
     vw.release()
 
-    # re-encode to h264 (smaller, web-playable)
-    print("Encoding h264 ...", flush=True)
+    # re-encode to h264 at native res, high quality (no downscale)
+    print("Encoding h264 (native 1928x1208, crf 18) ...", flush=True)
     subprocess.run([
         "ffmpeg", "-loglevel", "error", "-y", "-i", str(tmp_path),
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "26",
-        "-vf", "scale=1280:-2", "-movflags", "+faststart", str(out_path),
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18",
+        "-preset", "slow", "-movflags", "+faststart", str(out_path),
     ], check=True)
     tmp_path.unlink(missing_ok=True)
 
