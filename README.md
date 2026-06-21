@@ -6,6 +6,14 @@
 &nbsp;[![openpilot](https://img.shields.io/badge/openpilot-v0.9.7%20%2F%20v0.9.6-1f6feb)](https://github.com/commaai/openpilot)
 &nbsp;[![reproducible](https://img.shields.io/badge/reproducible-from%20cache-2da44e)](#reproducibility)
 
+<p align="center">
+  <a href="https://youtu.be/tnM18XGbNMY">
+    <img src="https://img.youtube.com/vi/tnM18XGbNMY/maxresdefault.jpg" width="82%" alt="Watch the demo: openpilot supercombo going blind in real time">
+  </a>
+  <br>
+  <em>Watch the real model go blind (60s). The dashcam image is shifted toward simulator while the predicted path collapses and the model's confidence barely reacts. Real night and glare do not collapse it; the failure is sim-specific.</em>
+</p>
+
 `supercombo` is the end-to-end neural network that drives [openpilot](https://github.com/commaai/openpilot),
 the L2 driver-assistance system deployed on comma hardware on public roads. This project instruments
 openpilot's shipped `supercombo` model and resolves a single safety question:
