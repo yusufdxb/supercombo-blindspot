@@ -43,8 +43,6 @@ import numpy as np
 from src.constants import ModelConstants
 from src.decode_hevc import yuv_frame_iter
 from src.e4_interp import blend
-from src.probe_model import _calib_warps, load_carla_six, load_real_six
-from src.state import ModelStateMirror
 from src.transformations import (_ar_ox_config, rot_from_euler,
                                  view_frame_from_device_frame)
 from src.warped_preprocessor import stack_pair
@@ -169,6 +167,8 @@ def run_model_sweep(real_six, carla_six, rpy_calib):
     State threads through ModelStateMirror across the whole loop (rolling
     features_buffer / prev_desired_curv); we instantiate it ONCE.
     """
+    from src.state import ModelStateMirror
+
     state = ModelStateMirror()
     # real footage drives the motion (up to its full length); the CARLA "blind"
     # target tiles, since under heavy blinding its degraded texture repeats
@@ -202,6 +202,8 @@ def run_model_sweep(real_six, carla_six, rpy_calib):
 def parity_gate(real_six, rpy_calib) -> float:
     """Run the clean (alpha=0) real path and compare hidden_state to the
     committed teardown subaru cache. Returns max-abs diff."""
+    from src.state import ModelStateMirror
+
     state = ModelStateMirror()
     hs = []
     prev = None
@@ -403,6 +405,8 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default=str(DEMO_DIR / "supercombo_blindspot.mp4"))
     ap.add_argument("--n", type=int, default=N_FRAMES)
     args = ap.parse_args(argv)
+
+    from src.probe_model import load_carla_six, load_real_six
 
     print("Building parity-verified real + CARLA model inputs ...", flush=True)
     rpy = _calib_rpy()
