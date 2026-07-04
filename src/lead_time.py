@@ -227,13 +227,15 @@ def plot_lead_time(rows: list[dict], out_path: Path) -> None:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        import physx_style as _physx_style  # editorial-print theme
+        _physx_style.apply()
     except ImportError:
         return
 
     fig, ax = plt.subplots(figsize=(7, 5))
     colors = {
-        "E6 (rolling-spread)": "#d62728",
-        "mahalanobis": "#1f77b4",
+        "E6 (rolling-spread)": "#b0472b",
+        "mahalanobis": "#2a78d6",
         "relative_mahalanobis": "#ff7f0e",
         "knn50": "#2ca02c",
         "conformal": "#9467bd",
@@ -284,7 +286,7 @@ def plot_lead_time(rows: list[dict], out_path: Path) -> None:
     ax.text(-0.05, 0.08, "low AUROC\n& LOCO fail",
             fontsize=7, color="grey", ha="center")
     ax.text(0.3, 0.97, "E6 zone: lead + low LOCO FPR",
-            fontsize=7, color="#d62728", ha="center", style="italic")
+            fontsize=7, color="#b0472b", ha="center", style="italic")
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150, bbox_inches="tight")

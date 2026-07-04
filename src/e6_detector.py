@@ -100,8 +100,10 @@ def _real_calibration_by_corpus() -> dict[str, np.ndarray]:
 
 def _figure(res: dict, out: Path) -> None:
     import matplotlib.pyplot as plt
+    import physx_style as _physx_style  # editorial-print theme
+    _physx_style.apply()
     fig, ax = plt.subplots(figsize=(7, 4), dpi=140)
-    ax.plot(res["alphas"], res["fired_fraction"], "o-", color="#d63a3a", lw=1.8)
+    ax.plot(res["alphas"], res["fired_fraction"], "o-", color="#b0472b", lw=1.8)
     ax.axhline(0.5, color="grey", lw=0.7, ls="--",
                label="fire threshold (50% of frames)")
     ax.set_xlabel("alpha (0 = real, 1 = CARLA)")

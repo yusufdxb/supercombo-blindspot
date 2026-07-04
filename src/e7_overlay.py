@@ -206,12 +206,14 @@ def _figure(rows):
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        import physx_style as _physx_style  # editorial-print theme
+        _physx_style.apply()
     except Exception:
         return
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(8, 5.5), dpi=150)
-    colors = {"TP (E6 catches collapse)": "#2f855a", "TN (correctly quiet)": "#3182ce",
-              "FALSE NEGATIVE": "#d63a3a", "FP (E6 fires, no collapse)": "#dd6b20",
+    colors = {"TP (E6 catches collapse)": "#1baf7a", "TN (correctly quiet)": "#2a78d6",
+              "FALSE NEGATIVE": "#b0472b", "FP (E6 fires, no collapse)": "#dd6b20",
               "marginal": "#999999"}
     jitter = {}
     for v, c in colors.items():
@@ -222,10 +224,10 @@ def _figure(rows):
         ys = [r["e6_auroc"] for r in pts]
         ax.scatter(xs, ys, s=34, c=c, label=f"{v} (n={len(pts)})",
                    edgecolors="white", linewidths=0.5, zorder=3)
-    ax.axvline(COLLAPSE_CELL_MIN - 0.5, color="#444", lw=1.0, ls="--",
+    ax.axvline(COLLAPSE_CELL_MIN - 0.5, color="#898781", lw=1.0, ls="--",
                label=f"output-collapse cutoff (>= {COLLAPSE_CELL_MIN}/10 heads)")
-    ax.axhline(E6_FIRES, color="#2f855a", lw=0.8, ls=":")
-    ax.axhline(E6_QUIET, color="#3182ce", lw=0.8, ls=":")
+    ax.axhline(E6_FIRES, color="#1baf7a", lw=0.8, ls=":")
+    ax.axhline(E6_QUIET, color="#2a78d6", lw=0.8, ls=":")
     ax.set_xlim(-0.5, N_HEADS + 0.5)
     ax.set_ylim(0.0, 1.03)
     ax.set_xlabel("output heads collapsed (of 10)  [right = output collapsed]")

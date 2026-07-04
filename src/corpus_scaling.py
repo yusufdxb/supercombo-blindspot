@@ -175,6 +175,8 @@ def make_figure(res: dict) -> None:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        import physx_style as _physx_style  # editorial-print theme
+        _physx_style.apply()
     except Exception:
         return
     names = list(res["per_fold"])
@@ -182,7 +184,7 @@ def make_figure(res: dict) -> None:
     lo, hi = res["ci"]
     mean = res["loco"]["fpr_mean"] * 100
     fig, ax = plt.subplots(figsize=(7, 4.2))
-    ax.bar(names, vals, color="#3a7bd5", label="held-out FPR")
+    ax.bar(names, vals, color="#2a78d6", label="held-out FPR")
     ax.axhline(mean, color="black", lw=1.2, label=f"LOCO mean {mean:.2f}%")
     ax.axhspan(lo * 100, hi * 100, color="grey", alpha=0.25,
                label=f"95% CI [{lo*100:.2f}, {hi*100:.2f}]")
