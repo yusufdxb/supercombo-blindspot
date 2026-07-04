@@ -148,18 +148,15 @@ def _plt():
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    plt.rcParams.update({
-        "figure.facecolor": "#0d1017", "axes.facecolor": "#0d1017",
-        "savefig.facecolor": "#0d1017", "text.color": "#e6e6e6",
-        "axes.labelcolor": "#e6e6e6", "xtick.color": "#b8b8b8",
-        "ytick.color": "#b8b8b8", "axes.edgecolor": "#3a3f4b",
-        "font.size": 11, "axes.titlesize": 12.5, "axes.grid": True,
-        "grid.color": "#23272f", "grid.linewidth": 0.8,
-    })
+    import physx_style as _physx_style  # editorial-print theme
+    _physx_style.apply()
     return plt
 
 
-REAL_C, CARLA_C, WARN_C = "#39d0d8", "#ff7043", "#ffd54f"
+# physx-newton-bench editorial palette: blue primary, rust + amber secondaries
+REAL_C, CARLA_C, WARN_C = "#2a78d6", "#b0472b", "#d08a2e"
+# light chrome for legends/boxes on the cream canvas
+LEGEND_FC, LEGEND_EC, MUTED_C, INK_C = "#f1efe8", "#c3c2b7", "#898781", "#0b0b0b"
 
 
 def fig_collapse(rows: list[dict]) -> None:
@@ -168,13 +165,13 @@ def fig_collapse(rows: list[dict]) -> None:
     names = [r["head"] for r in rows]
     ratios = [max(r["ratio"], 1e-4) for r in rows]
     fig, ax = plt.subplots(figsize=(8, 4.8))
-    ax.barh(names, ratios, color=[CARLA_C if r < COLLAPSE else "#9aa0aa" for r in ratios])
+    ax.barh(names, ratios, color=[CARLA_C if r < COLLAPSE else "#898781" for r in ratios])
     ax.set_xscale("log")
     ax.axvline(COLLAPSE, color=WARN_C, ls="--", lw=1.2, label=f"collapse threshold ({COLLAPSE})")
-    ax.axvline(1.0, color="#5c6370", ls=":", lw=1.0, label="parity with real")
+    ax.axvline(1.0, color="#898781", ls=":", lw=1.0, label="parity with real")
     ax.set_xlabel("CARLA output activity / real output activity  (log scale)")
     ax.set_title("E1  supercombo output activity on CARLA vs real footage")
-    ax.legend(loc="lower right", facecolor="#161a22", edgecolor="#3a3f4b")
+    ax.legend(loc="lower right", facecolor="#f1efe8", edgecolor="#c3c2b7")
     fig.tight_layout()
     fig.savefig(FIG_DIR / "e1_head_collapse.png", dpi=150)
     plt.close(fig)
@@ -196,7 +193,7 @@ def fig_features(e2: dict) -> None:
     ax.set_title("E2  CARLA in the model's own 512-D feature space\n"
                  f"feature spread {e2['spread_ratio']:.4f}x of real   "
                  f"separability {100*e2['separability']:.0f}%   d'={e2['dprime']:.1f}")
-    ax.legend(facecolor="#161a22", edgecolor="#3a3f4b")
+    ax.legend(facecolor="#f1efe8", edgecolor="#c3c2b7")
     fig.tight_layout()
     fig.savefig(FIG_DIR / "e2_feature_ood.png", dpi=150)
     plt.close(fig)
@@ -214,15 +211,15 @@ def fig_confidence(e3: list[dict]) -> None:
                 label="output activity lost on CARLA")
     b2 = ax.bar(x + w / 2, flagged, w, color=REAL_C,
                 label="CARLA frames the model flags abnormal (uncertainty > real p95)")
-    ax.bar_label(b1, fmt="%.1f%%", padding=3, color="#e6e6e6", fontsize=10)
-    ax.bar_label(b2, fmt="%.0f%%", padding=3, color="#e6e6e6", fontsize=10)
+    ax.bar_label(b1, fmt="%.1f%%", padding=3, color="#0b0b0b", fontsize=10)
+    ax.bar_label(b2, fmt="%.0f%%", padding=3, color="#0b0b0b", fontsize=10)
     ax.set_ylim(0, 112)
     ax.set_xticks(x, heads)
     ax.set_ylabel("percent")
     ax.set_title("E3  outputs collapse ~99%, the model's uncertainty flags none of it\n"
                  "silent failure: confidently blind")
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.11), ncol=1,
-              facecolor="#161a22", edgecolor="#3a3f4b")
+              facecolor="#f1efe8", edgecolor="#c3c2b7")
     fig.subplots_adjust(bottom=0.24)
     fig.savefig(FIG_DIR / "e3_confidence.png", dpi=150)
     plt.close(fig)

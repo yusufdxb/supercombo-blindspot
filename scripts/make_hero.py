@@ -4,7 +4,8 @@ from pathlib import Path
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-
+import physx_style as _physx_style  # editorial-print theme
+_physx_style.apply()
 ROOT = Path(__file__).resolve().parents[1]
 FIG = ROOT / "report" / "figures"
 

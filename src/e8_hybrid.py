@@ -1248,14 +1248,15 @@ def _fig_e4_auroc_sweep(e4_results: dict, out_dir: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-
+    import physx_style as _physx_style  # editorial-print theme
+    _physx_style.apply()
     per_alpha = e4_results["per_alpha"]
     alphas = [r["alpha"] for r in per_alpha]
     fig, ax = plt.subplots(figsize=(8, 5), dpi=140)
     for det, color, ls in [
         ("hybrid", "#2ca02c", "-"),
-        ("e6", "#d62728", "--"),
-        ("mahalanobis", "#1f77b4", ":"),
+        ("e6", "#b0472b", "--"),
+        ("mahalanobis", "#2a78d6", ":"),
         ("rmd", "#ff7f0e", "-."),
     ]:
         vals = [r.get(f"{det}_auroc", float("nan")) for r in per_alpha]
@@ -1276,6 +1277,8 @@ def _fig_e7_mean_auroc(e7_results: dict, out_dir: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    import physx_style as _physx_style  # editorial-print theme
+    _physx_style.apply()
     from src.e7_corruption import CORRUPTION_NAMES as E7_NAMES
     from collections import defaultdict
 
@@ -1296,8 +1299,8 @@ def _fig_e7_mean_auroc(e7_results: dict, out_dir: Path) -> None:
     width = 0.2
     fig, ax = plt.subplots(figsize=(14, 6), dpi=140)
     for i, (det, color) in enumerate([
-        ("e6", "#d62728"),
-        ("mahalanobis", "#1f77b4"),
+        ("e6", "#b0472b"),
+        ("mahalanobis", "#2a78d6"),
         ("rmd", "#ff7f0e"),
         ("hybrid", "#2ca02c"),
     ]):
@@ -1324,6 +1327,8 @@ def _fig_submodule_ratios(submodule_result: dict, out_dir: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    import physx_style as _physx_style  # editorial-print theme
+    _physx_style.apply()
 
     alphas = submodule_result["alphas"]
     ratios = submodule_result["ratios"]
