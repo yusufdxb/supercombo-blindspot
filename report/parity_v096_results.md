@@ -38,7 +38,7 @@ threading, unnormalized YUV input, and `nav_features`/`nav_instructions` fed as 
 - mean `|delta|`: **0.0410 m/s^2**
 - p95 `|delta|`: 0.1023 ; p99: 0.1746 ; max: 0.2197 m/s^2
 - signed bias (mean): -0.0001 m/s^2
-- Execution provider: **CUDAExecutionProvider** (GPU; RTX 5070, onnxruntime-gpu 1.23.2).
+- Execution provider: **CUDAExecutionProvider** (NVIDIA Blackwell consumer GPU, onnxruntime-gpu 1.23.2).
   GPU confirmed in use: session providers `['CUDAExecutionProvider', 'CPUExecutionProvider']`
   with CUDA first, 1200 frames decoded + inferred in 6.9 s (~174 fps), nvidia-smi util rose
   during the run.

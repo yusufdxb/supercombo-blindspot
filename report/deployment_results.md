@@ -40,7 +40,7 @@ g++ -std=c++17 -O2 -Wall -Wextra -pedantic -o e6_bench bench_main.cpp
   PASS (< 1e-4 threshold)
 
 === Latency microbenchmark (W=30, D=512, N=150000) ===
-  Platform: x86 -- AMD Ryzen 9 9900X (mewtwo)
+  Platform: x86 desktop CPU
   NOTE: Jetson Orin NX 16 GB latency is HW-UNVERIFIED,
         pending a CaresLab session. Do NOT extrapolate from these numbers.
 
@@ -76,7 +76,7 @@ in `tests/test_e6_cpp.py` that skip cleanly when g++ is not on PATH.
 
 ---
 
-## 4. Latency: control-budget comparison (x86 -- AMD Ryzen 9 9900X)
+## 4. Latency: control-budget comparison (x86 desktop CPU)
 
 | Stat | Latency (us) | % of 20 Hz budget (50 ms) |
 |---|---|---|
@@ -90,8 +90,8 @@ also immaterial relative to supercombo's own inference time (approx. 2 ms on
 Jetson Orin NX), which would make the monitor roughly 0.02% of that reference
 figure (not a fair comparison -- see caveat below).
 
-**HARDWARE CAVEAT: All latency numbers above are x86 measurements on mewtwo
-(AMD Ryzen 9 9900X, Ubuntu 22.04).  Jetson Orin NX 16 GB (Cortex-A78AE cores,
+**HARDWARE CAVEAT: All latency numbers above are x86 measurements on a
+desktop CPU (Ubuntu 22.04).  Jetson Orin NX 16 GB (Cortex-A78AE cores,
 no SIMD equivalent to AVX2) is HW-UNVERIFIED.  Real Orin latency has NOT been
 measured; a CaresLab session is required before quoting any Orin number.  The
 O(D) ring-buffer algorithm has no platform-specific intrinsics and should be

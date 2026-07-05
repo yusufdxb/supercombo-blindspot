@@ -380,7 +380,7 @@ python -m src.conformal_results && python -m src.lead_time          # conformal 
 
 openpilot **v0.9.7** (`supercombo.onnx`, 51 MB, from the v0.9.7 tag) and **v0.9.6** (upgrade
 section); onnxruntime-gpu **1.23.2** with `ORT_DISABLE_ALL` graph optimization; Python **3.10**;
-CARLA **0.9.15**. Runs on an RTX 5070 (Blackwell sm_120): the first inference pays a ~28 s PTX JIT,
+CARLA **0.9.15**. Runs on an NVIDIA Blackwell consumer GPU: the first inference pays a ~28 s PTX JIT,
 thereafter ~2 ms/frame.
 
 ## Attribution and disclaimer
