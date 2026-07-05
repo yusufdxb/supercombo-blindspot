@@ -219,14 +219,32 @@ def _analyse(alphas: np.ndarray, per_layer: dict[str, np.ndarray]) -> dict:
     return {"ratios": ratios, "cliffs": cliffs, "mean_shifts": mean_shifts}
 
 
+# Canonical per-stage view: one representative block per encoder stage, matching
+# the originally published figure. Collection probes all 14 blocks (finer
+# localization), but the figure shows the same 6 stage curves as the paper.
+_STAGE_VIEW = [
+    ("head", "head"),
+    ("stage0_blk1", "stage0"),
+    ("stage1_blk1", "stage1"),
+    ("stage2_blk5", "stage2"),
+    ("stage3_blk1", "stage3"),
+    ("stem", "stem"),
+]
+
+
 def _figure(alphas: np.ndarray, ratios: dict[str, np.ndarray], out: Path) -> None:
     import matplotlib.pyplot as plt
     import physx_style as _physx_style  # editorial-print theme
     _physx_style.apply()
+    # Reduce the per-block probes to the canonical per-stage representatives when
+    # present; fall back to whatever curves are given (e.g. a 6-probe cache).
+    view = [(k, lbl) for k, lbl in _STAGE_VIEW if k in ratios]
+    if not view:
+        view = [(k, k) for k in ratios]
     fig, ax = plt.subplots(figsize=(8, 4.5), dpi=140)
-    colors = plt.cm.viridis(np.linspace(0, 0.9, len(ratios)))
-    for (name, r), c in zip(ratios.items(), colors):
-        ax.plot(alphas, r, marker="o", lw=1.6, color=c, label=name)
+    colors = plt.cm.viridis(np.linspace(0, 0.9, len(view)))
+    for (key, label), c in zip(view, colors):
+        ax.plot(alphas, ratios[key], marker="o", lw=1.6, color=c, label=label)
     ax.set_xlabel("alpha (0 = real, 1 = CARLA)")
     ax.set_ylabel("activity ratio (CARLA / real)")
     ax.set_title("E5: per-stage activity ratio CARLA / real (the cliff is NOT in the encoder)")
