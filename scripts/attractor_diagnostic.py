@@ -120,6 +120,8 @@ def h2_basin_similarity(
 
 def _figure_norm(norms: np.ndarray, labels: np.ndarray, out: Path) -> None:
     import matplotlib.pyplot as plt
+    import physx_style as _physx_style  # editorial-print theme
+    _physx_style.apply()
     fig, ax = plt.subplots(figsize=(10, 3), dpi=140)
     frames = np.arange(len(norms))
     colors = np.where(labels == 0, "tab:red", np.where(labels == 1, "tab:blue", "tab:grey"))
@@ -138,6 +140,8 @@ def _figure_norm(norms: np.ndarray, labels: np.ndarray, out: Path) -> None:
 def _figure_cluster(dc_states: np.ndarray, carla_states: np.ndarray,
                     labels: np.ndarray, out: Path) -> None:
     import matplotlib.pyplot as plt
+    import physx_style as _physx_style  # editorial-print theme
+    _physx_style.apply()
     from sklearn.decomposition import PCA
 
     combined = np.vstack([dc_states, carla_states])

@@ -631,7 +631,8 @@ def _fig_severity_sweep(results: dict, out_dir: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-
+    import physx_style as _physx_style  # editorial-print theme
+    _physx_style.apply()
     conditions = results["conditions"]
 
     # Group by corruption type
@@ -692,6 +693,8 @@ def _fig_auroc_heatmap(results: dict, out_dir: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    import physx_style as _physx_style  # editorial-print theme
+    _physx_style.apply()
 
     conditions = results["conditions"]
     corruption_order = [c for c in CORRUPTION_NAMES

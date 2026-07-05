@@ -155,27 +155,19 @@ def _plt():
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    plt.rcParams.update({
-        "figure.facecolor": CREAM, "axes.facecolor": CREAM,
-        "savefig.facecolor": CREAM, "text.color": INK,
-        "axes.labelcolor": INK, "xtick.color": "#5a544a",
-        "ytick.color": "#5a544a", "axes.edgecolor": "#bdb29c",
-        "font.size": 11, "axes.titlesize": 12.5, "axes.grid": True,
-        "grid.color": "#e3dccd", "grid.linewidth": 0.8,
-        "font.family": "serif",
-        "font.serif": ["Fraunces", "Georgia", "DejaVu Serif"],
-    })
+    import physx_style as _physx_style  # editorial-print theme
+    _physx_style.apply()
     return plt
 
 
-# editorial palette: cream paper, ink, ONE rust accent, muted warm secondaries
-CREAM = "#f4efe4"
-INK = "#2b2723"
-RUST = "#c0461f"     # the single accent, reserved for the key/benefit series
-SLATE = "#8a8275"    # muted warm grey for the secondary/cost series
-GOLD = "#b58838"     # muted ochre for threshold/reference lines only
+# physx-newton-bench palette: cream paper, ink, blue primary + warm secondaries
+CREAM = "#fcfcfb"
+INK = "#0b0b0b"
+RUST = "#2a78d6"     # primary series (physx blue)
+SLATE = "#898781"    # muted warm grey for the secondary/cost series
+GOLD = "#d08a2e"     # muted ochre for threshold/reference lines only
 # legend styling
-_LEG = dict(facecolor="#ece4d4", edgecolor="#cbbfa8")
+_LEG = dict(facecolor="#f1efe8", edgecolor="#c3c2b7")
 # back-compat names used below: accent=RUST, secondary=SLATE, reference=GOLD
 REAL_C, CARLA_C, WARN_C = RUST, SLATE, GOLD
 
