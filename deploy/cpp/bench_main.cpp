@@ -17,7 +17,7 @@
  * ----------------------
  * Runs >= 100 000 update() calls at W=30, D=512 and reports:
  *   - mean, median, and p99 latency in microseconds
- * Hardware: x86 (AMD Ryzen 9 9900X); labelled explicitly.
+ * Hardware: x86 desktop CPU; labelled explicitly.
  * Jetson Orin NX 16 GB latency is HW-UNVERIFIED / pending a CaresLab session.
  */
 
@@ -172,7 +172,7 @@ int main() {
     constexpr double SUPERCOMBO_US  =  2000.0;  // supercombo ~2 ms on Jetson
 
     printf("=== Latency microbenchmark (W=%zu, D=%zu, N=%zu) ===\n", W, D, N_BENCH);
-    printf("  Platform: x86 -- AMD Ryzen 9 9900X (mewtwo)\n");
+    printf("  Platform: x86 desktop CPU\n");
     printf("  NOTE: Jetson Orin NX 16 GB latency is HW-UNVERIFIED,\n");
     printf("        pending a CaresLab session. Do NOT extrapolate from these numbers.\n\n");
     printf("  Mean   latency per frame: %8.3f us\n", mean_us);

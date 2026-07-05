@@ -1,4 +1,4 @@
-# Phantom-Braking deps: locked at first working config on RTX 5070 (sm_120, Blackwell)
+# Phantom-Braking deps: locked at first working config on an NVIDIA Blackwell consumer GPU
 #
 # Ubuntu 22.04 LTS, NVIDIA driver 570.211.01, CUDA toolkit 12.8
 #
