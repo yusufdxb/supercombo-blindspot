@@ -1,7 +1,7 @@
 """E7 overlay: does E1 output-collapse co-occur with E6 detection, cell-for-cell?
 
-Resolves the `[AUTHOR TODO]` in docs/paper_draft.md (E7 subsection). The draft
-bounds E6 as "collapse-specific" but flags an open question: when E6 is quiet on
+Closes the open E7 question. E6 is bounded as "collapse-specific", which
+leaves a question: when E6 is quiet on
 a corruption, is that CORRECT (no output collapse, nothing to flag) or a MISS
 (the output collapsed but E6 stayed quiet = a false negative)?
 
