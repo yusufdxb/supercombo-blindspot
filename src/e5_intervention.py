@@ -295,8 +295,6 @@ def make_figure(rows: list[dict]) -> None:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
-        import physx_style as _physx_style  # editorial-print theme
-        _physx_style.apply()
     except Exception:
         return
     conds = ["carla_baseline", "real_div_only", "mu_swap", "scale_swap", "real_history"]

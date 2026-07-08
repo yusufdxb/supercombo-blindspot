@@ -97,8 +97,6 @@ def _analyse_v096(alphas: np.ndarray,
 def _figure_v096(alphas: np.ndarray, ratios: dict[str, np.ndarray],
                  out: Path) -> None:
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
     fig, ax = plt.subplots(figsize=(8, 4.5), dpi=140)
     colors = plt.cm.viridis(np.linspace(0, 0.9, len(ratios)))
     for (name, r), c in zip(ratios.items(), colors):

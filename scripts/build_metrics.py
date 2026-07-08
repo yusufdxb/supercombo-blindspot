@@ -304,8 +304,6 @@ def _color(name: str) -> str:
 
 def write_roc(all_scores: dict, out: Path) -> None:
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
     fig, ax = plt.subplots(figsize=(6.5, 5.5), dpi=140)
     for name in DETECTOR_ORDER:
         s, y = _build_eval_split(all_scores[name], ood_alpha=1.0)
@@ -328,8 +326,6 @@ def write_roc(all_scores: dict, out: Path) -> None:
 
 def write_pr(all_scores: dict, out: Path) -> None:
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
     fig, ax = plt.subplots(figsize=(6.5, 5.5), dpi=140)
     for name in DETECTOR_ORDER:
         s, y = _build_eval_split(all_scores[name], ood_alpha=1.0)
@@ -349,8 +345,6 @@ def write_pr(all_scores: dict, out: Path) -> None:
 
 def write_alpha_sweep(sweep: dict, alphas: np.ndarray, out: Path) -> None:
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
     fig, ax = plt.subplots(figsize=(7.5, 4.5), dpi=140)
     for name in DETECTOR_ORDER:
         ax.plot(alphas, sweep[name], "o-", label=DETECTOR_LABEL[name],

@@ -234,8 +234,6 @@ _STAGE_VIEW = [
 
 def _figure(alphas: np.ndarray, ratios: dict[str, np.ndarray], out: Path) -> None:
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
     # Reduce the per-block probes to the canonical per-stage representatives when
     # present; fall back to whatever curves are given (e.g. a 6-probe cache).
     view = [(k, lbl) for k, lbl in _STAGE_VIEW if k in ratios]

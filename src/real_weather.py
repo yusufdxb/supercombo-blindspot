@@ -244,8 +244,6 @@ def _make_figure(results: dict[str, dict], baseline: dict, carla: dict) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
     plt.rcParams.update({
         "figure.facecolor": "#fcfcfb", "axes.facecolor": "#fcfcfb",
         "savefig.facecolor": "#fcfcfb", "text.color": "#0b0b0b",

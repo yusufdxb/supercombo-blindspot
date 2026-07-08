@@ -227,8 +227,6 @@ def plot_lead_time(rows: list[dict], out_path: Path) -> None:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
-        import physx_style as _physx_style  # editorial-print theme
-        _physx_style.apply()
     except ImportError:
         return
 
