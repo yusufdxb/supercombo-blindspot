@@ -282,9 +282,7 @@ def jpeg_compression(img: np.ndarray, severity: int) -> np.ndarray:
     # cv2 uses BGR internally but encode/decode is format-agnostic for quality
     _, buf = cv2.imencode('.jpg', img, encode_param)
     decoded = cv2.imdecode(buf, cv2.IMREAD_COLOR)
-    # If input was RGB, cv2.imencode treats it as BGR -> decode gives BGR
-    # We need to be consistent: treat img as RGB throughout, so convert
-    # both ways through BGR for the JPEG round-trip.
+    # cv2.imencode assumes BGR; img is RGB, so round-trip the JPEG through BGR.
     bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     _, buf = cv2.imencode('.jpg', bgr, encode_param)
     decoded = cv2.imdecode(buf, cv2.IMREAD_COLOR)
