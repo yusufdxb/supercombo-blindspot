@@ -1,6 +1,6 @@
 # Reproducibility Guide
 
-This document describes two paths for reproducing the phantom-braking results:
+Two paths reproduce the phantom-braking results:
 the **cache-only path** (no GPU, no raw data) and the **raw-data path** (GPU +
 comma footage required). It also documents the provenance manifest.
 
