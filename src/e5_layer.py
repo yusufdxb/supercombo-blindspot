@@ -242,7 +242,7 @@ def _figure(alphas: np.ndarray, ratios: dict[str, np.ndarray], out: Path) -> Non
     if not view:
         view = [(k, k) for k in ratios]
     fig, ax = plt.subplots(figsize=(8, 4.5), dpi=140)
-    colors = plt.cm.viridis(np.linspace(0, 0.9, len(view)))
+    colors = _physx_style.cmap_cycle(len(view))  # physx editorial palette (blue/green/neutral-gray)
     for (key, label), c in zip(view, colors):
         ax.plot(alphas, ratios[key], marker="o", lw=1.6, color=c, label=label)
     ax.set_xlabel("alpha (0 = real, 1 = CARLA)")

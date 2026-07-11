@@ -141,17 +141,17 @@ def fig_interp(alphas, norm, fproj, unc, a90, a10,
         ax1.axvspan(a90, a10, color=WARN_C, alpha=0.15,
                     label=f"RAM transition ({a10 - a90:.3f})")
     if np.isfinite(sub_a90) and np.isfinite(sub_a10):
-        ax1.axvspan(sub_a90, sub_a10, color="#b39ddb", alpha=0.12,
+        ax1.axvspan(sub_a90, sub_a10, color="#b8b7b0", alpha=0.12,
                     label=f"Subaru transition ({sub_a10 - sub_a90:.2f})")
     ax1.set_ylabel("normalized")
     ax1.set_title("E4-RAM  supercombo across the real-to-sim interpolation (RAM source)")
-    ax1.legend(facecolor="#f1efe8", edgecolor="#c3c2b7", fontsize=8)
+    ax1.legend(facecolor="#ffffff", edgecolor="#c3c2b7", fontsize=8)
 
     ax2.plot(xs, [unc[a] for a in xs], "-o", color="#898781", lw=2,
              label="predicted plan uncertainty")
     ax2.set_xlabel("alpha   (0 = real RAM frame,  1 = CARLA frame)")
     ax2.set_ylabel("mean plan_std")
-    ax2.legend(facecolor="#f1efe8", edgecolor="#c3c2b7")
+    ax2.legend(facecolor="#ffffff", edgecolor="#c3c2b7")
 
     fig.tight_layout()
     FIG.parent.mkdir(parents=True, exist_ok=True)

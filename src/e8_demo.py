@@ -271,16 +271,16 @@ def run_demo() -> None:
         hspace=0.55, wspace=0.35,
     )
 
-    CRED    = "#b0472b"
+    CRED    = "#1baf7a"
     CBLUE   = "#2a78d6"
     CGREEN  = "#1baf7a"
     CGREY   = "#898781"
     CTEXT   = "#0b0b0b"
     CAXIS   = "#898781"
-    CORANGE = "#d08a2e"
+    CORANGE = "#52514e"
 
     def _style_ax(ax, title):
-        ax.set_facecolor("#1a1a2e")
+        ax.set_facecolor("#52514e")
         ax.tick_params(colors=CAXIS, labelsize=8)
         for spine in ax.spines.values():
             spine.set_edgecolor("#444444")
@@ -304,12 +304,12 @@ def run_demo() -> None:
     ax_a.set_ylabel("OOD score (higher=OOD)", fontsize=8)
     ax_a.set_xlabel("frame", fontsize=8)
     ax_a.legend(fontsize=7, loc="upper right", framealpha=0.3,
-                labelcolor=CTEXT, facecolor="#f1efe8")
+                labelcolor=CTEXT, facecolor="#ffffff")
     ax_a.text(
         0.02, 0.93,
         f"AUROC: E6={auroc_e6_c:.3f}  Maha={auroc_mh_c:.3f}  Hybrid={auroc_hy_c:.3f}",
         transform=ax_a.transAxes, color=CTEXT, fontsize=8.5, va="top", fontweight="bold",
-        bbox=dict(facecolor="#f1efe8", alpha=0.75, boxstyle="round,pad=0.3"),
+        bbox=dict(facecolor="#ffffff", alpha=0.75, boxstyle="round,pad=0.3"),
     )
 
     # Panel B: fog corruption -- global Maha
@@ -326,12 +326,12 @@ def run_demo() -> None:
     ax_b.set_ylabel("OOD score (higher=OOD)", fontsize=8)
     ax_b.set_xlabel("frame", fontsize=8)
     ax_b.legend(fontsize=7, loc="upper right", framealpha=0.3,
-                labelcolor=CTEXT, facecolor="#f1efe8")
+                labelcolor=CTEXT, facecolor="#ffffff")
     ax_b.text(
         0.02, 0.93,
         f"AUROC: E6={auroc_e6_f:.3f}  Maha={auroc_mh_f:.3f}  Hybrid={auroc_hy_f:.3f}",
         transform=ax_b.transAxes, color=CTEXT, fontsize=8.5, va="top", fontweight="bold",
-        bbox=dict(facecolor="#f1efe8", alpha=0.75, boxstyle="round,pad=0.3"),
+        bbox=dict(facecolor="#ffffff", alpha=0.75, boxstyle="round,pad=0.3"),
     )
 
     # Panel C (bottom-left): per-vehicle ID real-driving scores
@@ -347,17 +347,17 @@ def run_demo() -> None:
     ax_c.set_ylim(-0.05, 1.15)
     ax_c.set_ylabel("OOD score (higher=OOD)", fontsize=8)
     ax_c.set_xlabel("frame", fontsize=8)
-    ax_c.legend(fontsize=7, framealpha=0.3, labelcolor=CTEXT, facecolor="#f1efe8")
+    ax_c.legend(fontsize=7, framealpha=0.3, labelcolor=CTEXT, facecolor="#ffffff")
     ax_c.text(
         0.02, 0.93,
         f"FPR: E6={id_e6_fpr:.0%}  Maha={id_maha_fpr:.0%}  Combined={id_comb_fpr:.0%}",
         transform=ax_c.transAxes, color=CTEXT, fontsize=8, va="top",
-        bbox=dict(facecolor="#f1efe8", alpha=0.75, boxstyle="round,pad=0.3"),
+        bbox=dict(facecolor="#ffffff", alpha=0.75, boxstyle="round,pad=0.3"),
     )
 
     # Panel D (bottom-right): AUROC comparison bar chart
     ax_d = fig.add_subplot(gs[2, 1])
-    ax_d.set_facecolor("#1a1a2e")
+    ax_d.set_facecolor("#52514e")
     _style_ax(ax_d, "(d) Global Maha: AUROC comparison\nCollapse vs Corruption")
 
     conditions  = ["Collapse\n(CARLA)", "Corruption\n(fog sev 5)"]
@@ -376,7 +376,7 @@ def run_demo() -> None:
     ax_d.set_ylim(0, 1.25)
     ax_d.axhline(0.5, color=CGREY, lw=0.7, ls="--", alpha=0.6, label="chance")
     ax_d.axhline(1.0, color=CGREY, lw=0.7, ls="--", alpha=0.4)
-    ax_d.legend(fontsize=7, framealpha=0.3, labelcolor=CTEXT, facecolor="#f1efe8")
+    ax_d.legend(fontsize=7, framealpha=0.3, labelcolor=CTEXT, facecolor="#ffffff")
     for xi, yval in zip(x - w, e6_aurocs):
         ax_d.text(xi, yval + 0.03, f"{yval:.2f}", ha="center", fontsize=8,
                   color=CRED, fontweight="bold")

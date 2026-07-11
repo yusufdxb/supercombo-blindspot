@@ -247,8 +247,8 @@ def _make_figure(results: dict[str, dict], baseline: dict, carla: dict) -> None:
     import physx_style as _physx_style  # editorial-print theme
     _physx_style.apply()
     plt.rcParams.update({
-        "figure.facecolor": "#fcfcfb", "axes.facecolor": "#fcfcfb",
-        "savefig.facecolor": "#fcfcfb", "text.color": "#0b0b0b",
+        "figure.facecolor": "#ffffff", "axes.facecolor": "#ffffff",
+        "savefig.facecolor": "#ffffff", "text.color": "#0b0b0b",
         "axes.labelcolor": "#0b0b0b", "xtick.color": "#898781",
         "ytick.color": "#898781", "axes.edgecolor": "#c3c2b7",
         "font.size": 10, "axes.titlesize": 11, "axes.grid": True,
@@ -281,14 +281,14 @@ def _make_figure(results: dict[str, dict], baseline: dict, carla: dict) -> None:
     labels.append("CARLA (OOD ref)")
     ratios.append(carla_overall)
 
-    colors = ["#898781" if r > COLLAPSE else "#ff7043" for r in ratios]
-    colors[-1] = "#ff7043"  # CARLA always red
+    colors = ["#898781" if r > COLLAPSE else "#898781" for r in ratios]
+    colors[-1] = "#898781"  # CARLA always red
     ax.barh(labels, ratios, color=colors)
-    ax.axvline(COLLAPSE, color="#ffd54f", ls="--", lw=1.2, label=f"collapse (<{COLLAPSE})")
+    ax.axvline(COLLAPSE, color="#c3c2b7", ls="--", lw=1.2, label=f"collapse (<{COLLAPSE})")
     ax.axvline(1.0, color="#898781", ls=":", lw=1.0, label="parity with ID baseline")
     ax.set_xlabel("total activity / baseline activity")
     ax.set_title("E1 output activity ratio\n(all heads combined)")
-    ax.legend(fontsize=8, facecolor="#f1efe8", edgecolor="#c3c2b7")
+    ax.legend(fontsize=8, facecolor="#ffffff", edgecolor="#c3c2b7")
 
     # E2: feature spread ratio
     ax = axes[1]
@@ -300,14 +300,14 @@ def _make_figure(results: dict[str, dict], baseline: dict, carla: dict) -> None:
     labels2.append("CARLA (OOD ref)")
     spread_ratios.append(carla_e2["spread_ratio"])
 
-    colors2 = ["#898781" if r > 0.5 else "#ff7043" for r in spread_ratios]
-    colors2[-1] = "#ff7043"
+    colors2 = ["#898781" if r > 0.5 else "#898781" for r in spread_ratios]
+    colors2[-1] = "#898781"
     ax.barh(labels2, spread_ratios, color=colors2)
-    ax.axvline(0.5, color="#ffd54f", ls="--", lw=1.2, label="collapsed spread (<0.5x)")
+    ax.axvline(0.5, color="#c3c2b7", ls="--", lw=1.2, label="collapsed spread (<0.5x)")
     ax.axvline(1.0, color="#898781", ls=":", lw=1.0)
     ax.set_xlabel("feature spread / baseline spread")
     ax.set_title("E2 recurrent feature spread ratio")
-    ax.legend(fontsize=8, facecolor="#f1efe8", edgecolor="#c3c2b7")
+    ax.legend(fontsize=8, facecolor="#ffffff", edgecolor="#c3c2b7")
 
     # E6: fire fraction
     ax = axes[2]
@@ -319,13 +319,13 @@ def _make_figure(results: dict[str, dict], baseline: dict, carla: dict) -> None:
     labels3.append("CARLA (OOD ref)")
     fire_fracs.append(carla_e6["fired_frac"])
 
-    colors3 = ["#ff7043" if f > 0.5 else "#898781" for f in fire_fracs]
-    colors3[-1] = "#ff7043"
+    colors3 = ["#898781" if f > 0.5 else "#898781" for f in fire_fracs]
+    colors3[-1] = "#898781"
     ax.barh(labels3, [100 * f for f in fire_fracs], color=colors3)
-    ax.axvline(50, color="#ffd54f", ls="--", lw=1.2, label="detector fires (>50%)")
+    ax.axvline(50, color="#c3c2b7", ls="--", lw=1.2, label="detector fires (>50%)")
     ax.set_xlabel("% frames below spread threshold")
     ax.set_title(f"E6 rolling-spread monitor\n(thr={E6_THRESHOLD}, w={E6_WINDOW})")
-    ax.legend(fontsize=8, facecolor="#f1efe8", edgecolor="#c3c2b7")
+    ax.legend(fontsize=8, facecolor="#ffffff", edgecolor="#c3c2b7")
 
     fig.suptitle("Real night/glare vs CARLA: does real adverse weather collapse supercombo?",
                  color="#0b0b0b", fontsize=12)

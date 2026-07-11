@@ -154,9 +154,9 @@ def _plt():
 
 
 # physx-newton-bench editorial palette: blue primary, rust + amber secondaries
-REAL_C, CARLA_C, WARN_C = "#2a78d6", "#b0472b", "#d08a2e"
+REAL_C, CARLA_C, WARN_C = "#2a78d6", "#1baf7a", "#52514e"
 # light chrome for legends/boxes on the cream canvas
-LEGEND_FC, LEGEND_EC, MUTED_C, INK_C = "#f1efe8", "#c3c2b7", "#898781", "#0b0b0b"
+LEGEND_FC, LEGEND_EC, MUTED_C, INK_C = "#ffffff", "#c3c2b7", "#898781", "#0b0b0b"
 
 
 def fig_collapse(rows: list[dict]) -> None:
@@ -171,7 +171,7 @@ def fig_collapse(rows: list[dict]) -> None:
     ax.axvline(1.0, color="#898781", ls=":", lw=1.0, label="parity with real")
     ax.set_xlabel("CARLA output activity / real output activity  (log scale)")
     ax.set_title("E1  supercombo output activity on CARLA vs real footage")
-    ax.legend(loc="lower right", facecolor="#f1efe8", edgecolor="#c3c2b7")
+    ax.legend(loc="lower right", facecolor="#ffffff", edgecolor="#c3c2b7")
     fig.tight_layout()
     fig.savefig(FIG_DIR / "e1_head_collapse.png", dpi=150)
     plt.close(fig)
@@ -193,7 +193,7 @@ def fig_features(e2: dict) -> None:
     ax.set_title("E2  CARLA in the model's own 512-D feature space\n"
                  f"feature spread {e2['spread_ratio']:.4f}x of real   "
                  f"separability {100*e2['separability']:.0f}%   d'={e2['dprime']:.1f}")
-    ax.legend(facecolor="#f1efe8", edgecolor="#c3c2b7")
+    ax.legend(facecolor="#ffffff", edgecolor="#c3c2b7")
     fig.tight_layout()
     fig.savefig(FIG_DIR / "e2_feature_ood.png", dpi=150)
     plt.close(fig)
@@ -219,7 +219,7 @@ def fig_confidence(e3: list[dict]) -> None:
     ax.set_title("E3  outputs collapse ~99%, the model's uncertainty flags none of it\n"
                  "silent failure: confidently blind")
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.11), ncol=1,
-              facecolor="#f1efe8", edgecolor="#c3c2b7")
+              facecolor="#ffffff", edgecolor="#c3c2b7")
     fig.subplots_adjust(bottom=0.24)
     fig.savefig(FIG_DIR / "e3_confidence.png", dpi=150)
     plt.close(fig)

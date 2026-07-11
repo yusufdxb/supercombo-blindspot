@@ -161,13 +161,13 @@ def _plt():
 
 
 # physx-newton-bench palette: cream paper, ink, blue primary + warm secondaries
-CREAM = "#fcfcfb"
+CREAM = "#ffffff"
 INK = "#0b0b0b"
 RUST = "#2a78d6"     # primary series (physx blue)
 SLATE = "#898781"    # muted warm grey for the secondary/cost series
-GOLD = "#d08a2e"     # muted ochre for threshold/reference lines only
+GOLD = "#52514e"     # muted ochre for threshold/reference lines only
 # legend styling
-_LEG = dict(facecolor="#f1efe8", edgecolor="#c3c2b7")
+_LEG = dict(facecolor="#ffffff", edgecolor="#c3c2b7")
 # back-compat names used below: accent=RUST, secondary=SLATE, reference=GOLD
 REAL_C, CARLA_C, WARN_C = RUST, SLATE, GOLD
 
@@ -238,7 +238,7 @@ def make_figure(out: Path = FIG_OUT) -> Path:
     axC.bar(x - 0.27, e6, 0.27, color=WARN_C, label="E6 (temporal)")
     axC.bar(x, pm, 0.27, color=REAL_C, label=f"PCA-Maha k={K_STAR}")
     axC.bar(x + 0.27, hyb, 0.27, color=CARLA_C, label="hybrid")
-    axC.axhline(0.5, color="#9a9486", ls=":", lw=1, alpha=0.8)
+    axC.axhline(0.5, color="#898781", ls=":", lw=1, alpha=0.8)
     axC.set_xticks(x)
     axC.set_xticklabels(["collapse\n(CARLA)", "corruption\n(fog s5)"])
     axC.set_ylabel("AUROC (subaru)")

@@ -94,13 +94,13 @@ def fig_interp_v096(alphas, norm, fproj, unc, a90, a10) -> None:
                     label=f"transition (width {a10 - a90:.3f})")
     ax1.set_ylabel("normalized")
     ax1.set_title("E4 v0.9.6  supercombo across the real-to-sim interpolation")
-    ax1.legend(facecolor="#f1efe8", edgecolor="#c3c2b7")
+    ax1.legend(facecolor="#ffffff", edgecolor="#c3c2b7")
 
     ax2.plot(xs, [unc[a] for a in xs], "-o", color="#898781", lw=2,
              label="predicted plan uncertainty")
     ax2.set_xlabel("alpha   (0 = real Subaru frame,  1 = CARLA frame)")
     ax2.set_ylabel("mean plan_std")
-    ax2.legend(facecolor="#f1efe8", edgecolor="#c3c2b7")
+    ax2.legend(facecolor="#ffffff", edgecolor="#c3c2b7")
 
     fig.tight_layout()
     FIG.parent.mkdir(parents=True, exist_ok=True)

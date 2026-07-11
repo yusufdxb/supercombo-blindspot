@@ -293,12 +293,13 @@ def _headline(table1: dict, sweep: dict, alphas: np.ndarray,
 # --- figures ------------------------------------------------------------
 
 def _color(name: str) -> str:
+    # physx palette: hero detector green, strongest baseline blue, rest neutral grays.
     return {
-        "e6": "#b0472b",
-        "mahalanobis": "#3a78d6",
-        "relative_mahalanobis": "#3ad693",
-        "knn50": "#d6a13a",
-        "pca_mahalanobis": "#9b3ad6",
+        "e6": "#1baf7a",
+        "knn50": "#2a78d6",
+        "relative_mahalanobis": "#52514e",
+        "mahalanobis": "#898781",
+        "pca_mahalanobis": "#b8b7b0",
     }[name]
 
 

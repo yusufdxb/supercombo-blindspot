@@ -100,7 +100,7 @@ def _figure_v096(alphas: np.ndarray, ratios: dict[str, np.ndarray],
     import physx_style as _physx_style  # editorial-print theme
     _physx_style.apply()
     fig, ax = plt.subplots(figsize=(8, 4.5), dpi=140)
-    colors = plt.cm.viridis(np.linspace(0, 0.9, len(ratios)))
+    colors = _physx_style.cmap_cycle(len(ratios))
     for (name, r), c in zip(ratios.items(), colors):
         ax.plot(alphas, r, marker="o", lw=1.6, color=c, label=name)
     ax.set_xlabel("alpha (0 = real, 1 = CARLA)")

@@ -79,7 +79,7 @@ def fig_collapse_v096(rows: list[dict]) -> None:
     ax.axvline(1.0, color="#898781", ls=":", lw=1.0, label="parity with real")
     ax.set_xlabel("CARLA output activity / real output activity  (log scale)")
     ax.set_title("E1 v0.9.6  supercombo output activity on CARLA vs real footage")
-    ax.legend(loc="lower right", facecolor="#f1efe8", edgecolor="#c3c2b7")
+    ax.legend(loc="lower right", facecolor="#ffffff", edgecolor="#c3c2b7")
     fig.tight_layout()
     fig.savefig(FIG_DIR / "e1_head_collapse_v096.png", dpi=150)
     plt.close(fig)
@@ -101,7 +101,7 @@ def fig_features_v096(e2: dict) -> None:
     ax.set_title("E2 v0.9.6  CARLA in the model's own 512-D feature space\n"
                  f"feature spread {e2['spread_ratio']:.4f}x of real   "
                  f"separability {100*e2['separability']:.0f}%   d'={e2['dprime']:.1f}")
-    ax.legend(facecolor="#f1efe8", edgecolor="#c3c2b7")
+    ax.legend(facecolor="#ffffff", edgecolor="#c3c2b7")
     fig.tight_layout()
     fig.savefig(FIG_DIR / "e2_feature_ood_v096.png", dpi=150)
     plt.close(fig)
@@ -126,7 +126,7 @@ def fig_confidence_v096(e3: list[dict]) -> None:
     ax.set_ylabel("percent")
     ax.set_title("E3 v0.9.6  outputs vs uncertainty on CARLA")
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.11), ncol=1,
-              facecolor="#f1efe8", edgecolor="#c3c2b7")
+              facecolor="#ffffff", edgecolor="#c3c2b7")
     fig.subplots_adjust(bottom=0.24)
     fig.savefig(FIG_DIR / "e3_confidence_v096.png", dpi=150)
     plt.close(fig)

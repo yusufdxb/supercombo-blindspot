@@ -38,7 +38,7 @@ def _figure_v096(res: dict, out: Path) -> None:
     import physx_style as _physx_style  # editorial-print theme
     _physx_style.apply()
     fig, ax = plt.subplots(figsize=(7, 4), dpi=140)
-    ax.plot(res["alphas"], res["fired_fraction"], "o-", color="#b0472b", lw=1.8)
+    ax.plot(res["alphas"], res["fired_fraction"], "o-", color="#1baf7a", lw=1.8)
     ax.axhline(0.5, color="grey", lw=0.7, ls="--",
                label="fire threshold (50% of frames)")
     ax.set_xlabel("alpha (0 = real, 1 = CARLA)")

@@ -1254,10 +1254,10 @@ def _fig_e4_auroc_sweep(e4_results: dict, out_dir: Path) -> None:
     alphas = [r["alpha"] for r in per_alpha]
     fig, ax = plt.subplots(figsize=(8, 5), dpi=140)
     for det, color, ls in [
-        ("hybrid", "#2ca02c", "-"),
-        ("e6", "#b0472b", "--"),
+        ("hybrid", "#1baf7a", "-"),
+        ("e6", "#1baf7a", "--"),
         ("mahalanobis", "#2a78d6", ":"),
-        ("rmd", "#ff7f0e", "-."),
+        ("rmd", "#b8b7b0", "-."),
     ]:
         vals = [r.get(f"{det}_auroc", float("nan")) for r in per_alpha]
         ax.plot(alphas, vals, color=color, ls=ls, lw=2, label=det, marker="o", ms=4)
@@ -1299,10 +1299,10 @@ def _fig_e7_mean_auroc(e7_results: dict, out_dir: Path) -> None:
     width = 0.2
     fig, ax = plt.subplots(figsize=(14, 6), dpi=140)
     for i, (det, color) in enumerate([
-        ("e6", "#b0472b"),
+        ("e6", "#1baf7a"),
         ("mahalanobis", "#2a78d6"),
-        ("rmd", "#ff7f0e"),
-        ("hybrid", "#2ca02c"),
+        ("rmd", "#b8b7b0"),
+        ("hybrid", "#1baf7a"),
     ]):
         means = [
             float(np.mean(per_corruption[c][det])) if per_corruption[c][det]
@@ -1333,7 +1333,7 @@ def _fig_submodule_ratios(submodule_result: dict, out_dir: Path) -> None:
     alphas = submodule_result["alphas"]
     ratios = submodule_result["ratios"]
     fig, ax = plt.subplots(figsize=(9, 5), dpi=140)
-    colors = plt.cm.plasma(np.linspace(0, 0.9, len(ratios)))
+    colors = _physx_style.cmap_cycle(len(ratios))
     for (name, r), c in zip(ratios.items(), colors):
         cliff = submodule_result["cliffs"].get(name, float("nan"))
         label = name if not np.isfinite(cliff) else f"{name} (cliff={cliff:.2f})"

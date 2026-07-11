@@ -213,7 +213,7 @@ def _figure(rows):
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(8, 5.5), dpi=150)
     colors = {"TP (E6 catches collapse)": "#1baf7a", "TN (correctly quiet)": "#2a78d6",
-              "FALSE NEGATIVE": "#b0472b", "FP (E6 fires, no collapse)": "#dd6b20",
+              "FALSE NEGATIVE": "#1baf7a", "FP (E6 fires, no collapse)": "#898781",
               "marginal": "#999999"}
     jitter = {}
     for v, c in colors.items():

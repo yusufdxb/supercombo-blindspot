@@ -234,12 +234,12 @@ def plot_lead_time(rows: list[dict], out_path: Path) -> None:
 
     fig, ax = plt.subplots(figsize=(7, 5))
     colors = {
-        "E6 (rolling-spread)": "#b0472b",
+        "E6 (rolling-spread)": "#1baf7a",
         "mahalanobis": "#2a78d6",
-        "relative_mahalanobis": "#ff7f0e",
-        "knn50": "#2ca02c",
-        "conformal": "#9467bd",
-        "pca_mahalanobis": "#8c564b",
+        "relative_mahalanobis": "#b8b7b0",
+        "knn50": "#1baf7a",
+        "conformal": "#898781",
+        "pca_mahalanobis": "#898781",
     }
     labels = {
         "E6 (rolling-spread)": "E6 (rolling-spread)",
@@ -286,7 +286,7 @@ def plot_lead_time(rows: list[dict], out_path: Path) -> None:
     ax.text(-0.05, 0.08, "low AUROC\n& LOCO fail",
             fontsize=7, color="grey", ha="center")
     ax.text(0.3, 0.97, "E6 zone: lead + low LOCO FPR",
-            fontsize=7, color="#b0472b", ha="center", style="italic")
+            fontsize=7, color="#1baf7a", ha="center", style="italic")
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
