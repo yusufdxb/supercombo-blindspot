@@ -44,7 +44,10 @@ COLLAPSE = 0.10  # activity ratio below this = collapsed (E1)
 HEAD_NAMES = ["plan", "lane_lines", "road_edges", "lead", "pose", "desire_state", "meta"]
 SCALARS = ["accel_t0", "desired_curv", "lead_prob"]
 
-# E6 calibrated threshold and window (from report/e6_results.md, v0.9.7 real-driving)
+# E6 calibrated threshold and window (from report/e6_results.md, v0.9.7 real-driving).
+# This is the N=2 (subaru+ram) 1st-percentile operating point; the manuscript's
+# N=4 all-clean headline calibration uses 0.087077 (report/corpus_scaling_results.md).
+# Both are the deploy-side and analysis-side operating points of the same monitor.
 E6_THRESHOLD = 0.078873
 E6_WINDOW = 30
 
@@ -358,8 +361,8 @@ def _write_report(results: dict[str, dict], baseline: dict, carla: dict) -> None
           "No intrinsics confound: all three use the identical `_ar_ox_config` "
           "focal-length/principal-point as the Subaru+RAM baseline.",
           f"Model: supercombo v0.9.7 (models/supercombo.onnx).",
-          f"N={N} frames/segment, {WARMUP} warmup discarded, "
-          f"{N - WARMUP} post-warmup frames analysed.",
+          f"N={N} source frames/segment, one frame consumed by pair processing, "
+          f"{WARMUP} stored-output warmup discarded, {N - 1 - WARMUP} outputs analysed.",
           ""]
 
     # ---------- E1 table ----------

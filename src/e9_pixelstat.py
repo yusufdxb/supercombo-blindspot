@@ -149,6 +149,37 @@ def fda_match(carla: np.ndarray, real_ref: np.ndarray, beta: float = 0.02) -> np
 # collection
 # --------------------------------------------------------------------------
 
+def _diagnostics(variant: np.ndarray, real_ref: np.ndarray, beta: float = 0.02) -> np.ndarray:
+    """Per-intervention match quality against the real reference, as
+    [mean error, std error, marginal distance, low-frequency band error].
+
+    Each intervention targets a different statistic, so a single mean-deviation
+    number cannot validate all three; we report one diagnostic per target."""
+    v_mu, v_sd, _, _ = _channel_stats(variant)
+    r_mu, r_sd, _, _ = _channel_stats(real_ref)
+    qs = np.linspace(0.01, 0.99, 99)
+    marg, band = [], []
+    C = variant.shape[1]
+    for ch in range(C):
+        # marginal distance: mean absolute quantile difference (1-Wasserstein style)
+        vq = np.percentile(variant[:, ch], qs * 100)
+        rq = np.percentile(real_ref[:, ch], qs * 100)
+        marg.append(np.abs(vq - rq).mean())
+        # low-frequency amplitude error over the same beta band the FDA swap targets
+        H, W = variant.shape[2], variant.shape[3]
+        by, bx = max(1, int(H * beta)), max(1, int(W * beta))
+        cy, cx = H // 2, W // 2
+        def _band(stack):
+            amps = []
+            for i in range(0, len(stack), max(1, len(stack) // 24)):  # subsample frames
+                f = np.fft.fftshift(np.fft.fft2(stack[i, ch]))
+                amps.append(np.abs(f[cy - by:cy + by, cx - bx:cx + bx]).mean())
+            return float(np.mean(amps))
+        band.append(abs(_band(variant) - _band(real_ref)))
+    return np.array([float(np.abs(v_mu - r_mu).mean()), float(np.abs(v_sd - r_sd).mean()),
+                     float(np.mean(marg)), float(np.mean(band))], dtype=np.float64)
+
+
 def _collect_live() -> dict[str, dict]:
     """Run the model on real (Subaru+RAM) and on raw + statistic-matched CARLA."""
     from src.probe_model import collect, load_carla_six, load_real_six
@@ -179,6 +210,12 @@ def _collect_live() -> dict[str, dict]:
     def _to_list(a):
         return [a[i] for i in range(len(a))]
 
+    # per-intervention match diagnostics, persisted so the report can be rebuilt
+    # from the cache without the raw frames
+    diag = {name: _diagnostics(arr, real_ref) for name, arr in
+            [("carla_raw", carla_arr), ("carla_moment", carla_mom),
+             ("carla_hist", carla_his), ("carla_fda", carla_fda)]}
+
     return {
         "subaru": collect(subaru_six, sess, slices),
         "ram": collect(ram_six, sess, slices),
@@ -186,6 +223,7 @@ def _collect_live() -> dict[str, dict]:
         "carla_moment": collect(_to_list(carla_mom), sess, slices),
         "carla_hist": collect(_to_list(carla_his), sess, slices),
         "carla_fda": collect(_to_list(carla_fda), sess, slices),
+        "diagnostics": diag,
     }
 
 
@@ -264,7 +302,7 @@ def main(argv: list[str] | None = None) -> int:
               f"{100*r['separability']:>9.1f}% {100*r['unc_frac_max']:>8.1f}%")
 
     _verdict(results, variants, labels)
-    _write_md(results, variants, labels)
+    _write_md(results, variants, labels, segments.get("diagnostics", {}))
     _fig(results, variants, labels)
     print(f"\nresults -> {RESULTS_MD.relative_to(ROOT)}   figure -> "
           f"{(FIG_DIR / 'e9_pixelstat.png').relative_to(ROOT)}")
@@ -290,7 +328,7 @@ def _verdict(results, variants, labels) -> None:
           "geometry, phase, higher-order texture, and semantics remain confounded.")
 
 
-def _write_md(results, variants, labels) -> None:
+def _write_md(results, variants, labels, diag: dict | None = None) -> None:
     raw = results["carla_raw"]
     matched = [v for v in variants if v != "carla_raw"]
     best01 = min(results[v]["below01"] for v in matched)
@@ -331,6 +369,35 @@ def _write_md(results, variants, labels) -> None:
           "identification: geometry (zero- vs liveCalibration warp), phase, "
           "higher-order texture, and semantics remain confounded, and only one "
           "renderer and one CARLA sequence were tested."]
+
+    # Table E9: every per-readout ratio, so a reader can check the split directly
+    # rather than trusting the thresholded counts.
+    order = list(results[variants[0]]["ratios"].keys())
+    L += ["", "## Table E9: per-readout activity ratio (CARLA / pooled real)", "",
+          "All 10 tracked readouts under every condition. Values below 0.01 are "
+          "collapsed at the 1% threshold; values below 0.10 are suppressed at the "
+          "10% threshold.", "",
+          "| readout | " + " | ".join(labels[v] for v in variants) + " |",
+          "|---" * (len(variants) + 1) + "|"]
+    for name in order:
+        cells = []
+        for v in variants:
+            r = results[v]["ratios"][name]
+            cells.append("n/a" if not np.isfinite(r) else f"{r:.4f}")
+        L.append(f"| `{name}` | " + " | ".join(cells) + " |")
+
+    if diag:
+        L += ["", "## Table E9b: intervention match quality", "",
+              "Each intervention targets a different statistic, so one summary "
+              "number cannot validate all three. Absolute error against the pooled "
+              "real reference, averaged over the 6 input channels.", "",
+              "| variant | mean err | std err | marginal distance | low-freq band err |",
+              "|---|---|---|---|---|"]
+        for v in variants:
+            d = np.asarray(diag.get(v, []), dtype=float)
+            if d.size == 4:
+                L.append(f"| {labels[v]} | {d[0]:.3f} | {d[1]:.3f} | {d[2]:.3f} | {d[3]:.1f} |")
+
     RESULTS_MD.parent.mkdir(parents=True, exist_ok=True)
     RESULTS_MD.write_text("\n".join(L) + "\n")
 
@@ -343,16 +410,21 @@ def _fig(results, variants, labels) -> None:
     ticks = [short.get(v, labels[v]) for v in variants]
     xs = np.arange(len(variants))
     below01 = [results[v]["below01"] for v in variants]
+    below10 = [results[v]["below10"] for v in variants]
     spread = [max(results[v]["spread_ratio"], 1e-6) for v in variants]
     n_read = results[variants[0]]["n_readouts"]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.6))
-    b = ax1.bar(xs, below01, color=CARLA_C, width=0.6)
-    ax1.bar_label(b, fmt="%d", padding=3, color="#0b0b0b", fontsize=11)
-    ax1.set_ylim(0, n_read + 0.6)
+    w = 0.38
+    b1 = ax1.bar(xs - w / 2, below01, w, color=CARLA_C, label="below 1% (collapsed)")
+    b2 = ax1.bar(xs + w / 2, below10, w, color=WARN_C, label="below 10% (suppressed)")
+    ax1.bar_label(b1, fmt="%d", padding=2, color="#0b0b0b", fontsize=10)
+    ax1.bar_label(b2, fmt="%d", padding=2, color="#0b0b0b", fontsize=10)
+    ax1.set_ylim(0, n_read + 1.2)
     ax1.axhline(n_read, color="#898781", ls=":", lw=1.0)
-    ax1.set_ylabel(f"readouts below 1% of real activity (of {n_read})")
+    ax1.set_ylabel(f"readouts below threshold (of {n_read})")
     ax1.set_xticks(xs, ticks, fontsize=9)
-    ax1.set_title("Output collapse partially lifts under matching")
+    ax1.set_title("Output collapse partially lifts (both thresholds shown)")
+    ax1.legend(loc="upper right", fontsize=8, facecolor="#ffffff", edgecolor="#c3c2b7")
     ax2.bar(xs, spread, color=REAL_C, width=0.6)
     ax2.set_yscale("log")
     ax2.set_ylim(1e-6, 3.0)

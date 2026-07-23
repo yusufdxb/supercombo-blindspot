@@ -13,7 +13,10 @@ spread(t) = trace( Cov(hidden[t-W+1 .. t]) )
 
 Calibrated threshold: **0.078873** (1st percentile of the real-driving spread
 distribution on the subaru + ram corpus).  A spread below this threshold fires
-an OOD alert; it is not a neural net.
+an OOD alert; it is not a neural net. This is the N=2 operating point; the
+manuscript's headline cross-corpus FPR uses the later N=4 all-clean calibration
+at threshold 0.087077 (`report/corpus_scaling_results.md`). Both are operating
+points of the same monitor; the deployed C++ constant tracks the N=2 point.
 
 Source: `src/e6_detector.py::rolling_spread` (lines 16-23).
 

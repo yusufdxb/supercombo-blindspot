@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "generated_by": "python -m scripts.update_artifact_manifest",
+  "boundary": "inspect_only files require undistributed inputs or activation caches for recomputation",
+  "artifacts": [
+    {
+      "path": "report/teardown_collected.npz",
+      "sha256": "ea7bb7d8731730cc854d6c9e4cdece018d1a69ad0589a5fcc147849dcd7cfa95",
+      "bytes": 4310976,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/teardown_results.md",
+      "sha256": "849f6ee6186ded9ca73e60a62fe689ca1c4d2ab6e5783490f7c6e651a8e40c61",
+      "bytes": 1497,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/e4_collected.npz",
+      "sha256": "1b908a8c0adad17f43ce830aed3eb978003365ad718e62a7af834a242a353e47",
+      "bytes": 43021066,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/e4_results.md",
+      "sha256": "5dad1b93b03e20724daf3e1225923d5a7e31558db8171ee2d7385ddd438ca5cb",
+      "bytes": 1770,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/teardown_v096_collected.npz",
+      "sha256": "fa387f5e8621e8858dcf6ecb7a4bae0ca816938fc32dfb3ba716407c000cbc83",
+      "bytes": 4639992,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/teardown_v096_results.md",
+      "sha256": "7f34d69dd6525ff1ff1094c8db99a6332c50e0b238f045ebd8675df4e9f83d06",
+      "bytes": 1450,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/e4_v096_collected.npz",
+      "sha256": "c9b93007a4a15737e6a6209197258944e3f7f132326315c16f6fd061e5d79e19",
+      "bytes": 52935024,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/e4_v096_results.md",
+      "sha256": "84be5b25ae7538db04635c551c445c0786d5b7135b4eb85aac685dfc558e2b6c",
+      "bytes": 2113,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/real_weather_collected.npz",
+      "sha256": "cfd5b0b5884aa002f6b02e14e61d9bda7947a5033d422b62426bdd8ab2b794e7",
+      "bytes": 4589326,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/real_weather_results.md",
+      "sha256": "dd54f054ca9fe15d794d8b86fa2c2608978fbdbdac1459f0887880dcee81a08c",
+      "bytes": 8409,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/baselines_collected.npz",
+      "sha256": "cebd1c9a03a1b1ff9a9211f30aefabe454fe41a597bd9647dec3f2e12b41e2b9",
+      "bytes": 12174315,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/baselines_results.md",
+      "sha256": "49a0604198cbb24fbecc4fd406061a5b96de3ff8c084fc23811d771d9afde2f8",
+      "bytes": 8392,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/metrics_collected.npz",
+      "sha256": "81da0dd1b0f07cacaa5e9670e971d6396a779e1e14f36b65f2854433798a2388",
+      "bytes": 213173,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/metrics_results.md",
+      "sha256": "fd094433b7a1a900cfb1dfff29842ac5a8a4b01b940f64d97bb530132ea7ea4b",
+      "bytes": 4469,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/corpus_scaling_results.md",
+      "sha256": "0fa947fe012a97339bc07d9a69e83900eb341c1c22e1f699e0448bbc396d2b74",
+      "bytes": 1429,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/loco_threshold_free_results.md",
+      "sha256": "274e028b69c7ad3fa3bc83950c3f86cfdec52da313451decbf4b7313701534bf",
+      "bytes": 1527,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/e9_collected.npz",
+      "sha256": "269dec8fd3a20ca3acf035fca42b6dae292fa32127e1ca657509b89457265c41",
+      "bytes": 8324494,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/e9_pixelstat_results.md",
+      "sha256": "78e7cd237de6a22eb5782ecf31159dbb69c8533f203c39155a21d3b0351214ca",
+      "bytes": 3446,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/e9b_collected.npz",
+      "sha256": "c0c065c1ded661a9c2a04c204fc557c382e9fa96512b60f455232d6f69357012",
+      "bytes": 7058472,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/e9b_geomwarp_results.md",
+      "sha256": "4355d4ec19c9d966519084ef7ea27792023306c06960f243c495e08cb9d3de2f",
+      "bytes": 1801,
+      "reproduction_level": "recomputable"
+    },
+    {
+      "path": "report/parity_results.md",
+      "sha256": "d8f97d29addf094ab0080c6700dd8dca2ac1c20d298952832f181591d41cb0b6",
+      "bytes": 1903,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/e4_ram_results.md",
+      "sha256": "959feec4fc2691a3627c07d452ee3f6f850510b9b6c21f2e21842bdf9479f718",
+      "bytes": 1625,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/e5_results.md",
+      "sha256": "0dfa98f6387c69f27afd9be15b8abe456427efdd30d0c09caf82066f08485270",
+      "bytes": 516,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/e5_submodule_results.md",
+      "sha256": "763b0b5993aa2b2ee9f6ce8a77f0d36ff3e2d9e858deeb364cb5aeaed20160a8",
+      "bytes": 3134,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/e7_results.md",
+      "sha256": "9e60a0f7ed03e30bee1e970e6463d6f92c6aa2663dd48ec47250ec64a6ae43e7",
+      "bytes": 10382,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/e7_overlay_results.md",
+      "sha256": "8a37f9a9055c46990416d16be296fa84096894ce3e8b920c882ceda417ac1df6",
+      "bytes": 5682,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/e6_v096_results.md",
+      "sha256": "95b211ba600c55f2d228ef1ff3ed681a2265a9d58d791ece33ce1cfb2a8099f0",
+      "bytes": 1279,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/deployment_results.md",
+      "sha256": "8b76f11a642a65d82dfe6f07969b77d35ee4689b62e5013668bb303532276f38",
+      "bytes": 6389,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/hero.png",
+      "sha256": "48b1ab89fd206cb39205fea71c3c9e08ff982763120f1ca1acaef27ed80c87d8",
+      "bytes": 289880,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e1_head_collapse.png",
+      "sha256": "97aa57b6da40c436243e26226e75fa6b7dfe236b748ce339689bff05b7fe56b9",
+      "bytes": 61859,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e2_feature_ood.png",
+      "sha256": "ee1a72e96ecbaee581b05958cf12127bee294c431501ce992bf66f99e4b6f8ee",
+      "bytes": 123404,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e3_confidence.png",
+      "sha256": "d178610493303ff645d35930e74cc55b09f50b7a85852f01ef9c9ce327a81902",
+      "bytes": 55222,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e4_interpolation.png",
+      "sha256": "3c7b410e64d76cfb1daa93c8cb37eacfd54756bb97b5b00f412c0bff10315c83",
+      "bytes": 103908,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e4_ram_interpolation.png",
+      "sha256": "e90db3abc4e75fcb90da3a4417444ccde1d48b5325db4aebbe29d3853529f6d4",
+      "bytes": 126736,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e5_layer_localization.png",
+      "sha256": "1656b02a4638912a076dc68a8690620d54af140fd23de8b50f1dfe9c3120faaa",
+      "bytes": 102551,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e5_submodule_localization.png",
+      "sha256": "0242857cf673fe89a18dc6c11f9c41834e962c3ad9dd22d376d77fc2e626679d",
+      "bytes": 142898,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e6_detector.png",
+      "sha256": "9f3a987adebda3588379801ea3d257ba6b88dfda59443b2ea670222f73a464cf",
+      "bytes": 62301,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/auroc_vs_alpha.png",
+      "sha256": "533c26deb5bad8a32c73643b9fc85ab24560669f529d328bc09cc5e05dc2a1b5",
+      "bytes": 117846,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e7_auroc_heatmap.png",
+      "sha256": "5f3d340c45876b3104cf2fd6e23b41ed49e8430c74319f7f80ab0faf87bfb11b",
+      "bytes": 128980,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e7_severity_sweep.png",
+      "sha256": "4718069e3364930e28829871934a3788cdbb16bd331af885670dbfd878da32b2",
+      "bytes": 162004,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e7_overlay.png",
+      "sha256": "5a0f8ee3c41b0bc26ddde5e37f868ce368ed80565933656d597b9970b2096bc1",
+      "bytes": 86581,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e9_pixelstat.png",
+      "sha256": "d5638162a16810c64d793a7f2cd6832c267f40a8e61ce56e60c28c99e9803140",
+      "bytes": 90946,
+      "reproduction_level": "inspect_only"
+    },
+    {
+      "path": "report/figures/e9b_geomwarp.png",
+      "sha256": "d9d221707518d27a991c1a4170875bd5e45fb10351ca6fece94b1f75041ead59",
+      "bytes": 97394,
+      "reproduction_level": "inspect_only"
+    }
+  ]
+}
