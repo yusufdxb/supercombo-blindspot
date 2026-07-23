@@ -258,18 +258,24 @@ def _fig(a: dict, b: dict, ref: dict) -> None:
               "CARLA\nvs calibrated"]
     xs = np.arange(3)
     below01 = [a["below01"], b["below01"], ref["below01"]]
+    below10 = [a["below10"], b["below10"], ref["below10"]]
     spread = [max(a["spread_ratio"], 1e-6), max(b["spread_ratio"], 1e-6),
               max(ref["spread_ratio"], 1e-6)]
     n = a["n_readouts"]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.6))
     colors = [REAL_C, CARLA_C, CARLA_C]
-    bars = ax1.bar(xs, below01, color=colors, width=0.6)
-    ax1.bar_label(bars, fmt="%d", padding=3, color="#0b0b0b", fontsize=11)
-    ax1.set_ylim(0, n + 0.6)
+    w = 0.38
+    b1 = ax1.bar(xs - w / 2, below01, w, color=colors, label="below 1% (collapsed)")
+    b2 = ax1.bar(xs + w / 2, below10, w, color=colors, alpha=0.45,
+                 label="below 10% (suppressed)")
+    ax1.bar_label(b1, fmt="%d", padding=2, color="#0b0b0b", fontsize=10)
+    ax1.bar_label(b2, fmt="%d", padding=2, color="#0b0b0b", fontsize=10)
+    ax1.set_ylim(0, n + 1.2)
     ax1.axhline(n, color="#898781", ls=":", lw=1.0)
-    ax1.set_ylabel(f"readouts below 1% of baseline (of {n})")
+    ax1.set_ylabel(f"readouts below threshold (of {n})")
     ax1.set_xticks(xs, labels, fontsize=9)
     ax1.set_title("Real footage survives the zero warp; CARLA does not")
+    ax1.legend(loc="upper left", fontsize=8, facecolor="#ffffff", edgecolor="#c3c2b7")
     ax2.bar(xs, spread, color=colors, width=0.6)
     ax2.set_yscale("log")
     ax2.set_ylim(1e-6, 3.0)

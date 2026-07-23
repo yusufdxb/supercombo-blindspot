@@ -98,10 +98,12 @@ def _e6_fires_at() -> float:
 
 
 def _e6_thr() -> float:
-    """E6 threshold from e6_results.md: 0.078873 (1% FPR operating point).
-    The E6 score in metrics_collected is negated so higher = more OOD;
-    the threshold is stored un-negated in e6_results. We use the fires_at
-    already computed rather than re-deriving threshold here.
+    """E6 threshold from e6_results.md: 0.078873 (N=2 subaru+ram 1% FPR operating
+    point; the N=4 all-clean headline calibration is 0.087077, see
+    report/corpus_scaling_results.md). The E6 score in metrics_collected is
+    negated so higher = more OOD; the threshold is stored un-negated in
+    e6_results. We use the fires_at already computed rather than re-deriving
+    threshold here.
     """
     return -0.078873  # negated for higher-is-OOD convention in metrics cache
 
