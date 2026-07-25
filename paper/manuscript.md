@@ -4,6 +4,9 @@
 Wayne State University
 Code and data: https://github.com/yusufdxb/supercombo-blindspot
 
+*Technical report. A bounded single-system case study, not a peer-reviewed submission; the scope and
+limitations are stated explicitly and should be read as binding on every claim below.*
+
 ---
 
 ## Abstract
@@ -294,6 +297,16 @@ reimplemented longitudinal-acceleration output matches comma's logged reference 
 on 100.00% of frames, with a median absolute delta of 0.0409 m/s^2, a mean of 0.0541, and a worst-case
 single-frame delta of 0.2899 m/s^2 (no frame exceeds 0.5). This is the load-bearing harness-trust
 claim for the negative result, and we report it prominently.
+
+**Measurement regime (important).** Every result here is measured on a run of *consecutive* frames from
+a fresh recurrent state, with the first 100 frames discarded as warm-up. The collapse is a property of
+the *settled* recurrent state: it emerges as the state rolls forward over consecutive, mutually similar
+frames, and it is not expected to appear when the model is run on sparse or non-consecutive snapshots.
+Feeding the released model a handful of non-adjacent inspection frames (for example the sampled
+overpass-scenario PNGs shipped under `data/scenario/`) produces non-trivial output variance and a
+non-frozen feature spread, because the recurrent state never settles between large frame jumps and no
+warm-up is possible; that is an artifact of the input regime, not a counterexample to the collapse. A
+valid probe of this phenomenon requires consecutive frames and the warm-up discard.
 
 **Data.** The real in-distribution data are two comma corpora, denoted subaru and ram, of 320 frames
 each, with the first 100 frames discarded as warm-up. After warm-up and the rolling-window step, 219
@@ -814,7 +827,18 @@ claims.
 
 ---
 
-## 8. Reproducibility Note
+## 8. Use of AI Tools
+
+The experiments, analysis code, and results in this report are the author's. Large language model
+assistants (Anthropic Claude, with adversarial cross-checks from OpenAI and Google models) were used
+substantially in drafting and revising the prose of this report, in writing and refactoring analysis and
+plotting code, and as adversarial reviewers of the claims and their scoping. Every quantitative claim was
+verified by the author against the committed result artifacts (see the Reproducibility Note and
+`scripts/verify_paper.py`); the author is responsible for all content, including any errors.
+
+---
+
+## 9. Reproducibility Note
 
 The fresh-clone cache path reruns E1-E4, the two-model teardown, real-weather analysis, and the baseline
 and threshold-free metric tables without a GPU or CARLA. The tracked caches are enumerated and hashed in
