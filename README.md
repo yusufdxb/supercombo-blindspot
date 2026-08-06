@@ -28,7 +28,7 @@ real-driving range. No quantity the model emits would signal to a downstream mon
 ceased to perceive. An internal recurrent signal *does* encode the failure and is recoverable (E6),
 but the model never exposes it.
 
-A full writeup is available in [`drafts/paper.pdf`](drafts/paper.pdf).
+A full writeup is available at [Silent Collapse: A Distribution-Shift Teardown of a Production Driving Model](https://yusufdxb.github.io/papers/silent-collapse-distribution-shift-teardown.pdf).
 
 ---
 
@@ -374,7 +374,7 @@ python -m src.conformal_results && python -m src.lead_time          # conformal 
 | `report/figures/`, `report/*.md` | figures and per-experiment result tables |
 | `deploy/cpp/` | portable C++17 E6 monitor + latency microbenchmark |
 | `references/openpilot-v0.9.7/` | vendored openpilot v0.9.7 source (parity reference) |
-| `drafts/paper.pdf` | full writeup |
+| [full writeup (PDF)](https://yusufdxb.github.io/papers/silent-collapse-distribution-shift-teardown.pdf) | full writeup, hosted on the portfolio site |
 
 ## Environment
 
