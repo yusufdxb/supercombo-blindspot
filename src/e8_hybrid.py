@@ -1248,8 +1248,8 @@ def _fig_e4_auroc_sweep(e4_results: dict, out_dir: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
+    import figure_style as _figure_style  # editorial-print theme
+    _figure_style.apply()
     per_alpha = e4_results["per_alpha"]
     alphas = [r["alpha"] for r in per_alpha]
     fig, ax = plt.subplots(figsize=(8, 5), dpi=140)
@@ -1277,8 +1277,8 @@ def _fig_e7_mean_auroc(e7_results: dict, out_dir: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
+    import figure_style as _figure_style  # editorial-print theme
+    _figure_style.apply()
     from src.e7_corruption import CORRUPTION_NAMES as E7_NAMES
     from collections import defaultdict
 
@@ -1327,13 +1327,13 @@ def _fig_submodule_ratios(submodule_result: dict, out_dir: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
+    import figure_style as _figure_style  # editorial-print theme
+    _figure_style.apply()
 
     alphas = submodule_result["alphas"]
     ratios = submodule_result["ratios"]
     fig, ax = plt.subplots(figsize=(9, 5), dpi=140)
-    colors = _physx_style.cmap_cycle(len(ratios))
+    colors = _figure_style.cmap_cycle(len(ratios))
     for (name, r), c in zip(ratios.items(), colors):
         cliff = submodule_result["cliffs"].get(name, float("nan"))
         label = name if not np.isfinite(cliff) else f"{name} (cliff={cliff:.2f})"

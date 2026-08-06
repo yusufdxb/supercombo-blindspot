@@ -208,10 +208,10 @@ def analyse(alphas: np.ndarray,
 
 def figure(alphas: np.ndarray, ratios: dict[str, np.ndarray], out: Path) -> None:
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
+    import figure_style as _figure_style  # editorial-print theme
+    _figure_style.apply()
     fig, ax = plt.subplots(figsize=(8.5, 5), dpi=140)
-    colors = _physx_style.cmap_cycle(len(ratios))
+    colors = _figure_style.cmap_cycle(len(ratios))
     for (name, r), c in zip(ratios.items(), colors):
         ax.plot(alphas, r, marker="o", lw=1.6, color=c, label=name)
     ax.axhline(

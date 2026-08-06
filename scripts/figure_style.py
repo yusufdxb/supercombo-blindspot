@@ -2,7 +2,7 @@
 
 Source of truth: physx-newton-bench. One line to adopt:
 
-    import physx_style; physx_style.apply()
+    import figure_style; figure_style.apply()
 
 Then plot as usual; every figure inherits the cream canvas, muted frame,
 and the physx-blue / newton-green palette. `PALETTE` and `COLORS` are
@@ -11,7 +11,7 @@ exposed for scripts that need an explicit per-series color.
 import os
 import matplotlib.pyplot as plt
 
-_STYLE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "physx_style.mplstyle")
+_STYLE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "figure_style.mplstyle")
 
 # Editorial-print ink used for annotations/titles when set explicitly.
 INK = "#0b0b0b"

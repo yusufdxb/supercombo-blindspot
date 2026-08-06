@@ -175,8 +175,8 @@ def make_figure(res: dict) -> None:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
-        import physx_style as _physx_style  # editorial-print theme
-        _physx_style.apply()
+        import figure_style as _figure_style  # editorial-print theme
+        _figure_style.apply()
     except Exception:
         return
     names = list(res["per_fold"])

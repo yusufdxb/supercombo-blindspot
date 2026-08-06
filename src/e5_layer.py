@@ -234,15 +234,15 @@ _STAGE_VIEW = [
 
 def _figure(alphas: np.ndarray, ratios: dict[str, np.ndarray], out: Path) -> None:
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
+    import figure_style as _figure_style  # editorial-print theme
+    _figure_style.apply()
     # Reduce the per-block probes to the canonical per-stage representatives when
     # present; fall back to whatever curves are given (e.g. a 6-probe cache).
     view = [(k, lbl) for k, lbl in _STAGE_VIEW if k in ratios]
     if not view:
         view = [(k, k) for k in ratios]
     fig, ax = plt.subplots(figsize=(8, 4.5), dpi=140)
-    colors = _physx_style.cmap_cycle(len(view))  # physx editorial palette (blue/green/neutral-gray)
+    colors = _figure_style.cmap_cycle(len(view))  # physx editorial palette (blue/green/neutral-gray)
     for (key, label), c in zip(view, colors):
         ax.plot(alphas, ratios[key], marker="o", lw=1.6, color=c, label=label)
     ax.set_xlabel("alpha (0 = real, 1 = CARLA)")

@@ -1,6 +1,6 @@
 # physx-newton-bench figure theme (editorial print)
 # Source of truth: physx-newton-bench/scripts/analyze_strengthen.py
-# Apply with:  import matplotlib.pyplot as plt; plt.style.use("<path>/physx_style.mplstyle")
+# Apply with:  import matplotlib.pyplot as plt; plt.style.use("<path>/figure_style.mplstyle")
 
 # --- canvas: warm cream, not white ---
 figure.facecolor: ffffff

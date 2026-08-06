@@ -155,8 +155,8 @@ def _plt():
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
+    import figure_style as _figure_style  # editorial-print theme
+    _figure_style.apply()
     return plt
 
 

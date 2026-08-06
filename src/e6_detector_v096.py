@@ -35,8 +35,8 @@ def _real_by_corpus_v096() -> dict[str, np.ndarray]:
 
 def _figure_v096(res: dict, out: Path) -> None:
     import matplotlib.pyplot as plt
-    import physx_style as _physx_style  # editorial-print theme
-    _physx_style.apply()
+    import figure_style as _figure_style  # editorial-print theme
+    _figure_style.apply()
     fig, ax = plt.subplots(figsize=(7, 4), dpi=140)
     ax.plot(res["alphas"], res["fired_fraction"], "o-", color="#1baf7a", lw=1.8)
     ax.axhline(0.5, color="grey", lw=0.7, ls="--",
