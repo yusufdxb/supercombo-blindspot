@@ -1,6 +1,6 @@
 """Build the paper as a submission-format IEEE journal PDF (IEEEtran, two column).
 
-Pipeline: drafts/rewritten_draft.md
+Pipeline: paper/manuscript.md
   -> strip title block / abstract / manifest (rendered by the LaTeX preamble instead)
   -> author-year inline citations rewritten to \\cite{key} (numeric IEEE refs)
   -> markdown tables replaced by hand-set LaTeX floats
@@ -8,7 +8,7 @@ Pipeline: drafts/rewritten_draft.md
   -> figures inserted as figure / figure* floats at their section anchors
   -> IEEEtran preamble + bibtex (IEEEtran.bst) + 3 latex passes
 
-Output: drafts/paper_ieee.pdf
+Output: paper/paper_ieee.pdf
 
 Content is not edited. Only citation syntax, float placement, and layout change.
 
@@ -23,11 +23,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DRAFT = ROOT / "drafts" / "rewritten_draft.md"
-BIB = ROOT / "drafts" / "references.bib"
+DRAFT = ROOT / "paper" / "manuscript.md"
+BIB = ROOT / "paper" / "references.bib"
 FIGDIR = ROOT / "report" / "figures_print"
-BUILD = ROOT / "drafts" / "_ieee_build"
-OUT = ROOT / "drafts" / "paper_ieee.pdf"
+BUILD = ROOT / "paper" / "_ieee_build"
+OUT = ROOT / "paper" / "paper_ieee.pdf"
 
 TITLE = ("Silent Collapse: A Distribution-Shift Teardown of a Production "
          "Driving Model and a Zero-Retraining Recurrent-State Monitor")
@@ -115,6 +115,34 @@ Relative Mahalanobis & 99.69\% & [99.06\%, 100.00\%] & 100.00\% \\
 \end{table}
 """
 
+TABLE_E9 = r"""
+\begin{table}[!t]
+\renewcommand{\arraystretch}{1.25}
+\caption{Per-Readout Activity Ratio vs.\ Real Under Each Pixel-Statistic Intervention}
+\label{tab:e9}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccc}
+\hline
+\textbf{Readout} & \textbf{CARLA} & \textbf{+ mean/std} & \textbf{+ histogram} & \textbf{+ Fourier} \\
+ & \textbf{(raw)} & \textbf{match} & \textbf{match} & \textbf{(FDA) match} \\
+\hline
+\texttt{accel\_t0} & 0.0040 & 0.1105 & 0.0478 & 0.0235 \\
+\texttt{desired\_curv} & 0.0018 & 0.0030 & 0.0020 & 0.0020 \\
+\texttt{lead\_prob} & 0.0058 & 0.0403 & 0.0380 & 0.0111 \\
+\texttt{plan} & 0.0057 & 0.0435 & 0.0267 & 0.0132 \\
+\texttt{lane\_lines} & 0.0054 & 0.0383 & 0.0177 & 0.0079 \\
+\texttt{road\_edges} & 0.0076 & 0.0258 & 0.0143 & 0.0115 \\
+\texttt{lead} & 0.0042 & 0.0453 & 0.0302 & 0.0181 \\
+\texttt{pose} & 0.1788 & 0.2090 & 0.2015 & 0.1704 \\
+\texttt{desire\_state} & 0.0049 & 0.0140 & 0.0060 & 0.0052 \\
+\texttt{meta} & 0.7181 & 0.6296 & 0.6324 & 0.6532 \\
+\hline
+\end{tabular}
+\end{table}
+"""
+
 TABLE_TAXONOMY = r"""
 \begin{table*}[!t]
 \renewcommand{\arraystretch}{1.2}
@@ -126,17 +154,19 @@ TABLE_TAXONOMY = r"""
 \hline
 \textbf{Bucket} & \textbf{Claims} \\
 \hline
-VERIFIED (v0.9.7, CARLA, Subaru/RAM corpora) & E1: 8/10 output heads collapse to under 1\% of real activity. E2: recurrent feature is OOD and linearly separable from real at 87.9\% ($d'=2.19$). E3: exported predictive-uncertainty heads rise only 1.20--1.84$\times$; 0/219 CARLA frames exceed real p95, so the exported uncertainty channel is not a reliable OOD monitor for this collapse. E4: collapse arrives as a hard cliff on the Subaru source (transition width 0.015) and as a gradient on the RAM source (width 0.274). \\
+VERIFIED (v0.9.7, CARLA, Subaru/RAM corpora) & E1: 8/10 tracked output readouts (7 heads plus 3 scalars derived from them) collapse to under 1\% of real activity. E2: recurrent feature is OOD and reaches 87.9\% in-sample centroid-direction classification accuracy against real ($d'=2.19$); held-out evidence is the LOCO analysis, not this figure. E3: exported predictive-uncertainty heads rise only 1.20--1.84$\times$; 0/219 CARLA frames exceed real p95, so the exported uncertainty channel is not a reliable OOD monitor for this collapse. E4: collapse arrives as a hard cliff on the Subaru source (transition width 0.015) and as a gradient on the RAM source (width 0.274). \\
 \hline
-REPLICATED on v0.9.6 & v0.9.6 is also out-of-distribution-blind in feature space (100\% linear separability, $d'=6.8$). \\
+REPLICATED on v0.9.6 & v0.9.6's exported uncertainty is likewise blind to the shift while its internal feature space remains highly discriminative (100\% in-sample centroid-direction accuracy, $d'=6.8$). \\
 \hline
-CONTRADICTED / DIFFERS on v0.9.6 & The silent output freeze does not replicate: only 1/10 heads collapses versus 8/10; the alpha-blend sweep shows chaotic amplification (peaks 14.6$\times$ real) rather than a cliff. The E6 monitor does not transfer (33\% LOCO mean FPR vs 2.4\% on v0.9.7). \\
+CONTRADICTED / DIFFERS on v0.9.6 & The silent output freeze does not replicate: only 1/10 readouts collapses versus 8/10; the alpha-blend sweep shows chaotic amplification (peaks 14.6$\times$ real) rather than a cliff. The E6 monitor does not transfer (33\% LOCO mean FPR vs 2.4\% on v0.9.7). \\
 \hline
 MONITOR-ONLY (E6) & The rolling recurrent-spread detector catches the temporal-collapse mode with AUROC 0.996. At a sensitivity-matched cross-corpus operating point (95\% TPR on the collapse set) it flags 0 of 1160 held-out real frames (0\% LOCO FPR@95\%TPR, approximately 94.8\% realised detection) while every location baseline fails to transfer (KNN-50 60.8\%, Mahalanobis 95.1\%, Relative Mahalanobis 99.7\%); under collapse-unaware percentile calibration it holds 2.41\% cross-corpus LOCO FPR ($N=4$; the original $N=2$ subset gave an optimistic 1.03\%). E7 shows it is a collapse detector, not a universal OOD detector: photometric corruptions evade it (mean AUROC 0.52--0.74 across corruption types). \\
 \hline
 DEPLOYMENT-UNSUPPORTED & Scaling the clean-real calibration set from $N=2$ to $N=4$ raised the LOCO mean FPR from an optimistic 1.03\% to 2.41\% (segment-level bootstrap 95\% CI [0\%, 5.17\%], 6.90\% max). Fleet-scale FPR is still unproven and likely higher; $N=4$ is honest progress, not a production number. \\
 \hline
-HYPOTHESIS / OPEN & A real daytime-dry segment intermittently enters a near-zero recurrent attractor (monitor fires on 58\% of frames) on clean correctly-warped input; the trigger is unexplained and an initial steer/speed hypothesis was falsified. \\
+CONFOUNDS EXCLUDED AS SUFFICIENT (E9, E9b) & Matching CARLA's low-level pixel statistics to real (moment, marginal histogram, low-frequency Fourier amplitude) does not lift the recurrent freeze: spread stays 1.26--1.35e-5 of real and in-sample centroid-direction accuracy holds 87.9\%, though output quiescence partly recovers (readouts below 1\% fall 8/10 to 1--3/10). Substituting the zero-calibration warp on real footage does not collapse it (0/10 readouts below either threshold, spread 0.54$\times$, though 89.4\% in-sample centroid-direction accuracy), and CARLA still freezes under the identical warp. Neither low-level statistics nor the calibration warp is a sufficient explanation for the freeze. \\
+\hline
+HYPOTHESIS / OPEN & A real daytime-dry segment intermittently enters a near-zero recurrent attractor (monitor fires on 60.34\% of analyzed frames) on clean correctly-warped input; the trigger is unexplained and an initial steer/speed hypothesis was falsified. Which property of rendered content actually drives the collapse (semantics, higher-order texture, phase structure) is unidentified: E9 and E9b exclude candidate causes without isolating the operative one. \\
 \hline
 \end{tabular}
 \end{table*}
@@ -250,21 +280,61 @@ def demote_headings(text: str) -> str:
     return "\n".join(out)
 
 
+# Each pipe table in the draft is replaced by a hand-set LaTeX float. A table is
+# matched on a string unique to its HEADER row, never by falling through to a
+# default: a new table in the draft with no float here must fail the build loudly
+# rather than silently render as a duplicate of whichever float was the fallback.
+# Matching the header rather than the whole block keeps prose in one table's cells
+# (the taxonomy table quotes "LOCO mean FPR") from matching another table's marker.
+TABLE_MARKERS: list[tuple[str, str]] = [
+    ("Bucket", "@@TABLETAXONOMY@@"),
+    ("LOCO mean FPR@95%TPR", "@@TABLEE6OP@@"),
+    ("readout", "@@TABLEE9@@"),
+]
+
+TABLE_FLOATS: dict[str, str] = {
+    "@@TABLETAXONOMY@@": TABLE_TAXONOMY,
+    "@@TABLEE6OP@@": TABLE_E6OP,
+    "@@TABLEE9@@": TABLE_E9,
+}
+
+
 def drop_markdown_tables(text: str) -> str:
-    """Remove the two pipe tables; hand-set LaTeX floats are injected instead."""
+    """Replace each pipe table with its float placeholder.
+
+    Raises ValueError if a table matches no known marker, or if two tables claim
+    the same float.
+    """
     lines = text.splitlines()
-    out, i = [], 0
+    out, seen, i = [], set(), 0
     while i < len(lines):
         if lines[i].lstrip().startswith("|"):
             start = i
             while i < len(lines) and lines[i].lstrip().startswith("|"):
                 i += 1
-            block = "\n".join(lines[start:i])
-            out.append("@@TABLETAXONOMY@@" if "Bucket" in block else "@@TABLEE6OP@@")
+            header = lines[start]
+            hits = [tok for key, tok in TABLE_MARKERS if key in header]
+            if len(hits) != 1:
+                raise ValueError(
+                    f"markdown table at draft line {start + 1} matched {len(hits)} "
+                    f"table markers, expected exactly 1. Header: "
+                    f"{lines[start].strip()[:120]!r}. Add a hand-set float and a "
+                    f"unique marker to TABLE_MARKERS."
+                )
+            token = hits[0]
+            if token in seen:
+                raise ValueError(
+                    f"two markdown tables both matched {token}; markers must be unique"
+                )
+            seen.add(token)
+            out.append(token)
             out.append("")
             continue
         out.append(lines[i])
         i += 1
+    unused = set(TABLE_FLOATS) - seen
+    if unused:
+        raise ValueError(f"no markdown table matched these floats: {sorted(unused)}")
     return "\n".join(out)
 
 
@@ -326,8 +396,11 @@ def main() -> int:
 
     body = apply_typography(detokenize(body))
     abstract = apply_typography(detokenize(abstract))
-    body = body.replace("@@TABLETAXONOMY@@", TABLE_TAXONOMY)
-    body = body.replace("@@TABLEE6OP@@", TABLE_E6OP)
+    for token, float_tex in TABLE_FLOATS.items():
+        if token not in body:
+            print(f"ERROR: {token} did not survive pandoc", file=sys.stderr)
+            return 1
+        body = body.replace(token, float_tex)
     body, missing_figs = insert_figures(body)
 
     # hero figure directly after the first section opens
