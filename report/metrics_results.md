@@ -50,8 +50,8 @@ Five detectors evaluated on the supercombo recurrent feature: E6 (rolling spread
 
 | held-out corpus | calibrated on | threshold | held-out FPR |
 |---|---|---|---|
-| subaru | ram | 25.978046 | 0.0000 |
-| ram | subaru | 24.011308 | 0.2382 |
+| subaru | ram | 25.977680 | 0.0000 |
+| ram | subaru | 24.011409 | 0.2382 |
 
 **PCA-Mahalanobis LOCO mean FPR: 0.1191 (11.91%), max: 0.2382 (23.82%)**
 
