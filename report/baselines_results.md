@@ -1,6 +1,6 @@
 # Baseline OOD Detectors: head-to-head with E6
 
-Implements the post-hoc OOD baselines listed in docs/paper_plan.md section 1 on the same 512-D recurrent feature E6 watches. Same real-driving calibration corpus (subaru + ram), same LOCO protocol as report/e6_results.md. Higher score = more OOD; threshold is the 99th percentile of the ID score distribution (target FPR 1% by construction).
+Implements six canonical post-hoc OOD baselines (MSP, Energy, Mahalanobis, Relative Mahalanobis, KNN, ViM) on the same 512-D recurrent feature E6 watches; each is attributed to its source in `src/baselines.py` and cited in `paper/manuscript.md`. Same real-driving calibration corpus (subaru + ram), same LOCO protocol as report/e6_results.md. Higher score = more OOD; threshold is the 99th percentile of the ID score distribution (target FPR 1% by construction).
 
 ## Applicability of the six paper-plan baselines
 

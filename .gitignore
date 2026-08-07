@@ -31,3 +31,4 @@ models/candidates/
 deploy/cpp/e6_bench
 paper/build/
 paper/_ieee_build/
+paper/paper_ieee.pdf
