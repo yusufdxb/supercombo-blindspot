@@ -29,3 +29,6 @@ report/ablations_collected.npz
 # Scratch candidate models downloaded during the second-model upgrade scout.
 models/candidates/
 deploy/cpp/e6_bench
+paper/build/
+paper/_ieee_build/
+paper/paper_ieee.pdf

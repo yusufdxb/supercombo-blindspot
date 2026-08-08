@@ -27,6 +27,14 @@
  * spread on subaru+ram corpora, W=30, D=512):
  *   E6_THRESHOLD = 0.078873
  *
+ * Calibration note: this is the earlier N=2 (subaru+ram) 1st-percentile
+ * operating point. The manuscript's headline cross-corpus figure (2.41% LOCO
+ * FPR) uses a later N=4 all-clean calibration whose threshold is 0.087077
+ * (see report/corpus_scaling_results.md). They are two calibrations of the
+ * same monitor, not a stale value; this deployed constant intentionally tracks
+ * the N=2 operating point. Change it to 0.087077 only to deploy the N=4
+ * calibration, which shifts the fire rate.
+ *
  * Intended use on-device (Jetson Orin NX):
  *   modeld publishes hidden_state -> ROS2 topic -> phm_detectors node
  *   (RecurrentTemporalSpreadAdapter) which wraps this exact math in Python

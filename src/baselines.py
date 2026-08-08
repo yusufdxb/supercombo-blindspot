@@ -1,8 +1,8 @@
 """Baseline OOD detectors for head-to-head comparison against E6.
 
 E6 is a rolling-spread monitor on supercombo's 512-D recurrent feature
-vector. Per docs/paper_plan.md sec. 1 we evaluate six canonical post-hoc
-OOD scores. Three of them (MSP, Energy, ViM) require classifier-style
+vector. We evaluate six canonical post-hoc OOD scores (MSP, Energy,
+Mahalanobis, Relative Mahalanobis, KNN, ViM), each attributed below. Three of them (MSP, Energy, ViM) require classifier-style
 softmax logits, which supercombo does not have: its heads are
 multi-modal regressions (plan, lane lines, lead) plus a few sigmoid
 existence probabilities (lead_prob, lane_lines_prob) and a hand-crafted
@@ -441,8 +441,9 @@ def _build_outputs(out_npz: Path, out_md: Path,
 def _write_report(results: dict, out: Path) -> None:
     lines = ["# Baseline OOD Detectors: head-to-head with E6", ""]
     lines.append(
-        "Implements the post-hoc OOD baselines listed in docs/paper_plan.md "
-        "section 1 on the same 512-D recurrent feature E6 watches. Same "
+        "Implements six canonical post-hoc OOD baselines (MSP, Energy, "
+        "Mahalanobis, Relative Mahalanobis, KNN, ViM) on the same 512-D "
+        "recurrent feature E6 watches. Same "
         "real-driving calibration corpus (subaru + ram), same LOCO protocol "
         "as report/e6_results.md. Higher score = more OOD; threshold is the "
         "99th percentile of the ID score distribution (target FPR 1% by "

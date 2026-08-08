@@ -3,7 +3,7 @@
 Segments: all comma-3 (tici), 1928x1208 yuv420p, with liveCalibration.
 No intrinsics confound: all three use the identical `_ar_ox_config` focal-length/principal-point as the Subaru+RAM baseline.
 Model: supercombo v0.9.7 (models/supercombo.onnx).
-N=320 frames/segment, 100 warmup discarded, 220 post-warmup frames analysed.
+N=320 source frames/segment, one frame consumed by pair processing, 100 stored-output warmup discarded, 219 outputs analysed.
 
 ## E1 output activity ratio (seg vs v0.9.7 real Subaru+RAM baseline)
 
@@ -96,14 +96,9 @@ N=320 frames/segment, 100 warmup discarded, 220 post-warmup frames analysed.
 
 ## Verdict
 
+E1 sanity check: daytime control PASSED (all output heads active on daytime in-distribution footage).
 Real night + headlight/tail-light glare does NOT induce E1 output collapse: all heads remain active on EV6 night (0 collapsed) and Bronco night (0 collapsed). CARLA collapses 8/10 heads as reference.
-E6 rolling-spread monitor does NOT fire on either real night segment (EV6: 0.0% frames flagged, Bronco: 0.0% frames flagged; CARLA fires at 100.0%).
+E6 rolling-spread monitor does NOT fire on any real night segment (EV6: 0.0% frames flagged, Bronco: 0.0% frames flagged; CARLA fires at 100.0%).
+NOTE: E6 also fires on the daytime control segment (57.9% frames flagged). Independent verification confirms this is genuine model behaviour on clean, correctly-warped input, not a pipeline artifact. The segment intermittently enters a bi-modal near-zero recurrent attractor (norm toggles from frame ~16); in the low-norm regime the output heads are suppressed (~45x on desired_curv), and E1 reads 0/10 only because the activity metric averages across both regimes. The earlier 'high steer + low speed' cause was falsified (EV6 night reaches a higher peak steer at the same speed without collapsing). The trigger is UNEXPLAINED; this is an open E6 caveat, a real-segment near-collapse the monitor fires on, distinct from the fully silent CARLA case.
 
-NOTE on the daytime control (corrected 2026-05-30 after independent verification; supersedes the earlier "unusual kinematics" explanation, which was falsified):
-E6 also fires on the daytime-dry control segment (dongle 376bf99325883932, seg 1) at 57.9% of frames. Independent re-checking confirms this is GENUINE model behavior on clean, correctly-warped input (decoded frames are real 1928x1208 road images; liveCalibration pitch 0.053 matches Subaru 0.052; not a pipeline artifact), but the originally-offered cause is WRONG and must not be asserted:
-- The hidden-state L2 norm is bimodal (no frames between 0.05 and 0.5) and toggles intermittently from frame ~16, not a one-time settle "after ~220 frames"; it pops back to ~1.0 near frame 200.
-- The "sustained high steer + low speed" cause is refuted by the night data itself: EV6 night reaches a HIGHER peak steer (274.9 deg) at the same low speed (8.7 vs 8.8 m/s) yet never collapses (norm pinned ~1.0, E6 0%).
-- During the ~276 low-norm frames the output heads ARE heavily suppressed (lane_lines std 35.8 vs 525 in high-norm frames; desired_curv 0.003 vs 0.137, ~45x; plan 83 vs 279). E1 reads 0/10 collapsed only because the temporal-activity metric averages across both regimes; the low-norm state (~0.004) mechanistically resembles the CARLA collapse.
-Honest status: a real in-distribution segment intermittently enters a near-zero recurrent attractor that resembles the CARLA collapse and that E6 fires on. The TRIGGER is currently UNEXPLAINED (the steer/speed hypothesis is falsified). Report as an open E6 caveat, not as settled "unusual kinematics".
-
-**Bounding conclusion**: real night + headlight/tail-light glare on a comma-3 device does not collapse the model (E1: 0 heads, E6: does not fire on either night segment). The CARLA collapse signature is driven by the synthetic sim-to-real rendering gap, not by real low-light or glare conditions that openpilot's training distribution covers. One caveat sharpens rather than contradicts this: a single real daytime segment intermittently enters a CARLA-like near-zero recurrent attractor (heads suppressed in that regime, E6 fires), with an unexplained trigger, so the collapse is best described as predominantly sim-induced rather than strictly CARLA-only.
+**Bounding conclusion**: real night + headlight/tail-light glare on a comma-3 device does not collapse the model (E1: 0 heads, E6: does not fire on either night segment). The CARLA collapse signature is driven by the synthetic sim-to-real rendering gap, not by real low-light or glare conditions that openpilot's training distribution covers. One caveat sharpens rather than contradicts this: a single real daytime segment intermittently enters a CARLA-like near-zero recurrent attractor (E6 fires, trigger unexplained), so the collapse is best described as predominantly sim-induced rather than strictly CARLA-only.
