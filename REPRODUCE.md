@@ -11,7 +11,6 @@ paper figure exists, and checks the anonymous manuscript scrub:
 python -m venv .venv
 .venv/bin/pip install -r requirements-ci.txt matplotlib scikit-learn
 env -u PYTHONPATH .venv/bin/python -m scripts.verify_paper
-env -u PYTHONPATH .venv/bin/python -m scripts.build_pdf --check
 ```
 
 The claim boundary is in `paper/claim_matrix.md`; artifact hashes and reproduction levels are in
@@ -55,17 +54,20 @@ only until a replacement public summary cache is produced.
 
 ## 4. Build the paper
 
-With Pandoc and WeasyPrint installed:
+With Pandoc and a LaTeX toolchain installed (`pdflatex`, `bibtex`, and the
+IEEEtran class and bibliography style):
 
 ```bash
-env -u PYTHONPATH .venv/bin/python -m scripts.build_pdf
+env -u PYTHONPATH .venv/bin/python scripts/build_pdf_ieee.py
 ```
 
 Outputs:
 
-- `paper/build/manuscript.pdf`
-- `paper/build/manuscript_anonymous.pdf`
-- corresponding assembled Markdown files
+- `paper/paper_ieee.pdf`, the two-column IEEEtran build of `paper/manuscript.md`
+- `paper/_ieee_build/`, the intermediate LaTeX sources and logs
+
+The script fails loudly rather than guessing: a table in the manuscript that has
+no matching hand-set float raises instead of being rendered as another table.
 
 ## 5. Recollect inference artifacts
 
