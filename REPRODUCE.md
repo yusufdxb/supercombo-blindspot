@@ -16,15 +16,17 @@ env -u PYTHONPATH .venv/bin/python -m scripts.verify_paper
 The claim boundary is in `paper/claim_matrix.md`; artifact hashes and reproduction levels are in
 `paper/artifact_manifest.json`.
 
-Containerized test environment:
+CPU test and artifact-verification environment:
 
 ```bash
-docker build -t supercombo-blindspot .
-docker run --rm supercombo-blindspot
+python3.10 -m venv .venv && .venv/bin/pip install -r requirements-ci.txt matplotlib
+.venv/bin/python -m pytest -q
 ```
 
-The container covers the CPU test and artifact-verification environment. It does not provide CARLA,
-the released ONNX model, source driving footage, or GPU inference recollection.
+This covers the CPU test and artifact-verification path. It does not provide CARLA, the released
+ONNX model, source driving footage, or GPU inference recollection.
+
+If a sourced ROS 2 environment is on `PYTHONPATH`, prefix the pytest call with `env -u PYTHONPATH`.
 
 ## 2. Recompute results from tracked caches
 

@@ -316,13 +316,10 @@ claims and source artifacts are registered in [`docs/evidence_register.md`](docs
 re-derives every E1 / E2 / E3 / E4 table and figure from the committed output caches
 (`report/teardown_collected.npz`, `report/e4_collected.npz`).
 
-**Zero-setup verification (Docker).** No Python, no local dependencies. The image pins Python 3.10
-and mirrors the CI suite exactly (verified: 347 passed, 15 skipped for the GPU/CARLA paths):
-
-```bash
-docker build -t supercombo-blindspot .
-docker run --rm supercombo-blindspot
-```
+**Verification from a fresh clone.** The CPU suite runs against the committed caches and needs no
+model, no CARLA, and no GPU. Measured on Python 3.10: `317 passed, 27 skipped, 7 deselected`, where
+the skips are the GPU/CARLA collection paths and the deselections are the `slow` marker set in
+`pytest.ini`.
 
 Local runs (or [`REPRODUCE.md`](REPRODUCE.md) for the full tiered guide):
 
