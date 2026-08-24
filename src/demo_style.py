@@ -7,10 +7,15 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+import os
+from pathlib import Path
+
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-FONT_DIR = "/home/yusuf/.local/share/fonts/demo"
+FONT_DIR = os.environ.get(
+    "DEMO_FONT_DIR", str(Path.home() / ".local/share/fonts/demo")
+)
 GROTESK = f"{FONT_DIR}/SpaceGrotesk.ttf"   # headers / display
 INTER = f"{FONT_DIR}/Inter.ttf"            # HUD / body
 
