@@ -1,149 +1,99 @@
 # Reproducibility Guide
 
-This document describes two paths for reproducing the phantom-braking results:
-the **cache-only path** (no GPU, no raw data) and the **raw-data path** (GPU +
-comma footage required). It also documents the provenance manifest.
+The artifact has three reproduction levels. The distinction is enforced by
+`paper/artifact_manifest.json` and checked by `scripts/verify_paper.py`.
 
----
+| Level | Requirements | What it proves |
+|---|---|---|
+| Verify | CPU and Python | Committed evidence hashes match and manuscript claims still resolve to those artifacts |
+| Core recomputation | CPU, pinned environment, tracked caches | Recomputes E1-E4, v0.9.6, real-weather, baselines, calibration, operating-point diagnostics, and ablations |
+| Extended recomputation | Core requirements plus local large caches | Also recomputes E4-RAM, E5-submodule, and E7 |
+| Recollection | Model, source frames, inference dependencies, and accelerator | Recreates activation caches from inference |
 
-## Paths at a glance
-
-| Path | Requirements | Time | What it regenerates |
-|---|---|---|---|
-| Cache-only | CPU, Python venv | ~2 min | All result .md files + all figures |
-| Raw-data | CUDA GPU, raw comma footage, CARLA | hours | The .npz caches (then cache-only reruns the rest) |
-
----
-
-## Path 1: Cache-only reproduction
-
-All analysis modules can regenerate their result tables and figures from the
-committed `.npz` caches in `report/` without touching the ONNX models, the
-raw HEVC footage, or a GPU.
-
-### One command
+## Public verification
 
 ```bash
-cd /path/to/phantom-braking
+env -u PYTHONPATH .venv/bin/python -m scripts.verify_paper
+env -u PYTHONPATH .venv/bin/python -m scripts.build_pdf --check
+```
+
+The first command verifies 16 claim-to-evidence links and 37 artifact hashes. The second checks the
+paper source, bibliography parse, figure inventory, and anonymous-review scrub.
+
+## Core recomputation
+
+```bash
 bash scripts/repro_from_caches.sh
 ```
 
-The script verifies all required caches are present, then runs each module in
-order. It uses `env -u PYTHONPATH .venv/bin/python` throughout so the project
-venv is isolated.
+The core path uses only these tracked activation caches:
 
-### Cache-only modules (confirmed by code inspection)
+- `report/teardown_collected.npz`
+- `report/teardown_v096_collected.npz`
+- `report/e4_collected.npz`
+- `report/e4_v096_collected.npz`
+- `report/real_weather_collected.npz`
 
-Each module below has a `--collect` flag and a cache-load branch that executes
-when the `.npz` exists without `--collect`. The cache-only path was confirmed by
-reading the `main()` guard in each file.
+It also regenerates the derived baseline, metric, and ablation caches. The script exits on a missing
+cache or failed analysis and finishes by running the paper verifier.
 
-| Module | Cache file(s) read | Result files written |
-|---|---|---|
-| `src.teardown` | `teardown_collected.npz` | `teardown_results.md`, figures `e1_*.png e2_*.png e3_*.png` |
-| `src.teardown_v096` | `teardown_v096_collected.npz` | `teardown_v096_results.md`, `teardown_v096_*.png` |
-| `src.e4_interp` | `e4_collected.npz` | `e4_results.md`, `e4_interpolation.png` |
-| `src.e4_interp_v096` | `e4_v096_collected.npz` | `e4_v096_results.md`, `e4_interpolation_v096.png` |
-| `src.e4_ram` | `e4_ram_collected.npz`, `e4_collected.npz` | `e4_ram_results.md`, `e4_ram_interpolation.png` |
-| `src.e5_submodule` | `e5_submodule_collected.npz` | `e5_submodule_results.md`, `e5_submodule_enumeration.md`, `e5_submodule.png` |
-| `src.e7_corruption` | `e7_collected.npz`, `teardown_collected.npz` | `e7_results.md`, `e7_*.png` |
-| `src.real_weather` | `real_weather_collected.npz`, `teardown_collected.npz` | `real_weather_results.md`, figures |
-| `src.baselines` | `teardown_collected.npz`, `e4_collected.npz` | `baselines_results.md`, `baselines_collected.npz` |
-| `scripts/build_metrics.py` | `baselines_collected.npz`, `e4_collected.npz`, `teardown_collected.npz` | `metrics_results.md`, `metrics_collected.npz`, `roc_curves.png`, `pr_curves.png`, `auroc_vs_alpha.png` |
-| `src.conformal_results` | `teardown_collected.npz`, `e4_collected.npz` | `conformal_results.md` |
-| `src.lead_time` | `metrics_collected.npz`, `e4_collected.npz` | `lead_time_results.md`, `lead_time.png` |
-| `scripts/ablations.py` | `teardown_collected.npz`, `e4_collected.npz` | `ablations_results.md`, `ablations_collected.npz` |
-
-Note: `src/metrics.py` is a pure library (no `__main__`); it is called
-internally by the modules above and is not a standalone entrypoint.
-
-### Determination method
-
-For each module the cache-only classification was verified by:
-1. Reading the `main()` function body.
-2. Confirming the pattern `if args.collect or not CACHE.exists(): ... else: load_cache(CACHE)`.
-3. Confirming `build_session()` / `onnxruntime` / `CUDAExecutionProvider` are
-   only imported inside the `--collect` branch (via lazy `from src.probe_model
-   import ...` or `from src.state import build_session`).
-
----
-
-## Path 2: Raw-data (GPU + comma footage)
-
-These modules require:
-- A CUDA-capable GPU (the ONNX sessions are configured for `CUDAExecutionProvider`).
-- The raw comma footage fetched via `scripts/fetch_upgrade_data.py` (stored in
-  `data/`; gitignored).
-- CARLA renders in `data/domain_gap/carla_rgb.npy` (gitignored).
-
-### Step 1: fetch raw data
+## Extended recomputation
 
 ```bash
-# v0.9.6 parity model + CI seg-6 source
-env -u PYTHONPATH .venv/bin/python -m scripts.fetch_upgrade_data
-
-# Real-weather OOD segments (EV6 night, Bronco night, daytime control)
-env -u PYTHONPATH .venv/bin/python -m scripts.fetch_upgrade_data --weather
+bash scripts/repro_from_caches.sh --extended
 ```
 
-### Step 2: run collect paths
+This additionally requires:
+
+- `report/e4_ram_collected.npz`
+- `report/e5_submodule_collected.npz`
+- `report/e7_collected.npz`
+
+These files are not distributed because of their size. Their result tables and figures are committed
+and hash-verified, but a fresh clone cannot independently recompute them. The E5 layer cache is also
+unavailable, so the encoder-stage localization is inspect only. These are artifact limitations, not
+successful reproduction claims.
+
+## Raw recollection
+
+Raw collection requires separately obtained source footage and released model files. The main entry
+points are:
 
 ```bash
-# Core teardown (E1/E2/E3)
 env -u PYTHONPATH .venv/bin/python -m src.teardown --collect
 env -u PYTHONPATH .venv/bin/python -m src.teardown_v096 --collect
-
-# E4 interpolation sweeps
 env -u PYTHONPATH .venv/bin/python -m src.e4_interp --collect
 env -u PYTHONPATH .venv/bin/python -m src.e4_interp_v096 --collect
 env -u PYTHONPATH .venv/bin/python -m src.e4_ram --collect
-
-# E5 submodule enumeration
 env -u PYTHONPATH .venv/bin/python -m src.e5_submodule --collect --alphas 11 --frames 320
-
-# E7 ImageNet-C corruption sweep
 env -u PYTHONPATH .venv/bin/python -m src.e7_corruption --collect
-
-# Real-weather OOD axis
 env -u PYTHONPATH .venv/bin/python -m src.real_weather --collect
+env -u PYTHONPATH .venv/bin/python -m src.run_parity
 ```
 
-Each command writes its `.npz` cache to `report/`. Once all caches exist,
-`bash scripts/repro_from_caches.sh` regenerates every result without the GPU.
+The source segments are public comma driving records fetched by `scripts/fetch_upgrade_data.py`. The
+repository does not redistribute video, logs, or model binaries. The parity result requires comma's
+logged reference output and therefore is not part of the tracked-cache recomputation path.
 
----
-
-## Provenance manifest
-
-`report/MANIFEST.json` is generated by:
+## Paper build
 
 ```bash
-.venv/bin/python scripts/make_manifest.py
+env -u PYTHONPATH .venv/bin/python -m scripts.build_pdf
 ```
 
-It records:
-- SHA-256, size, and mtime for every `models/*.onnx` and `report/*.npz` locally
-  present.
-- Git commit, branch, and dirty flag at generation time.
-- Python version and key package versions (`onnxruntime-gpu`, `numpy`, `scipy`,
-  `scikit-learn`, `matplotlib`, `carla`).
-- Data provenance: the three real-weather comma segments (dongle / time / seg)
-  and the CI parity route (`dongle 2f4452b03ccb98f0`, seg 6), parsed live from
-  `scripts/fetch_upgrade_data.py` -- never hardcoded.
-- Openpilot model tags per `.onnx` filename.
+Pandoc and WeasyPrint produce author and anonymous PDFs under `paper/build/`. The generated build
+directory is ignored; `paper/manuscript.md`, `paper/references.bib`, the claim matrix, and build script
+are the versioned sources.
 
-The manifest should be regenerated whenever a new cache or model is added.
+## Provenance updates
 
----
+After intentionally regenerating evidence files, update and review the artifact manifest:
 
-## Data sources
+```bash
+env -u PYTHONPATH .venv/bin/python -m scripts.update_artifact_manifest
+git diff -- paper/artifact_manifest.json report/
+env -u PYTHONPATH .venv/bin/python -m scripts.verify_paper
+```
 
-| Segment | Dongle | Time | Seg | Use |
-|---|---|---|---|---|
-| CI parity route | `2f4452b03ccb98f0` | `2022-12-03--13-45-30` | 6 | v0.9.6 model_replay parity |
-| EV6 night | `d545129f3ca90f28` | `2022-11-07--20-43-08` | 3 | Night/glare OOD axis |
-| Bronco night | `54827bf84c38b14f` | `2023-01-26--21-59-07` | 4 | Night/highway OOD axis |
-| Daytime control | `376bf99325883932` | `2022-10-27--13-41-22` | 1 | In-distribution control |
-
-All segments are comma-3 (tici) at 1928x1208 yuv420p, served from
-`commadataci.blob.core.windows.net/openpilotci`.
+Do not update hashes merely to silence a mismatch. The report diff must first show that the regenerated
+result is expected.

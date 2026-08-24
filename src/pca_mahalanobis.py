@@ -31,12 +31,12 @@ def fit_pca(features_id: np.ndarray, var_target: float = 0.90,
     n_samples, n_features = features_id.shape
     cap = min(max_components, n_samples - 1, n_features)
     cap = max(cap, 1)
-    pca_full = PCA(n_components=cap).fit(features_id)
+    pca_full = PCA(n_components=cap, random_state=0).fit(features_id)
     cumvar = np.cumsum(pca_full.explained_variance_ratio_)
     k_var = int(np.searchsorted(cumvar, var_target) + 1)
     k = min(k_var, cap)
     k = max(k, 1)
-    return PCA(n_components=k).fit(features_id)
+    return PCA(n_components=k, random_state=0).fit(features_id)
 
 
 def _fit_gaussian(features_id: np.ndarray, reg: float = 0.1

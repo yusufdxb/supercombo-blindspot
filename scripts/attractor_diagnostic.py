@@ -1,14 +1,14 @@
 """H1 + H2 offline diagnostic for the daytime-control near-zero recurrent attractor.
 
 H1: Does the low-norm regime lag a near-zero predicted curvature in the
-    prev_desired_curv feedback loop?  (no GPU needed — uses cached scalars)
+    prev_desired_curv feedback loop?  (no GPU needed; uses cached scalars)
 
 H2: Do the 512-D daytime low-norm states share a basin with the CARLA collapse?
     (k=2 clustering + cosine similarity of cluster centroids)
 
 Reads:
-  report/real_weather_collected.npz   — daytime_control hidden_state + desired_curv
-  report/teardown_collected.npz       — carla__hidden_state reference
+  report/real_weather_collected.npz   : daytime_control hidden_state + desired_curv
+  report/teardown_collected.npz       : carla__hidden_state reference
 
 Writes:
   report/attractor_diagnostic_results.md
@@ -129,7 +129,7 @@ def _figure_norm(norms: np.ndarray, labels: np.ndarray, out: Path) -> None:
     ax.axhline(NORM_THRESHOLD, color="grey", lw=0.8, ls="--", label=f"threshold={NORM_THRESHOLD}")
     ax.set_xlabel("frame")
     ax.set_ylabel("hidden-state L2 norm")
-    ax.set_title("Daytime control — recurrent hidden-state norm (red=low, blue=high)")
+    ax.set_title("Daytime control: recurrent hidden-state norm (red=low, blue=high)")
     ax.legend(fontsize=8)
     fig.tight_layout()
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -179,10 +179,10 @@ def _write_results(norms: np.ndarray, labels: np.ndarray,
         f"- Frames total: {len(norms)}",
         f"- Low-norm (< {NORM_THRESHOLD}): {n_low} ({n_low/len(norms):.1%})",
         f"- High-norm (>= 0.5): {n_high} ({n_high/len(norms):.1%})",
-        f"- Gap (0.1–0.5, should be 0): {n_gap}",
+        f"- Gap (0.1-0.5, should be 0): {n_gap}",
         f"- Norm range: [{norms.min():.4f}, {norms.max():.4f}]",
         "",
-        "## H1 — prev_desired_curv latch",
+        "## H1: prev_desired_curv latch",
         "",
         "Mean |desired_curv| at lag k for low-norm vs high-norm frames at time t.",
         "H1 predicts: low-norm frames should show lower |curv| at some lag > 0.",
@@ -201,25 +201,25 @@ def _write_results(norms: np.ndarray, labels: np.ndarray,
     min_ratio = h1[min_ratio_lag]["ratio"]
     if min_ratio < 0.7:
         h1_verdict = (
-            f"**SUPPORTED** — low-norm frames show {(1-min_ratio)*100:.0f}% lower "
+            f"**SUPPORTED**: low-norm frames show {(1-min_ratio)*100:.0f}% lower "
             f"|desired_curv| at lag={min_ratio_lag} (ratio={min_ratio:.3f} < 0.7 threshold). "
             "The prev_desired_curv feedback loop likely reinforces the low-activity basin."
         )
     elif min_ratio < 0.9:
         h1_verdict = (
-            f"**WEAKLY SUPPORTED** — low-norm frames show modestly lower |desired_curv| "
+            f"**WEAKLY SUPPORTED**: low-norm frames show modestly lower |desired_curv| "
             f"at lag={min_ratio_lag} (ratio={min_ratio:.3f}). Effect exists but modest."
         )
     else:
         h1_verdict = (
-            f"**NOT SUPPORTED** — |desired_curv| is similar for both regimes "
+            f"**NOT SUPPORTED**: |desired_curv| is similar for both regimes "
             f"(min ratio={min_ratio:.3f} at lag={min_ratio_lag}). "
             "Curvature is not the trigger."
         )
     lines += ["", f"**H1 verdict:** {h1_verdict}", ""]
 
     lines += [
-        "## H2 — Shared CARLA basin",
+        "## H2: Shared CARLA basin",
         "",
         f"| metric | value |",
         "|--------|-------|",
@@ -237,24 +237,24 @@ def _write_results(norms: np.ndarray, labels: np.ndarray,
     cos_hc = h2["cosine_high_vs_carla"]
     if cos_lc > 0.9:
         h2_verdict = (
-            f"**SHARED BASIN CONFIRMED** — cosine(low-norm, CARLA) = {cos_lc:.4f} > 0.9. "
+            f"**SHARED BASIN CONFIRMED**: cosine(low-norm, CARLA) = {cos_lc:.4f} > 0.9. "
             "The daytime low-norm states are geometrically inside the CARLA collapse attractor. "
             f"High-norm centroid has cosine {cos_hc:.4f} vs CARLA (expected near zero or negative)."
         )
     elif cos_lc > 0.7:
         h2_verdict = (
-            f"**SHARED BASIN LIKELY** — cosine(low-norm, CARLA) = {cos_lc:.4f}, "
+            f"**SHARED BASIN LIKELY**: cosine(low-norm, CARLA) = {cos_lc:.4f}, "
             "high overlap but not identical. The daytime collapse is in the same general "
             "neighborhood as the CARLA basin."
         )
     elif cos_lc > 0.4:
         h2_verdict = (
-            f"**PARTIAL OVERLAP** — cosine(low-norm, CARLA) = {cos_lc:.4f}. "
+            f"**PARTIAL OVERLAP**: cosine(low-norm, CARLA) = {cos_lc:.4f}. "
             "Some directional similarity but separate basins. H2 partially supported."
         )
     else:
         h2_verdict = (
-            f"**DIFFERENT BASIN** — cosine(low-norm, CARLA) = {cos_lc:.4f}. "
+            f"**DIFFERENT BASIN**: cosine(low-norm, CARLA) = {cos_lc:.4f}. "
             "The daytime attractor is geometrically distinct from the CARLA collapse. "
             "H2 not supported; a different mechanism drives the daytime collapse."
         )

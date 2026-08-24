@@ -1,0 +1,17 @@
+# Keep the build context lean and the image reproducible.
+.venv
+.git
+.github
+**/__pycache__
+.pytest_cache
+.humanizer_work
+*.onnx
+models
+data
+drafts
+demo
+logs
+*.mp4
+*.bak
+requirements.txt.py311.bak
+node_modules

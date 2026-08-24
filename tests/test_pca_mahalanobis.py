@@ -50,6 +50,15 @@ def test_pca_mahalanobis_separates_clear_shift():
     assert auroc(scores, labels) > 0.9
 
 
+def test_pca_mahalanobis_is_deterministic():
+    rng = np.random.RandomState(3)
+    X_id = rng.normal(size=(300, 512))
+    X_test = rng.normal(size=(80, 512))
+    first = pca_mahalanobis(X_id, X_test)
+    second = pca_mahalanobis(X_id, X_test)
+    np.testing.assert_array_equal(first, second)
+
+
 def test_loco_fpr_runs_on_real_corpora():
     # Smoke test: run LOCO on the actual subaru/ram cache. This test
     # documents the empirical result; we assert the result is a number,

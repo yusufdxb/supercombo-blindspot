@@ -19,6 +19,8 @@ detector starts to separate ID from OOD.
 
 from __future__ import annotations
 
+import io
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -398,6 +400,18 @@ def _flatten_cache(all_scores: dict, table1: dict, sweep: dict,
     return out
 
 
+def save_npz_deterministic(path: Path, arrays: dict) -> None:
+    """Write an NPZ with stable member order and timestamps."""
+    with zipfile.ZipFile(path, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for key in sorted(arrays):
+            buffer = io.BytesIO()
+            np.lib.format.write_array(buffer, np.asanyarray(arrays[key]), allow_pickle=False)
+            member = zipfile.ZipInfo(f"{key}.npy", date_time=(1980, 1, 1, 0, 0, 0))
+            member.compress_type = zipfile.ZIP_DEFLATED
+            member.external_attr = 0o600 << 16
+            archive.writestr(member, buffer.getvalue())
+
+
 def main() -> int:
     print("[1/5] computing all detector scores...")
     all_scores = build_all_scores()
@@ -410,7 +424,7 @@ def main() -> int:
     print("[5/5] writing outputs...")
     cache = _flatten_cache(all_scores, table1, sweep, pca_loco)
     REPORT.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(REPORT / "metrics_collected.npz", **cache)
+    save_npz_deterministic(REPORT / "metrics_collected.npz", cache)
     write_report(table1, sweep, all_scores["alphas"], pca_loco,
                  REPORT / "metrics_results.md")
     write_roc(all_scores, FIG / "roc_curves.png")

@@ -81,7 +81,7 @@ def test_h2_shared_basin_detected():
     d = 8  # low-d so cosine is stable despite small cluster radii
     carla_dir = np.ones(d, dtype=np.float32)
     carla_dir /= np.linalg.norm(carla_dir)
-    high_dir = -carla_dir  # opposite direction — unambiguous separation
+    high_dir = -carla_dir  # opposite direction; unambiguous separation
 
     # Very tight clusters so k-means reliably finds the right centroids
     carla_states = (carla_dir * 0.02 + rng.randn(30, d).astype(np.float32) * 2e-4)
@@ -143,4 +143,4 @@ def test_diagnostic_on_real_caches():
     assert "H1 verdict" in text
     assert "H2 verdict" in text
     # Verify the hard-bimodal gap is still zero
-    assert "Gap (0.1–0.5, should be 0): 0" in text
+    assert "Gap (0.1-0.5, should be 0): 0" in text
